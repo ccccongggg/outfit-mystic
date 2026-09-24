@@ -1,0 +1,1129 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>手机外壳模拟器 · 可交互原型（雾紫神谕）</title>
+<!--
+  ==========================================================================
+  手机外壳模拟器 / Phone Shell Simulator
+  --------------------------------------------------------------------------
+  · 外壳：圆角机身 + 金属边框高光 + 侧边按键 + 灵动岛 + 状态栏 + Home 指示条
+  · 屏幕：独立滚动容器（overscroll-behavior:contain，滚动不外溢）
+  · 交互：底部 Tab 切换 / 左右滑动翻页 / 二级页面 push-pop / 按压反馈 / 灵动岛通知
+  · 自适应：JS 等比缩放（--scale），窄屏与矮屏都不溢出
+
+  要换成你自己的界面，只动两处：
+    1) HTML 里 <div class="pages"> 中的 <section class="page"> —— 每个 section 一屏
+    2) JS 里的 DATA（数据）与 render*（页面渲染函数）
+  外壳层（.phone .screen .statusbar .tabbar）和 JS 的「外壳交互」段都不用改。
+  ==========================================================================
+-->
+<style>
+  :root{
+    /* ---- 机身尺寸（iPhone 14/15 比例 390×844）---- */
+    --pw: 390px;          /* 屏+壳宽 */
+    --ph: 844px;          /* 屏+壳高 */
+    --bezel: 11px;        /* 黑边宽度 */
+    --r-outer: 58px;      /* 机身圆角 */
+    --r-screen: 47px;     /* 屏幕圆角 */
+    --scale: 1;
+
+    /* ---- 设计令牌（雾紫神谕 Mystic Oracle）---- */
+    --cream:#FAF8F5; --surface:#FFFFFF; --mist:#E9E1F7; --lilac:#CDBBEE;
+    --primary:#5B40CB; --primary-deep:#4630A8; --gold:#C9A86A;
+    --night:#211A38; --night-2:#2E2450; --ink:#2A2438; --muted:#A9A5B8;
+    --line:rgba(42,36,56,.08);
+    --sh-card:0 8px 24px rgba(91,64,203,.09);
+    --sh-card-2:0 14px 34px rgba(91,64,203,.16);
+    --ease:cubic-bezier(.22,.61,.36,1);
+    --font-serif:"Noto Serif SC","Songti SC","Source Han Serif SC","STSong",serif;
+    --font-sans:"HarmonyOS Sans SC","MiSans","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  }
+
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:22px;
+    background:
+      radial-gradient(1200px 700px at 50% -10%, #2A2340 0%, transparent 60%),
+      radial-gradient(700px 500px at 90% 100%, #3A2A55 0%, transparent 60%),
+      #14111D;
+    font-family:var(--font-sans); color:#EDE9F5; padding:24px 16px 40px;
+  }
+
+  /* ============ 舞台 & 缩放槽位 ============ */
+  .stage{display:flex;flex-direction:column;align-items:center;gap:16px}
+  .slot{width:var(--pw);height:var(--ph);display:flex;align-items:center;justify-content:center}
+  .scaler{width:var(--pw);height:var(--ph);transform:scale(var(--scale));transform-origin:center center;flex:none}
+  .hint{
+    max-width:560px;text-align:center;font-size:12.5px;line-height:1.9;color:#9B93B4;letter-spacing:.2px
+  }
+  .hint b{color:#D9D2EC;font-weight:600}
+  .hint kbd{
+    display:inline-block;padding:1px 6px;margin:0 2px;border-radius:5px;background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.14);font-family:var(--font-sans);font-size:11px;color:#D9D2EC
+  }
+
+  /* ============ 机身 ============ */
+  .phone{
+    position:relative;width:var(--pw);height:var(--ph);border-radius:var(--r-outer);
+    background:
+      linear-gradient(160deg,#4A4658 0%,#22202C 18%,#17151F 50%,#23212E 82%,#403C4E 100%);
+    box-shadow:
+      0 2px 3px rgba(255,255,255,.35) inset,
+      0 -2px 3px rgba(255,255,255,.14) inset,
+      0 0 0 1.5px rgba(10,9,14,.9),
+      0 40px 80px -20px rgba(0,0,0,.75),
+      0 10px 24px -8px rgba(0,0,0,.5);
+  }
+  /* 边框高光 */
+  .phone::after{
+    content:"";position:absolute;inset:0;border-radius:var(--r-outer);pointer-events:none;
+    background:linear-gradient(115deg,rgba(255,255,255,.22) 0%,rgba(255,255,255,0) 26%,rgba(255,255,255,0) 74%,rgba(255,255,255,.12) 100%);
+    mix-blend-mode:screen;
+  }
+  /* 侧边按键 */
+  .btn-side{position:absolute;background:linear-gradient(180deg,#3A3648,#211F2A);box-shadow:0 1px 1px rgba(255,255,255,.25) inset,0 -1px 1px rgba(0,0,0,.6) inset}
+  .btn-side.silent{left:-2.5px;top:132px;width:3px;height:30px;border-radius:2px}
+  .btn-side.vol-up{left:-3px;top:186px;width:3.5px;height:58px;border-radius:2px}
+  .btn-side.vol-dn{left:-3px;top:252px;width:3.5px;height:58px;border-radius:2px}
+  .btn-side.power{right:-3px;top:214px;width:3.5px;height:92px;border-radius:2px}
+
+  /* ============ 屏幕 ============ */
+  .screen{
+    position:absolute;inset:var(--bezel);border-radius:var(--r-screen);overflow:hidden;
+    background:var(--cream);display:flex;flex-direction:column;isolation:isolate;
+    box-shadow:0 0 0 1px rgba(0,0,0,.6), 0 0 22px rgba(0,0,0,.5) inset;
+  }
+  /* 玻璃反光（不挡点击） */
+  .screen::after{
+    content:"";position:absolute;inset:0;pointer-events:none;z-index:60;
+    background:linear-gradient(112deg,rgba(255,255,255,.14) 0%,rgba(255,255,255,0) 34%);
+  }
+
+  /* ---- 灵动岛 ---- */
+  .island{
+    position:absolute;top:11px;left:50%;transform:translateX(-50%);z-index:50;
+    width:118px;height:33px;border-radius:20px;background:#08070C;display:flex;align-items:center;justify-content:center;gap:8px;
+    box-shadow:0 0 0 .5px rgba(255,255,255,.06);
+    transition:width .42s var(--ease),height .42s var(--ease),border-radius .42s var(--ease);
+    overflow:hidden;
+  }
+  .island .cam{width:9px;height:9px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#2C3A55,#0A0A12 70%);flex:none;transition:opacity .2s}
+  .island .itxt{
+    font-size:12px;color:#F1EDF8;letter-spacing:.3px;white-space:nowrap;opacity:0;transform:translateY(4px);
+    transition:opacity .28s var(--ease) .06s,transform .28s var(--ease) .06s;max-width:0
+  }
+  .island.expanded{width:212px}
+  .island.expanded .itxt{opacity:1;transform:none;max-width:170px}
+  .island.expanded .cam{opacity:.25}
+
+  /* ---- 状态栏 ---- */
+  .statusbar{
+    position:relative;z-index:40;flex:none;height:52px;padding:15px 26px 0;
+    display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:600;
+    color:var(--ink);letter-spacing:.2px;transition:color .3s var(--ease)
+  }
+  .screen.theme-dark .statusbar{color:#F3EFFA}
+  .statusbar .sb-right{display:flex;align-items:center;gap:6px}
+  .statusbar svg{display:block}
+
+  /* ============ 页面轨道（横向翻页） ============ */
+  .pages{
+    position:relative;flex:1;display:flex;width:400%;min-height:0;
+    transform:translateX(calc(var(--i,0) * -25%));
+    transition:transform .36s var(--ease);
+    touch-action:pan-y;user-select:none;-webkit-user-select:none;
+  }
+  .pages img{-webkit-user-drag:none}
+  .pages.dragging{transition:none}
+  .page{width:25%;height:100%;min-height:0;display:flex;flex-direction:column;background:var(--cream)}
+  .page[data-page="oracle"]{background:var(--night)}
+  .page-body{
+    flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+    padding:4px 0 20px;
+  }
+  .page-body::-webkit-scrollbar{width:0;height:0}
+
+  /* ============ 二级页面（push/pop） ============ */
+  .overlay{
+    position:absolute;inset:0;z-index:45;background:var(--cream);display:flex;flex-direction:column;
+    transform:translateX(100%);transition:transform .38s var(--ease);box-shadow:-8px 0 30px rgba(0,0,0,.12)
+  }
+  .overlay.open{transform:translateX(0)}
+  .overlay.theme-dark{background:var(--night)}
+  .ov-body{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:0 0 24px}
+  .ov-body::-webkit-scrollbar{width:0}
+  .navbar{
+    flex:none;height:52px;display:flex;align-items:center;gap:6px;padding:0 10px;
+    border-bottom:1px solid var(--line);background:var(--cream)
+  }
+  .overlay.theme-dark .navbar{background:var(--night);border-bottom-color:rgba(255,255,255,.08)}
+  .navbar .nb-title{flex:1;text-align:center;font-family:var(--font-serif);font-size:16px;color:var(--ink);font-weight:700}
+  .overlay.theme-dark .navbar .nb-title{color:#F3EFFA}
+  .icon-btn{
+    width:38px;height:38px;border:0;background:transparent;border-radius:12px;display:flex;align-items:center;justify-content:center;
+    color:var(--primary);cursor:pointer;transition:transform .16s var(--ease),background .2s
+  }
+  .icon-btn:active{transform:scale(.9);background:rgba(91,64,203,.08)}
+  .overlay.theme-dark .icon-btn{color:var(--gold)}
+
+  /* ============ 底部 Tab & Home 条 ============ */
+  .tabbar{
+    flex:none;position:relative;z-index:40;height:66px;display:flex;align-items:flex-start;padding-top:8px;
+    background:rgba(255,255,255,.92);backdrop-filter:blur(14px);border-top:1px solid var(--line)
+  }
+  .screen.theme-dark .tabbar{background:rgba(23,18,40,.92);border-top-color:rgba(255,255,255,.08)}
+  .tab{
+    flex:1;border:0;background:transparent;cursor:pointer;padding:0;display:flex;flex-direction:column;align-items:center;gap:4px;
+    color:var(--muted);font-size:10.5px;font-family:var(--font-sans);transition:color .24s var(--ease),transform .18s var(--ease)
+  }
+  .tab svg{width:23px;height:23px;display:block}
+  .tab .tlabel{letter-spacing:.2px}
+  .tab.active{color:var(--primary)}
+  .screen.theme-dark .tab{color:#8F88A6}
+  .screen.theme-dark .tab.active{color:var(--gold)}
+  .tab:active{transform:scale(.94)}
+  .tab-ind{
+    position:absolute;top:2px;left:0;width:26px;height:3px;border-radius:2px;background:var(--primary);
+    transition:transform .36s var(--ease),background .3s
+  }
+  .screen.theme-dark .tab-ind{background:var(--gold)}
+  .homebar{
+    flex:none;height:22px;display:flex;align-items:center;justify-content:center;background:inherit
+  }
+  .homebar i{display:block;width:138px;height:5px;border-radius:3px;background:rgba(42,36,56,.28)}
+  .screen.theme-dark .homebar i{background:rgba(255,255,255,.42)}
+
+  /* ============ 内容通用组件 ============ */
+  .pad{padding:0 20px}
+  .serif{font-family:var(--font-serif)}
+  .sec{display:flex;align-items:baseline;justify-content:space-between;margin:26px 20px 12px}
+  .sec h2{margin:0;font-family:var(--font-serif);font-size:17px;color:var(--ink);font-weight:700;letter-spacing:.5px}
+  .sec span{font-size:11.5px;color:var(--muted)}
+  .card{background:var(--surface);border-radius:22px;box-shadow:var(--sh-card);padding:16px}
+  .chip{
+    display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:999px;font-size:12px;
+    background:var(--mist);color:#4C3E86;border:1px solid transparent;cursor:pointer;transition:all .2s var(--ease)
+  }
+  .chip.on{background:var(--primary);color:#fff;box-shadow:0 6px 16px rgba(91,64,203,.28)}
+  .chip:active{transform:scale(.95)}
+  .btn{
+    display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:52px;border:0;border-radius:18px;
+    font-size:15px;font-weight:600;font-family:var(--font-sans);cursor:pointer;transition:transform .18s var(--ease),box-shadow .24s
+  }
+  .btn-primary{background:var(--primary);color:#fff;box-shadow:0 10px 24px rgba(91,64,203,.32)}
+  .btn-ghost{background:transparent;color:var(--primary);border:1.5px solid rgba(91,64,203,.32)}
+  .btn:active{transform:scale(.975)}
+  .press{transition:transform .18s var(--ease)}
+  .press:active{transform:scale(.965)}
+
+  /* ---- 首页 ---- */
+  .hello{display:flex;align-items:center;justify-content:space-between;margin:6px 20px 18px}
+  .hello .kick{font-size:11.5px;color:var(--muted);letter-spacing:1.4px}
+  .hello h1{margin:6px 0 0;font-family:var(--font-serif);font-size:25px;color:var(--ink);font-weight:700;letter-spacing:1px}
+  .avatar{
+    width:44px;height:44px;border-radius:16px;display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(150deg,var(--lilac),var(--primary));color:#fff;font-family:var(--font-serif);font-size:17px;
+    box-shadow:0 8px 18px rgba(91,64,203,.26)
+  }
+  .hero{
+    margin:0 20px;padding:22px 20px 20px;border-radius:28px;position:relative;overflow:hidden;
+    background:linear-gradient(150deg,#F3EFFB 0%,var(--mist) 55%,#DED3F5 100%);box-shadow:var(--sh-card-2)
+  }
+  .hero .orn{position:absolute;right:-16px;top:-18px;width:120px;height:120px;opacity:.5}
+  .hero p{margin:0 0 4px;font-family:var(--font-serif);font-size:19px;color:#3A2C6B;letter-spacing:.6px}
+  .hero small{display:block;color:#6E63A0;font-size:12px;margin-bottom:16px}
+  .hero .btns{display:flex;flex-direction:column;gap:10px}
+  .entry-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 20px}
+  .entry{
+    border:1px solid var(--line);background:var(--surface);border-radius:22px;padding:16px 14px;cursor:pointer;
+    display:flex;flex-direction:column;gap:8px;box-shadow:var(--sh-card)
+  }
+  .entry .ei{width:34px;height:34px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:var(--mist);color:var(--primary)}
+  .entry b{font-size:14px;color:var(--ink);font-weight:600}
+  .entry small{font-size:11px;color:var(--muted);line-height:1.5}
+  .hscroll{display:flex;gap:12px;overflow-x:auto;padding:2px 20px 6px;scroll-snap-type:x mandatory}
+  .hscroll::-webkit-scrollbar{height:0}
+  .hs-item{flex:none;width:96px;scroll-snap-align:start}
+  .hs-item .im{height:96px;border-radius:18px;background:#fff;overflow:hidden;box-shadow:var(--sh-card);display:flex;align-items:center;justify-content:center}
+  .hs-item .im img{width:100%;height:100%;object-fit:contain}
+  .hs-item small{display:block;margin-top:7px;font-size:11px;color:var(--muted);text-align:center}
+  .today{display:flex;align-items:center;gap:12px;margin:0 20px 20px;padding:12px;border-radius:22px;background:var(--surface);box-shadow:var(--sh-card);cursor:pointer}
+  .today .thumbs{display:flex;gap:6px}
+  .today .thumbs i{width:38px;height:38px;border-radius:11px;background:var(--mist);overflow:hidden;display:flex;align-items:center;justify-content:center}
+  .today .thumbs img{width:100%;height:100%;object-fit:contain}
+
+  /* ---- 衣橱 ---- */
+  .filter-row{display:flex;gap:8px;padding:2px 20px 14px;overflow-x:auto}
+  .filter-row::-webkit-scrollbar{height:0}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 20px}
+  .tile{
+    background:var(--surface);border-radius:22px;overflow:hidden;box-shadow:var(--sh-card);cursor:pointer;
+    display:flex;flex-direction:column
+  }
+  .tile .im{height:132px;background:#FFF;display:flex;align-items:center;justify-content:center;position:relative}
+  .tile .im img{width:100%;height:100%;object-fit:contain}
+  .tile .mt{padding:10px 12px 12px}
+  .tile .mt b{display:block;font-size:13px;color:var(--ink);font-weight:600}
+  .tile .mt .tg{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap}
+  .tile .mt .tg span{font-size:10px;color:#6E63A0;background:var(--mist);border-radius:6px;padding:2px 7px}
+  .tile.add .im{background:var(--mist);color:var(--primary);font-size:26px;font-weight:300}
+  .tile.add .mt b{color:var(--primary)}
+
+  /* ---- 神谕（仪式层） ---- */
+  .oracle-wrap{position:relative;flex:1;display:flex;flex-direction:column;align-items:center;padding:14px 20px 0;text-align:center;overflow:hidden}
+  .stars{position:absolute;inset:0;pointer-events:none;opacity:.85;
+    background:
+      radial-gradient(1.6px 1.6px at 18% 22%, #FFF 50%, transparent 51%),
+      radial-gradient(1.2px 1.2px at 72% 14%, #F0E6FF 50%, transparent 51%),
+      radial-gradient(1.8px 1.8px at 38% 62%, #FFF 50%, transparent 51%),
+      radial-gradient(1.1px 1.1px at 86% 44%, #E9DCFF 50%, transparent 51%),
+      radial-gradient(1.5px 1.5px at 8% 52%, #FFF 50%, transparent 51%),
+      radial-gradient(1.2px 1.2px at 60% 78%, #F6EEFF 50%, transparent 51%),
+      radial-gradient(1.3px 1.3px at 92% 68%, #FFF 50%, transparent 51%),
+      radial-gradient(1.1px 1.1px at 26% 88%, #E9DCFF 50%, transparent 51%);
+    animation:twinkle 4.5s ease-in-out infinite alternate
+  }
+  @keyframes twinkle{from{opacity:.35}to{opacity:.95}}
+  .oracle-wrap .kick{margin-top:8px;font-size:11px;letter-spacing:3px;color:var(--gold);opacity:.85}
+  .oracle-wrap h2{margin:12px 0 6px;font-family:var(--font-serif);font-size:23px;color:#F3EFFA;font-weight:700;letter-spacing:1.4px;line-height:1.55}
+  .oracle-wrap .sub{font-size:12px;color:#A79FC4;margin-bottom:18px}
+  .fan{position:relative;width:100%;height:240px;display:flex;align-items:center;justify-content:center;margin-top:6px}
+  .tcard{
+    position:absolute;width:124px;height:180px;cursor:pointer;perspective:1200px;
+    transition:transform .55s var(--ease),opacity .4s var(--ease)
+  }
+  .tcard .inner{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .7s var(--ease)}
+  .tcard.flipped .inner{transform:rotateY(180deg)}
+  .tcard .face{position:absolute;inset:0;border-radius:16px;backface-visibility:hidden;overflow:hidden;box-shadow:0 14px 30px rgba(0,0,0,.45)}
+  .tcard .back{background:linear-gradient(150deg,#3A2E63,#211A38);border:1px solid rgba(201,168,106,.42);display:flex;align-items:center;justify-content:center}
+  .tcard .back svg{width:64px;height:64px;opacity:.9}
+  .tcard .front{transform:rotateY(180deg);background:#15121F;display:flex;align-items:center;justify-content:center}
+  .tcard .front img{width:100%;height:100%;object-fit:cover}
+  .reveal{margin-top:6px;min-height:104px}
+  .reveal .rname{font-family:var(--font-serif);font-size:19px;color:var(--gold);letter-spacing:2px}
+  .reveal .rstory{font-size:12.5px;color:#CFC7E4;margin:8px 0 12px;line-height:1.7}
+  .reveal .chips{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+  .reveal .chips span{font-size:10.5px;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.08);color:#D8D0EB;border:1px solid rgba(255,255,255,.12)}
+  .o-btn{
+    margin-top:16px;width:100%;height:50px;border:0;border-radius:18px;cursor:pointer;font-size:15px;font-weight:600;
+    background:linear-gradient(120deg,var(--gold),#E4C98C);color:#2A2036;box-shadow:0 12px 26px rgba(201,168,106,.28)
+  }
+  .o-btn:active{transform:scale(.975)}
+  .o-again{margin-top:10px;background:transparent;border:1px solid rgba(255,255,255,.18);color:#CFC7E4;height:44px;border-radius:16px;width:100%;font-size:13px;cursor:pointer}
+
+  /* ---- 结果页 ---- */
+  .res-band{padding:18px 20px 22px;background:linear-gradient(160deg,var(--night) 0%,var(--night-2) 100%);color:#F3EFFA}
+  .res-band .rk{font-size:10.5px;letter-spacing:2.6px;color:var(--gold)}
+  .res-band h2{margin:10px 0 8px;font-family:var(--font-serif);font-size:20px;letter-spacing:1px}
+  .res-band p{margin:0;font-size:12.5px;line-height:1.8;color:#CFC7E4}
+  .slots{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:0 20px;margin-top:-12px}
+  .slot-c{background:var(--surface);border-radius:22px;box-shadow:var(--sh-card);overflow:hidden}
+  .slot-c .im{height:120px;background:#fff;display:flex;align-items:center;justify-content:center}
+  .slot-c .im img{width:100%;height:100%;object-fit:contain}
+  .slot-c .lb{padding:9px 10px 11px;text-align:center}
+  .slot-c .lb b{display:block;font-size:12.5px;color:var(--ink);font-weight:600}
+  .slot-c .lb small{display:block;margin-top:3px;font-size:10.5px;color:var(--muted)}
+  .reason{margin:18px 20px 0;padding:16px;border-radius:22px;background:var(--mist)}
+  .reason .rl{font-size:11px;letter-spacing:1.6px;color:#6E63A0}
+  .reason p{margin:8px 0 0;font-size:13px;line-height:1.85;color:#3F3568}
+
+  /* ---- 我的 ---- */
+  .me-head{display:flex;align-items:center;gap:14px;padding:22px 20px 18px}
+  .me-head .av{width:58px;height:58px;border-radius:20px;background:linear-gradient(150deg,var(--lilac),var(--primary));display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--font-serif);font-size:21px;box-shadow:0 10px 22px rgba(91,64,203,.28)}
+  .me-head b{display:block;font-size:17px;color:var(--ink)}
+  .me-head small{display:block;margin-top:4px;font-size:11.5px;color:var(--muted)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:0 20px}
+  .stat{background:var(--surface);border-radius:20px;padding:14px 10px;text-align:center;box-shadow:var(--sh-card)}
+  .stat b{display:block;font-family:var(--font-serif);font-size:20px;color:var(--primary)}
+  .stat small{display:block;margin-top:4px;font-size:11px;color:var(--muted)}
+  .rows{margin:18px 20px 0;border-radius:22px;background:var(--surface);box-shadow:var(--sh-card);overflow:hidden}
+  .row{display:flex;align-items:center;justify-content:space-between;padding:15px 16px;border-bottom:1px solid var(--line)}
+  .row:last-child{border-bottom:0}
+  .row span{font-size:13.5px;color:var(--ink)}
+  .row .sub{font-size:11px;color:var(--muted);display:block;margin-top:3px}
+  .sw{width:46px;height:28px;border-radius:999px;background:#E5E0EE;position:relative;cursor:pointer;transition:background .28s var(--ease);flex:none;border:0}
+  .sw i{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.18);transition:transform .28s var(--ease)}
+  .sw.on{background:var(--primary)}
+  .sw.on i{transform:translateX(18px)}
+
+  /* ---- 上传页 ---- */
+  .drop{
+    margin:16px 20px 0;height:200px;border:2px dashed rgba(91,64,203,.34);border-radius:24px;background:rgba(233,225,247,.4);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;cursor:pointer;color:var(--primary)
+  }
+  .drop:active{transform:scale(.99)}
+  .drop img{max-height:150px;max-width:86%;border-radius:14px}
+  .checks{margin:14px 20px 0;display:flex;flex-direction:column;gap:8px}
+  .chk{display:flex;align-items:center;gap:8px;font-size:12.5px;color:#5B5570}
+  .chk.warn{color:#C2453F;background:rgba(220,80,80,.1);border:1px solid rgba(220,80,80,.35);border-radius:12px;padding:10px 12px;line-height:1.6;font-weight:600}
+  .form-row{margin:18px 20px 0}
+  .form-row .fl{font-size:12px;color:var(--muted);margin-bottom:9px;letter-spacing:.4px}
+  .form-row .chips{display:flex;gap:8px;flex-wrap:wrap}
+  .field{margin:18px 20px 0}
+  .field input{
+    width:100%;height:46px;border:1px solid var(--line);border-radius:14px;padding:0 14px;font-size:14px;
+    font-family:var(--font-sans);color:var(--ink);background:#fff;outline:none
+  }
+  .field input:focus{border-color:var(--primary)}
+
+  /* ---- 详情 sheet ---- */
+  .sheet-wrap{position:absolute;inset:0;z-index:55;display:none}
+  .sheet-wrap.show{display:block}
+  .sheet-mask{position:absolute;inset:0;background:rgba(20,16,32,.42);opacity:0;transition:opacity .3s var(--ease)}
+  .sheet-wrap.show .sheet-mask{opacity:1}
+  .sheet{
+    position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:28px 28px 0 0;padding:8px 20px 26px;
+    transform:translateY(100%);transition:transform .38s var(--ease);box-shadow:0 -12px 40px rgba(0,0,0,.22)
+  }
+  .sheet-wrap.show .sheet{transform:translateY(0)}
+  .sheet .handle{width:38px;height:4px;border-radius:2px;background:rgba(42,36,56,.18);margin:6px auto 14px}
+  .sheet .big{height:170px;border-radius:22px;background:#fff;display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+  .sheet .big img{max-width:100%;max-height:100%;object-fit:contain}
+  .sheet h3{margin:0 0 14px;font-family:var(--font-serif);font-size:19px;color:var(--ink)}
+  .kv{display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--line);font-size:13px}
+  .kv span{color:var(--muted)}
+  .kv b{color:var(--ink);font-weight:600}
+
+  /* ---- Toast ---- */
+  .toast{
+    position:absolute;left:50%;bottom:104px;transform:translate(-50%,14px);z-index:58;
+    background:rgba(33,26,56,.94);color:#F3EFFA;font-size:12.5px;padding:10px 16px;border-radius:14px;
+    opacity:0;pointer-events:none;transition:opacity .26s var(--ease),transform .26s var(--ease);white-space:nowrap;
+    box-shadow:0 10px 26px rgba(0,0,0,.3)
+  }
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="slot" id="slot">
+    <div class="scaler">
+      <div class="phone" id="phone">
+        <span class="btn-side silent"></span>
+        <span class="btn-side vol-up"></span>
+        <span class="btn-side vol-dn"></span>
+        <span class="btn-side power"></span>
+
+        <div class="screen" id="screen">
+
+          <!-- 灵动岛 -->
+          <div class="island" id="island">
+            <span class="cam"></span>
+            <span class="itxt" id="islandText"></span>
+          </div>
+
+          <!-- 状态栏 -->
+          <div class="statusbar">
+            <span id="clock">9:41</span>
+            <span class="sb-right">
+              <svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor" aria-hidden="true">
+                <rect x="0"  y="8"   width="3" height="4"   rx="1"></rect>
+                <rect x="5"  y="5.5" width="3" height="6.5" rx="1"></rect>
+                <rect x="10" y="3"   width="3" height="9"   rx="1"></rect>
+                <rect x="15" y="0.5" width="3" height="11.5" rx="1" opacity=".35"></rect>
+              </svg>
+              <svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">
+                <path d="M1 4.2 A10 10 0 0 1 15 4.2"></path>
+                <path d="M3.6 6.9 A6.4 6.4 0 0 1 12.4 6.9"></path>
+                <circle cx="8" cy="10" r="1.1" fill="currentColor" stroke="none"></circle>
+              </svg>
+              <svg width="26" height="13" viewBox="0 0 26 13" aria-hidden="true">
+                <rect x="0.8" y="0.8" width="21" height="11.4" rx="3.4" fill="none" stroke="currentColor" stroke-opacity=".45" stroke-width="1.2"></rect>
+                <rect x="2.6" y="2.6" width="14.6" height="7.8" rx="2.2" fill="currentColor"></rect>
+                <path d="M23.6 4.4 v4.2 a2.4 2.4 0 0 0 0-4.2 z" fill="currentColor" fill-opacity=".5"></path>
+              </svg>
+            </span>
+          </div>
+
+          <!-- ============================================================
+               内容区：每个 <section class="page"> 就是一屏，随便换
+               ============================================================ -->
+          <div class="pages" id="pages">
+            <section class="page" data-page="home"><div class="page-body" id="p-home"></div></section>
+            <section class="page" data-page="wardrobe"><div class="page-body" id="p-wardrobe"></div></section>
+            <section class="page" data-page="oracle"><div class="page-body" id="p-oracle"></div></section>
+            <section class="page" data-page="me"><div class="page-body" id="p-me"></div></section>
+          </div>
+          <!-- ======================= 内容区结束 ======================= -->
+
+          <!-- 二级页面容器（push/pop） -->
+          <div class="overlay" id="overlay">
+            <div class="navbar">
+              <button class="icon-btn" data-act="pop" aria-label="返回">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+              </button>
+              <div class="nb-title" id="ovTitle">详情</div>
+              <span style="width:38px"></span>
+            </div>
+            <div class="ov-body" id="ovBody"></div>
+          </div>
+
+          <!-- 底部 Tab -->
+          <div class="tabbar" id="tabbar">
+            <span class="tab-ind" id="tabInd"></span>
+            <button class="tab active" data-tab="home">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.5V21h13V9.5"/></svg>
+              <span class="tlabel">首页</span>
+            </button>
+            <button class="tab" data-tab="wardrobe">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16v13H4z"/><path d="M9 7V4.5h6V7"/><path d="M4 12h16"/></svg>
+              <span class="tlabel">衣橱</span>
+            </button>
+            <button class="tab" data-tab="oracle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5l2.2 5.1 5.6.5-4.2 3.7 1.2 5.4L12 15.6 7.2 18.2l1.2-5.4L4.2 9.1l5.6-.5z"/></svg>
+              <span class="tlabel">神谕</span>
+            </button>
+            <button class="tab" data-tab="me">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.8 20a7.2 7.2 0 0 1 14.4 0"/></svg>
+              <span class="tlabel">我的</span>
+            </button>
+          </div>
+
+          <div class="homebar"><i></i></div>
+
+          <!-- 单品详情 sheet -->
+          <div class="sheet-wrap" id="sheetWrap">
+            <div class="sheet-mask" data-act="sheet-close"></div>
+            <div class="sheet" id="sheet"></div>
+          </div>
+
+          <div class="toast" id="toast"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="hint">
+    <b>怎么玩：</b>点底部 Tab 切换 · 在屏幕上<b>左右拖动</b>翻页 · 点卡片/入口/Tab 都有反馈 ·
+    <kbd>←</kbd><kbd>→</kbd> 切页 · <kbd>Esc</kbd> 返回上一层。屏幕内滚动被限制在屏内，不会带动外层页面。
+  </p>
+</div>
+
+<script>
+/* =========================================================================
+   1) 数据区 —— 换成你自己的数据即可
+   ========================================================================= */
+const ITEMS = [
+  {id:"w0001",img:"prod_tee_white.jpg",   category:"top",    type:"短袖", color_name:"柔白",  color_hex:"#F2F0EB", season:["春","夏","秋"], style_tags:["简约","温柔"], fit:"合身", pattern:"纯色"},
+  {id:"w0002",img:"prod_tee_black.jpg",   category:"top",    type:"短袖", color_name:"纯黑",  color_hex:"#1C1C1E", season:["春","夏","秋"], style_tags:["极简","街头"], fit:"合身", pattern:"纯色"},
+  {id:"w0003",img:"prod_shirt_blue.jpg",  category:"top",    type:"短袖", color_name:"雾蓝",  color_hex:"#8FA6C2", season:["春","夏"],     style_tags:["通勤","简约"], fit:"合身", pattern:"纯色"},
+  {id:"w0004",img:"prod_shirt_plaid.jpg", category:"top",    type:"长袖", color_name:"暖棕",  color_hex:"#A67C52", season:["秋","冬"],     style_tags:["复古","街头"], fit:"宽松", pattern:"格纹"},
+  {id:"w0005",img:"prod_dress_gray.jpg",  category:"top",    type:"连衣裙",color_name:"雾灰", color_hex:"#A8A8AE", season:["春","夏"],     style_tags:["简约","温柔"], fit:"合身", pattern:"纯色"},
+  {id:"w0006",img:"prod_jogger_gray.jpg", category:"bottom", type:"长裤", color_name:"雾灰",  color_hex:"#A8B0B8", season:["春","秋"],     style_tags:["简约","运动"], fit:"直筒", pattern:"纯色"},
+  {id:"w0007",img:"prod_short_olive.jpg", category:"bottom", type:"短裤", color_name:"橄榄绿",color_hex:"#78824E", season:["夏"],          style_tags:["简约","运动"], fit:"合身", pattern:"纯色"},
+  {id:"w0008",img:"prod_jogger_red.jpg",  category:"bottom", type:"长裤", color_name:"砖红",  color_hex:"#963237", season:["秋"],          style_tags:["街头","运动"], fit:"直筒", pattern:"纯色"},
+  {id:"w0009",img:"prod_sneaker_white.jpg",category:"shoes", type:"鞋",   color_name:"米白",  color_hex:"#EDE8DC", season:["春","夏","秋"], style_tags:["简约","运动"], fit:"合身", pattern:"纯色"},
+  {id:"w0010",img:"prod_sneaker_red.jpg", category:"shoes",  type:"鞋",   color_name:"红黑",  color_hex:"#C23B3B", season:["春","秋"],     style_tags:["街头","运动"], fit:"合身", pattern:"拼色"},
+  {id:"w0011",img:"prod_jacket.jpg",      category:"outer",  type:"外套", color_name:"卡其",  color_hex:"#B8895A", season:["秋","冬"],     style_tags:["通勤","复古"], fit:"合身", pattern:"纯色"},
+  {id:"w0012",img:"prod_shoes_heel.jpg",  category:"shoes",  type:"鞋",   color_name:"浅金棕",color_hex:"#C9A574", season:["春","夏"],     style_tags:["甜美","通勤"], fit:"合身", pattern:"纯色"}
+];
+const IMG_BASE = "../web/assets/items/";   // 图片目录；改这里就能指向你自己的资源
+const TAROT = [
+  {id:"star",  name:"星星", en:"THE STAR",   img:"star.svg",   style_tags:["温柔","简约"], must_colors:["奶油白","浅紫","白","米"], avoid_colors:["黑"], season:["春","秋"], vibe:"soft / cozy",        story:"今天适合温柔地对待自己"},
+  {id:"moon",  name:"月亮", en:"THE MOON",   img:"moon.svg",   style_tags:["复古","极简"], must_colors:["蓝","灰","银"],           avoid_colors:[],      season:["秋","冬"], vibe:"dreamy / mysterious",story:"直觉会带你走对的路，穿得放松一点"},
+  {id:"sun",   name:"太阳", en:"THE SUN",    img:"sun.svg",    style_tags:["甜美","运动"], must_colors:["黄","橙","奶油"],         avoid_colors:[],      season:["春","夏"], vibe:"bright / warm",       story:"把光穿在身上，今天会顺"},
+  {id:"hermit",name:"隐者", en:"THE HERMIT", img:"hermit.svg", style_tags:["极简","通勤"], must_colors:["灰","棕","卡其"],         avoid_colors:[],      season:["秋","冬"], vibe:"quiet / focused",     story:"把世界调成静音，选一身不吵的衣服"}
+];
+const ENTRIES = [
+  {key:"mood",     title:"按心情", desc:"先照顾情绪", label:"心情 · 想被治愈", style_tags:["温柔","简约"], must_colors:[], season:[], vibe:"soft / cozy", story:"今天适合温柔地对待自己，慢一点也没关系"},
+  {key:"weather",  title:"按天气", desc:"晴雨冷暖",   label:"天气 · 晴",       style_tags:["简约"], must_colors:[], season:["春","夏","秋"], vibe:"clear / light", story:"天晴，穿轻快点的"},
+  {key:"color",    title:"按颜色", desc:"今天想穿这个色", label:"颜色 · 奶油白", style_tags:[], must_colors:["白","米","奶油"], season:[], vibe:"clean / soft", story:"奶油白的一天，干净又松弛"},
+  {key:"occasion", title:"按场合", desc:"见人要有分寸", label:"场合 · 通勤",    style_tags:["通勤","简约"], must_colors:[], season:[], vibe:"neat / pro", story:"上班日，利落得体优先"}
+];
+
+/* 推荐引擎（与 web/engine.js 同构：硬筛季节/禁用色，软分必须色+风格，逐槽位取最高分） */
+function recommend(items, c){
+  const cats = c.must_categories || ["top","bottom","shoes"];
+  let cand = items.filter(it => it && it.category);
+  cand = cand.filter(it => !c.season || !c.season.length || !it.season || !it.season.length || it.season.some(s => c.season.includes(s)));
+  cand = cand.filter(it => !(c.avoid_colors || []).some(k => {
+    const n = it.color_name || "";
+    return n && (n.includes(k) || k.includes(n));
+  }));
+  const scoreOf = it => {
+    let s = 0;
+    (c.must_colors || []).forEach(k => { const n = it.color_name || ""; if (n && (n.includes(k) || k.includes(n))) s += 3; });
+    (c.style_tags || []).forEach(t => { if ((it.style_tags || []).includes(t)) s += 2; });
+    return s + Math.random() * 0.01;
+  };
+  const ids = [];
+  cats.forEach(cat => {
+    const slot = cand.filter(it => it.category === cat).sort((a,b) => scoreOf(b) - scoreOf(a));
+    if (slot[0]) ids.push(slot[0].id);
+  });
+  return ids;
+}
+
+/* =========================================================================
+   2) 应用状态 + 页面渲染 —— 换成你自己的界面时改这里
+   ========================================================================= */
+const S = {
+  tab: "home",
+  items: ITEMS.slice(),
+  filter: "all",
+  drawn: null,          // 抽到的塔罗
+  result: null,         // {source,title,story,vibe,ids}
+  ov: null,             // 当前二级页面
+  settings: { push:true, ai:true, privacy:false }
+};
+
+const $  = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[m]));
+/* 生成 <img>：优先用本地上传的 dataUrl，其次走 IMG_BASE 目录，加载失败退成色块 */
+function imgTag(file, color, dataUrl){
+  const src = dataUrl || (file ? IMG_BASE + file : "");
+  if (!src) return '<div style="width:100%;height:100%;background:' + (color || "#F1EDF8") + '"></div>';
+  return '<img src="' + src + '" alt="" onerror="this.outerHTML=\'<div style=&quot;width:100%;height:100%;background:' + (color || "#F1EDF8") + '&quot;></div>\'">';
+}
+const CAT_NAME = { top:"上装", bottom:"下装", shoes:"鞋履", outer:"外套" };
+
+/* ---------- 首页 ---------- */
+function renderHome(){
+  const today = S.result ? S.result.ids.map(id => S.items.find(i => i.id === id)).filter(Boolean) : [];
+  $("#p-home").innerHTML = `
+    <div class="hello">
+      <div>
+        <div class="kick">${dateLine()}</div>
+        <h1 class="serif">今天穿什么？</h1>
+      </div>
+      <div class="avatar">C</div>
+    </div>
+
+    ${S.result ? `
+    <div class="today press" data-act="open-result">
+      <div class="thumbs">${today.map(it => '<i>' + imgTag(it.img, it.color_hex, it.dataUrl) + '</i>').join("")}</div>
+      <div style="flex:1">
+        <b style="font-size:13.5px;color:var(--ink)">今日搭配已就绪</b>
+        <small style="display:block;margin-top:3px;font-size:11.5px;color:var(--muted)">${esc(S.result.title)} · 点击查看</small>
+      </div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A9A5B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+    </div>` : ""}
+
+    <div class="hero">
+      <svg class="orn" viewBox="0 0 120 120" fill="none" stroke="#5B40CB" stroke-opacity=".3" stroke-width="1">
+        <circle cx="60" cy="60" r="34"/><circle cx="60" cy="60" r="22"/><path d="M60 14v92M14 60h92"/>
+      </svg>
+      <p>让今天的运气<br>先替你选一次</p>
+      <small>抽一张牌，交给衣柜自己说话</small>
+      <div class="btns">
+        <button class="btn btn-primary" data-act="go-oracle">抽今日神谕 · 塔罗</button>
+        <button class="btn btn-ghost" data-act="blind">懒得选 · 直接盲盒</button>
+      </div>
+    </div>
+
+    <div class="sec"><h2>换个入口也行</h2><span>选一个就算开始</span></div>
+    <div class="entry-grid">
+      ${ENTRIES.map(e => `
+        <div class="entry press" data-act="entry" data-key="${e.key}">
+          <div class="ei">${entryIcon(e.key)}</div>
+          <b>${esc(e.title)}</b>
+          <small>${esc(e.desc)}</small>
+        </div>`).join("")}
+    </div>
+
+    <div class="sec"><h2>衣橱速览</h2><span>共 ${S.items.length} 件</span></div>
+    <div class="hscroll">
+      ${S.items.slice(0, 8).map(it => `
+        <div class="hs-item press" data-act="open-item" data-id="${it.id}">
+          <div class="im">${imgTag(it.img, it.color_hex, it.dataUrl)}</div>
+          <small>${esc(it.color_name)} · ${esc(it.type)}</small>
+        </div>`).join("")}
+    </div>`;
+}
+
+function entryIcon(k){
+  const p = {
+    mood:'<path d="M12 20s-7-4.4-7-9a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 4.6-7 9-7 9z"/>',
+    weather:'<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6L17 7M7 17l-1.4 1.4"/>',
+    color:'<path d="M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17z"/><path d="M12 3.5v17" />',
+    occasion:'<rect x="3.5" y="8" width="17" height="12" rx="2.5"/><path d="M8.5 8V5.5a1.5 1.5 0 0 1 3 0V8M12.5 8V5.5a1.5 1.5 0 0 1 3 0V8"/>'
+  }[k];
+  return '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>';
+}
+
+/* ---------- 衣橱 ---------- */
+function renderWardrobe(){
+  const list = S.filter === "all" ? S.items : S.items.filter(it => it.category === S.filter);
+  $("#p-wardrobe").innerHTML = `
+    <div style="height:14px"></div>
+    <div style="padding:0 20px;font-family:var(--font-serif);font-size:20px;color:var(--ink);font-weight:700;letter-spacing:.6px">我的衣橱</div>
+    <div class="filter-row">
+      ${["all","top","bottom","shoes","outer"].map(c => `<button class="chip ${S.filter === c ? "on" : ""}" data-act="filter" data-cat="${c}">${c === "all" ? "全部" : CAT_NAME[c]}</button>`).join("")}
+    </div>
+    <div class="grid">
+      ${list.map(it => `
+        <div class="tile press" data-act="open-item" data-id="${it.id}">
+          <div class="im">${imgTag(it.img, it.color_hex, it.dataUrl)}</div>
+          <div class="mt">
+            <b>${esc(it.color_name)} · ${esc(it.type)}</b>
+            <div class="tg">${(it.season || []).map(s => "<span>" + s + "</span>").join("")}${(it.style_tags || []).slice(0,1).map(t => "<span>" + t + "</span>").join("")}</div>
+          </div>
+        </div>`).join("")}
+      <div class="tile add press" data-act="go-upload">
+        <div class="im">＋</div>
+        <div class="mt"><b>上传新单品</b><div class="tg"><span>拍照 / 相册</span></div></div>
+      </div>
+    </div>`;
+}
+
+/* ---------- 神谕（仪式层） ---------- */
+function renderOracle(){
+  const c = S.drawn;
+  $("#p-oracle").innerHTML = `
+    <div class="oracle-wrap">
+      <div class="stars"></div>
+      <div class="kick">MYSTIC ORACLE</div>
+      <h2>${c ? "牌已翻开" : "静心三秒<br>抽一张属于今天的牌"}</h2>
+      <div class="sub">${c ? "看看它想让你穿成什么样" : "凭直觉点一张，不要犹豫"}</div>
+
+      <div class="fan" id="fan">
+        ${TAROT.map((t, i) => {
+          if (c && t.id !== c.id) return "";
+          const rot = c ? 0 : (i - 1.5) * 9;
+          const dx  = c ? 0 : (i - 1.5) * 46;
+          const dy  = c ? 0 : Math.abs(i - 1.5) * 12;
+          return `
+          <div class="tcard ${c ? "flipped" : ""}" data-act="draw" data-id="${t.id}"
+               style="transform:translate(${dx}px,${dy}px) rotate(${rot}deg);z-index:${c ? 5 : i}">
+            <div class="inner">
+              <div class="face back">
+                <svg viewBox="0 0 64 64" fill="none" stroke="#C9A86A" stroke-width="1.2">
+                  <rect x="10" y="10" width="44" height="44" rx="6"/>
+                  <path d="M32 16l16 16-16 16L16 32z"/>
+                  <circle cx="32" cy="32" r="5"/>
+                  <path d="M32 22a10 10 0 1 0 7 17" stroke-opacity=".7"/>
+                </svg>
+              </div>
+              <div class="face front"><img src="../web/assets/tarot/${t.img}" alt="${esc(t.name)}" onerror="this.parentNode.innerHTML='<div style=&quot;display:flex;height:100%;align-items:center;justify-content:center;font-family:serif;color:#C9A86A;font-size:22px&quot;>${esc(t.name)}</div>'"></div>
+            </div>
+          </div>`;
+        }).join("")}
+      </div>
+
+      <div class="reveal">
+        ${c ? `
+          <div class="rname">${esc(c.name)} · ${esc(c.en)}</div>
+          <div class="rstory">${esc(c.story)}</div>
+          <div class="chips">
+            ${(c.must_colors || []).map(x => "<span>宜 " + esc(x) + "</span>").join("")}
+            ${(c.avoid_colors || []).map(x => "<span>忌 " + esc(x) + "</span>").join("")}
+            ${(c.season || []).map(x => "<span>" + esc(x) + "</span>").join("")}
+          </div>
+          <button class="o-btn" data-act="gen">生成今日穿搭</button>
+          <button class="o-again" data-act="redraw">再抽一张</button>
+        ` : '<div style="font-size:12px;color:#8F88A6;padding-top:14px">↑ 点一张牌</div>'}
+      </div>
+    </div>`;
+}
+
+/* ---------- 我的 ---------- */
+function renderMe(){
+  $("#p-me").innerHTML = `
+    <div class="me-head">
+      <div class="av">C</div>
+      <div><b>Cong</b><small>雾紫神谕 · 常驻居民</small></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><b>${S.items.length}</b><small>衣橱单品</small></div>
+      <div class="stat"><b>${S.result ? 1 : 0}</b><small>今日搭配</small></div>
+      <div class="stat"><b>${TAROT.length}</b><small>可用牌面</small></div>
+    </div>
+    <div class="rows">
+      <div class="row"><span>每日神谕提醒<small class="sub">早上 8:30 推送今日搭配</small></span>
+        <button class="sw ${S.settings.push ? "on" : ""}" data-act="toggle" data-key="push"><i></i></button></div>
+      <div class="row"><span>AI 自动打标<small class="sub">上传后自动识别品类与颜色</small></span>
+        <button class="sw ${S.settings.ai ? "on" : ""}" data-act="toggle" data-key="ai"><i></i></button></div>
+      <div class="row"><span>公开我的穿搭<small class="sub">让广场看到你的今日 look</small></span>
+        <button class="sw ${S.settings.privacy ? "on" : ""}" data-act="toggle" data-key="privacy"><i></i></button></div>
+      <div class="row press" data-act="go-oracle" style="cursor:pointer"><span>重新抽取今日神谕</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A9A5B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>
+    </div>
+    <div style="margin:22px 20px 0;padding:16px;border-radius:22px;background:var(--mist)">
+      <div style="font-size:11px;letter-spacing:1.6px;color:#6E63A0">版本</div>
+      <p style="margin:8px 0 0;font-size:12.5px;line-height:1.8;color:#3F3568">Mystic Oracle 0.1 · 原型外壳 · 数据均为本地示例</p>
+    </div>`;
+}
+
+function dateLine(){
+  const d = new Date();
+  const w = "日一二三四五六"[d.getDay()];
+  return (d.getMonth() + 1) + "月" + d.getDate() + "日 · 周" + w;
+}
+
+/* ---------- 结果页（二级页面） ---------- */
+function pushResult(con){
+  const ids = recommend(S.items, con);
+  const picks = ids.map(id => S.items.find(i => i.id === id)).filter(Boolean);
+  S.result = { source: con.source, title: con.title, story: con.story, vibe: con.vibe, ids };
+  const top = picks.find(p => p.category === "top");
+  const bot = picks.find(p => p.category === "bottom");
+  const sh  = picks.find(p => p.category === "shoes");
+  const reason = [
+    top ? top.color_name + top.type : "",
+    bot ? bot.color_name + bot.type : ""
+  ].filter(Boolean).join(" 配 ") + (sh ? "，鞋子交给" + sh.color_name + sh.type + "收尾" : "") + "。";
+
+  $("#ovTitle").textContent = con.title;
+  $("#overlay").classList.remove("theme-dark");
+  $("#ovBody").innerHTML = `
+    <div class="res-band">
+      <div class="rk">${esc(con.source)}</div>
+      <h2>${esc(con.title)}</h2>
+      <p>${esc(con.story)}${con.vibe ? '<br><span style="color:#C9A86A">' + esc(con.vibe) + '</span>' : ""}</p>
+    </div>
+    ${picks.length ? `
+    <div class="slots">
+      ${picks.map(p => `
+        <div class="slot-c">
+          <div class="im">${imgTag(p.img, p.color_hex, p.dataUrl)}</div>
+          <div class="lb"><b>${esc(p.color_name)}</b><small>${esc(p.type)}</small></div>
+        </div>`).join("")}
+    </div>
+    <div class="reason">
+      <div class="rl">为什么是这三件</div>
+      <p>今天走「${esc(con.vibe || "轻松")}」的路子：${esc(reason)}
+      ${(con.style_tags || []).length ? "风格上贴着 " + esc(con.style_tags.join("、")) + "，不会跑偏。" : ""}</p>
+    </div>` : `
+    <div style="margin:28px 20px;padding:22px;border-radius:22px;background:var(--mist);text-align:center">
+      <div style="font-family:var(--font-serif);font-size:16px;color:#3F3568">衣橱里暂时没有符合这个约束的单品</div>
+      <p style="font-size:12.5px;color:#6E63A0;line-height:1.8;margin:8px 0 0">放宽一点条件，或者先上传几件新单品试试。</p>
+    </div>`}
+    <div style="padding:20px 20px 0;display:flex;flex-direction:column;gap:10px">
+      <button class="btn btn-ghost" data-act="redraw">再换一套</button>
+      <button class="btn btn-primary" data-act="save-today">存入今日</button>
+      <button class="btn btn-ghost" data-act="go-wardrobe">打开衣橱</button>
+    </div>`;
+  openOverlay();
+  renderHome();
+}
+
+/* ---------- 上传页（二级页面） ---------- */
+let UP = { file:null, dataUrl:"", cat:"top", color:"", styles:[], season:[], hard:false };
+function pushUpload(){
+  $("#ovTitle").textContent = "上传单品";
+  $("#overlay").classList.remove("theme-dark");
+  const chips = (arr, key, cur) => arr.map(v => `<button class="chip ${cur.indexOf(v) >= 0 ? "on" : ""}" data-act="up-chip" data-key="${key}" data-v="${esc(v)}">${esc(v)}</button>`).join("");
+  $("#ovBody").innerHTML = `
+    <div class="drop" data-act="up-pick">
+      ${UP.dataUrl
+        ? '<img src="' + UP.dataUrl + '" alt="">'
+        : '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg><div style="font-size:13px">点击选择一张衣服照片</div><div style="font-size:11px;color:#6E63A0">单件平铺、白底或纯色背景最佳</div>'}
+    </div>
+    <input type="file" accept="image/*" id="fileInput" hidden>
+
+    ${UP.dataUrl ? `
+    <div class="checks" id="upChecks">
+      <div class="chk">✓ 图片已读取，准备进入抠底流程</div>
+      ${UP.hard ? '<div class="chk warn">⚠ 这张图背景复杂（白底占比偏低），可能抠不干净。建议改用「单件平铺 + 白底/纯色背景」的商品图；若继续，将以原图入柜、由你手动补标签。</div>' : ''}
+    </div>
+    <div class="form-row"><div class="fl">品类</div><div class="chips">${chips(["top","bottom","shoes","outer"], "cat", [UP.cat]).replace(/data-v="top"/, 'data-v="top"')}</div></div>
+    <div class="field"><div class="fl" style="font-size:12px;color:var(--muted);margin-bottom:9px">颜色（如：米白 / 砖红）</div>
+      <input id="upColor" placeholder="输入颜色名" value="${esc(UP.color)}"></div>
+    <div class="form-row"><div class="fl">风格</div><div class="chips">${chips(["简约","街头","通勤","复古","运动","甜美","温柔","极简"], "styles", UP.styles)}</div></div>
+    <div class="form-row"><div class="fl">季节</div><div class="chips">${chips(["春","夏","秋","冬"], "season", UP.season)}</div></div>
+    <div style="padding:20px 20px 0"><button class="btn btn-primary" data-act="up-save">确认入库</button></div>` : ""}`;
+  // 品类用中文名显示
+  $$("#ovBody [data-key='cat']").forEach(b => { b.textContent = CAT_NAME[b.dataset.v]; });
+  openOverlay();
+}
+
+/* 上传：抠图难度判定（与 web/app.js 同逻辑，采样四边白像素占比） */
+function analyzeCut(img){
+  const w = 64, h = Math.max(1, Math.round(img.height * 64 / img.width));
+  const cv = document.createElement("canvas");
+  cv.width = w; cv.height = h;
+  const ctx = cv.getContext("2d");
+  ctx.drawImage(img, 0, 0, w, h);
+  let d;
+  try { d = ctx.getImageData(0, 0, w, h).data; } catch (e) { return { hard:false }; }
+  const at = (x, y) => { const i = (y * w + x) * 4; return d[i] > 240 && d[i+1] > 240 && d[i+2] > 240; };
+  let total = 0, white = 0;
+  const band = Math.max(1, Math.floor(Math.min(w, h) * 0.12));
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    if (x < band || x >= w - band || y < band || y >= h - band) { total++; if (at(x, y)) white++; }
+  }
+  const ratio = total ? white / total : 0;
+  return { hard: ratio < 0.6, ratio };
+}
+
+/* ---------- 单品详情 sheet ---------- */
+function openItem(id){
+  const it = S.items.find(i => i.id === id);
+  if (!it) return;
+  $("#sheet").innerHTML = `
+    <div class="handle"></div>
+    <div class="big">${imgTag(it.img, it.color_hex, it.dataUrl)}</div>
+    <h3>${esc(it.color_name)} · ${esc(it.type)}</h3>
+    <div class="kv"><span>品类</span><b>${esc(CAT_NAME[it.category] || "-")}</b></div>
+    <div class="kv"><span>颜色</span><b>${esc(it.color_name)} <i style="display:inline-block;width:12px;height:12px;border-radius:4px;background:${esc(it.color_hex)};vertical-align:-1px;margin-left:4px"></i></b></div>
+    <div class="kv"><span>版型 / 图案</span><b>${esc(it.fit || "-")} · ${esc(it.pattern || "-")}</b></div>
+    <div class="kv"><span>季节</span><b>${(it.season || []).join(" ") || "-"}</b></div>
+    <div class="kv"><span>风格</span><b>${(it.style_tags || []).join("、") || "-"}</b></div>
+    <div style="display:flex;gap:10px;margin-top:18px">
+      <button class="btn btn-ghost" data-act="sheet-close">关闭</button>
+      <button class="btn btn-primary" data-act="del-item" data-id="${it.id}">移出衣橱</button>
+    </div>`;
+  $("#sheetWrap").classList.add("show");
+}
+
+/* =========================================================================
+   3) 外壳交互层 —— 一般不用改（Tab / 滑动 / push-pop / 灵动岛 / 状态栏 / 缩放）
+   ========================================================================= */
+const TABS = ["home", "wardrobe", "oracle", "me"];
+const screen = $("#screen");
+let toastTimer, islandTimer;
+
+function setTab(name, silent){
+  const i = TABS.indexOf(name);
+  if (i < 0) return;
+  S.tab = name;
+  $("#pages").style.setProperty("--i", i);
+  $$(".tab").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
+  const ind = $("#tabInd");
+  const w = $("#tabbar").clientWidth / 4;
+  ind.style.transform = "translateX(" + (i * w + w / 2 - 13) + "px)";
+  screen.classList.toggle("theme-dark", name === "oracle");   // 仪式层深色，状态栏/底栏随之反色
+  if (!silent) Phone.island(TABS_NAME[name]);
+}
+
+const TABS_NAME = { home:"首页", wardrobe:"衣橱", oracle:"神谕", me:"我的" };
+
+function renderAll(){ renderHome(); renderWardrobe(); renderOracle(); renderMe(); }
+
+/* ---- 二级页面 ---- */
+function openOverlay(){ $("#overlay").classList.add("open"); S.ov = true; }
+function closeOverlay(){ $("#overlay").classList.remove("open"); S.ov = false; }
+
+/* ---- Toast & 灵动岛 & 轻震动 ---- */
+const Phone = {
+  toast(msg){
+    const t = $("#toast");
+    t.textContent = msg; t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove("show"), 1900);
+  },
+  island(text){
+    const is = $("#island");
+    $("#islandText").textContent = text || "";
+    is.classList.add("expanded");
+    clearTimeout(islandTimer);
+    islandTimer = setTimeout(() => is.classList.remove("expanded"), 1900);
+  },
+  buzz(ms){ if (navigator.vibrate) { try { navigator.vibrate(ms || 8); } catch (e) {} } }
+};
+
+/* ---- 事件委托：所有交互都走 data-act ---- */
+document.addEventListener("click", e => {
+  const el = e.target.closest("[data-act]");
+  if (!el) return;
+  const act = el.dataset.act;
+  Phone.buzz(8);
+
+  switch (act) {
+    case "go-oracle":
+      setTab("oracle"); if (S.drawn) { S.drawn = null; renderOracle(); }
+      break;
+    case "blind": {
+      const c = ENTRIES[Math.floor(Math.random() * ENTRIES.length)];
+      pushResult({ source:"盲盒", title:c.title, story:c.story, vibe:c.vibe, style_tags:c.style_tags, must_colors:c.must_colors, season:c.season, must_categories:["top","bottom","shoes"] });
+      break;
+    }
+    case "entry": {
+      const c = ENTRIES.find(x => x.key === el.dataset.key);
+      pushResult({ source:"入口 · " + c.title, title:c.label, story:c.story, vibe:c.vibe, style_tags:c.style_tags, must_colors:c.must_colors, season:c.season, must_categories:["top","bottom","shoes"] });
+      break;
+    }
+    case "draw":
+      if (S.drawn) return;
+      S.drawn = TAROT.find(t => t.id === el.dataset.id);
+      renderOracle();
+      Phone.island(S.drawn.name + " · 正位");
+      Phone.toast("抽到「" + S.drawn.name + "」");
+      break;
+    case "gen": {
+      const c = S.drawn; if (!c) return;
+      pushResult({ source:"塔罗 · " + c.name, title:c.name + " 给你的穿搭", story:c.story, vibe:c.vibe, style_tags:c.style_tags, must_colors:c.must_colors, avoid_colors:c.avoid_colors, season:c.season, must_categories:["top","bottom","shoes"] });
+      break;
+    }
+    case "redraw":
+      S.drawn = null; closeOverlay(); setTab("oracle"); renderOracle();
+      break;
+    case "save-today":
+      Phone.toast("已存入今日 · 首页可见"); closeOverlay(); renderHome();
+      break;
+    case "go-wardrobe":
+      closeOverlay(); setTab("wardrobe");
+      break;
+    case "open-result":
+      if (S.result) pushResult(S.result);
+      break;
+    case "filter":
+      S.filter = el.dataset.cat; renderWardrobe();
+      break;
+    case "open-item":
+      openItem(el.dataset.id);
+      break;
+    case "sheet-close":
+      $("#sheetWrap").classList.remove("show");
+      break;
+    case "del-item": {
+      const id = el.dataset.id;
+      S.items = S.items.filter(i => i.id !== id);
+      $("#sheetWrap").classList.remove("show");
+      renderWardrobe(); renderHome();
+      Phone.toast("已移出衣橱");
+      break;
+    }
+    case "toggle": {
+      const k = el.dataset.key;
+      S.settings[k] = !S.settings[k];
+      el.classList.toggle("on", S.settings[k]);
+      Phone.toast(S.settings[k] ? "已开启" : "已关闭");
+      break;
+    }
+    case "go-upload":
+      UP = { file:null, dataUrl:"", cat:"top", color:"", styles:[], season:[], hard:false };
+      pushUpload();
+      break;
+    case "up-pick":
+      $("#fileInput").click();
+      break;
+    case "up-chip": {
+      const k = el.dataset.key, v = el.dataset.v;
+      if (k === "cat") UP.cat = v;
+      else {
+        const i = UP[k].indexOf(v);
+        if (i >= 0) UP[k].splice(i, 1); else UP[k].push(v);
+      }
+      pushUpload();
+      break;
+    }
+    case "up-save": {
+      UP.color = ($("#upColor") && $("#upColor").value || "").trim() || "未命名";
+      const id = "w" + Math.floor(1000 + Math.random() * 8999);
+      S.items.push({
+        id, img:"", dataUrl:UP.dataUrl, category:UP.cat, type:CAT_NAME[UP.cat],
+        color_name:UP.color, color_hex:"#EDE8DC", season:UP.season, style_tags:UP.styles,
+        fit:"合身", pattern:"纯色"
+      });
+      Phone.toast("已入库 · 衣橱 " + S.items.length + " 件");
+      closeOverlay(); setTab("wardrobe"); renderWardrobe(); renderHome();
+      break;
+    }
+    case "pop":
+      closeOverlay();
+      break;
+  }
+});
+
+/* 上传：文件选择 + 抠图难度判定 */
+document.addEventListener("change", e => {
+  if (e.target.id !== "fileInput") return;
+  const f = e.target.files && e.target.files[0];
+  if (!f) return;
+  const url = URL.createObjectURL(f);
+  const img = new Image();
+  img.onload = () => {
+    const cut = analyzeCut(img);
+    UP.file = f; UP.dataUrl = url; UP.hard = !!cut.hard;
+    pushUpload();
+    if (cut.hard) Phone.toast("背景偏复杂，抠底可能不理想");
+  };
+  img.onerror = () => Phone.toast("图片读取失败");
+  img.src = url;
+});
+document.addEventListener("input", e => { if (e.target.id === "upColor") UP.color = e.target.value; });
+
+/* ---- 底部 Tab ---- */
+$("#tabbar").addEventListener("click", e => {
+  const b = e.target.closest(".tab");
+  if (!b) return;
+  Phone.buzz(8);
+  setTab(b.dataset.tab);
+});
+
+/* ---- 左右滑动翻页（含拖拽跟手） ---- */
+(function(){
+  const pages = $("#pages");
+  let x0 = 0, y0 = 0, dx = 0, dragging = false, horiz = false, w = 390;
+  pages.addEventListener("pointerdown", e => {
+    if (S.ov) return;
+    dragging = true; horiz = false; dx = 0;
+    x0 = e.clientX; y0 = e.clientY; w = $("#screen").clientWidth;
+  });
+  pages.addEventListener("pointermove", e => {
+    if (!dragging) return;
+    const ddx = e.clientX - x0, ddy = e.clientY - y0;
+    if (!horiz) {
+      if (Math.abs(ddx) > 8 && Math.abs(ddx) > Math.abs(ddy)) { horiz = true; pages.classList.add("dragging"); }
+      else if (Math.abs(ddy) > 10) { dragging = false; return; }
+    }
+    if (horiz) {
+      dx = ddx;
+      const i = TABS.indexOf(S.tab);
+      let p = -i * w + dx * 0.85;
+      const min = -(TABS.length - 1) * w, max = 0;
+      if (p > max) p = max - (p - max) * -0.35;
+      if (p < min) p = min + (min - p) * -0.35;
+      pages.style.transition = "none";
+      pages.style.transform = "translateX(" + p + "px)";
+    }
+  });
+  const end = e => {
+    if (!dragging) return;
+    dragging = false;
+    pages.classList.remove("dragging");
+    pages.style.transition = "";
+    pages.style.transform = "";
+    if (horiz && Math.abs(dx) > 56) {
+      const i = TABS.indexOf(S.tab);
+      const n = dx < 0 ? Math.min(TABS.length - 1, i + 1) : Math.max(0, i - 1);
+      if (n !== i) setTab(TABS[n]);
+    }
+    dx = 0;
+  };
+  pages.addEventListener("pointerup", end);
+  pages.addEventListener("pointercancel", end);
+  pages.addEventListener("pointerleave", end);
+})();
+
+/* ---- 键盘：← → 切页，Esc 返回 ---- */
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") { if (S.ov) closeOverlay(); else $("#sheetWrap").classList.remove("show"); return; }
+  if (S.ov) return;
+  const i = TABS.indexOf(S.tab);
+  if (e.key === "ArrowRight" && i < TABS.length - 1) setTab(TABS[i + 1]);
+  if (e.key === "ArrowLeft"  && i > 0) setTab(TABS[i - 1]);
+});
+
+/* ---- 状态栏时钟 ---- */
+function tickClock(){
+  const d = new Date();
+  $("#clock").textContent = d.getHours() + ":" + String(d.getMinutes()).padStart(2, "0");
+}
+tickClock(); setInterval(tickClock, 15000);
+
+/* ---- 自适应缩放：桌面居中，窄屏/矮屏等比缩小不溢出 ---- */
+const PW = 390, PH = 844;
+function fit(){
+  const s = Math.min(1, (window.innerWidth - 32) / PW, (window.innerHeight - 150) / PH);
+  const v = Math.max(0.42, s);
+  $(".scaler").style.setProperty("--scale", v);
+  $("#slot").style.width = Math.round(PW * v) + "px";
+  $("#slot").style.height = Math.round(PH * v) + "px";
+}
+window.addEventListener("resize", fit);
+
+/* ---- 启动 ---- */
+renderAll();
+setTab("home", true);
+fit();
+setTimeout(() => Phone.island("Mystic Oracle 已就绪"), 700);
+</script>
+</body>
+</html>

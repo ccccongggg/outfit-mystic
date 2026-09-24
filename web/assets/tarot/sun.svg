@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 320">
+  <rect width="220" height="320" rx="14" fill="#3A2E18"/>
+  <rect x="10" y="10" width="200" height="300" rx="10" fill="#2A2112" stroke="#E0B86A" stroke-width="1.5"/>
+  <circle cx="110" cy="120" r="36" fill="#F0D078"/>
+  <g stroke="#E0B86A" stroke-width="2" stroke-linecap="round">
+    <path d="M110 60 V75 M110 165 V180 M50 120 H65 M155 120 H170"/>
+    <path d="M70 80 L80 90 M140 150 L150 160 M150 80 L140 90 M80 150 L70 160"/>
+  </g>
+  <text x="110" y="230" text-anchor="middle" fill="#F7F2EA" font-family="serif" font-size="22" letter-spacing="6">太阳</text>
+  <text x="110" y="255" text-anchor="middle" fill="#E0B86A" font-family="serif" font-size="10" letter-spacing="3">THE SUN</text>
+  <circle cx="110" cy="290" r="4" fill="#E0B86A"/>
+</svg>

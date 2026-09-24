@@ -1,0 +1,93 @@
+[
+  {
+    "id": "tarot_star",
+    "name": "星星",
+    "name_en": "The Star",
+    "image": "assets/tarot/star.svg",
+    "style_tags": [
+      "温柔",
+      "简约"
+    ],
+    "must_colors": [
+      "奶油白",
+      "浅紫",
+      "白",
+      "米"
+    ],
+    "avoid_colors": [
+      "黑"
+    ],
+    "season": [
+      "春",
+      "秋"
+    ],
+    "vibe": "soft / cozy",
+    "story": "星星正位：今天适合温柔地对待自己"
+  },
+  {
+    "id": "tarot_moon",
+    "name": "月亮",
+    "name_en": "The Moon",
+    "image": "assets/tarot/moon.svg",
+    "style_tags": [
+      "复古",
+      "极简"
+    ],
+    "must_colors": [
+      "蓝",
+      "灰",
+      "银"
+    ],
+    "avoid_colors": [],
+    "season": [
+      "秋",
+      "冬"
+    ],
+    "vibe": "dreamy / mysterious",
+    "story": "月亮正位：直觉会带你走对的那条路，穿得放松一点"
+  },
+  {
+    "id": "tarot_sun",
+    "name": "太阳",
+    "name_en": "The Sun",
+    "image": "assets/tarot/sun.svg",
+    "style_tags": [
+      "甜美",
+      "运动"
+    ],
+    "must_colors": [
+      "黄",
+      "橙",
+      "奶油"
+    ],
+    "avoid_colors": [],
+    "season": [
+      "春",
+      "夏"
+    ],
+    "vibe": "bright / warm",
+    "story": "太阳正位：把光穿在身上，今天会顺"
+  },
+  {
+    "id": "tarot_hermit",
+    "name": "隐者",
+    "name_en": "The Hermit",
+    "image": "assets/tarot/hermit.svg",
+    "style_tags": [
+      "极简",
+      "通勤"
+    ],
+    "must_colors": [
+      "灰",
+      "棕",
+      "卡其"
+    ],
+    "avoid_colors": [],
+    "season": [
+      "秋",
+      "冬"
+    ],
+    "vibe": "quiet / focused",
+    "story": "隐者正位：把世界调成静音，选一身不吵的衣服"
+  }
+]

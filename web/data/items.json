@@ -1,0 +1,337 @@
+[
+  {
+    "id": "w0001",
+    "image": "assets/items/prod_tee_white.jpg",
+    "category": "top",
+    "type": "短袖",
+    "color_name": "柔白",
+    "color_hex": "#F2F0EB",
+    "palette": [
+      "#F2F0EB",
+      "#E4E0D6"
+    ],
+    "fit": "合身",
+    "pattern": "纯色",
+    "season": [
+      "春",
+      "夏",
+      "秋"
+    ],
+    "style_tags": [
+      "简约",
+      "温柔"
+    ],
+    "formality": 2,
+    "source": "ai",
+    "manual_override": false
+  },
+  {
+    "id": "w0002",
+    "image": "assets/items/prod_tee_black.jpg",
+    "category": "top",
+    "type": "短袖",
+    "color_name": "纯黑",
+    "color_hex": "#1C1C1E",
+    "palette": [
+      "#1C1C1E",
+      "#2E2E30"
+    ],
+    "fit": "合身",
+    "pattern": "纯色",
+    "season": [
+      "春",
+      "夏",
+      "秋"
+    ],
+    "style_tags": [
+      "极简",
+      "街头"
+    ],
+    "formality": 3,
+    "source": "ai",
+    "manual_override": false
+  },
+  {
+    "id": "w0003",
+    "image": "assets/items/prod_shirt_blue.jpg",
+    "category": "top",
+    "type": "短袖",
+    "color_name": "雾蓝",
+    "color_hex": "#8FA6C2",
+    "palette": [
+      "#8FA6C2",
+      "#6E86A6"
+    ],
+    "fit": "合身",
+    "pattern": "纯色",
+    "season": [
+      "春",
+      "夏"
+    ],
+    "style_tags": [
+      "通勤",
+      "简约"
+    ],
+    "formality": 3,
+    "source": "ai",
+    "manual_override": false
+  },
+  {
+    "id": "w0004",
+    "image": "assets/items/prod_shirt_plaid.jpg",
+    "category": "top",
+    "type": "长袖",
+    "color_name": "暖棕格纹",
+    "color_hex": "#A67C52",
+    "palette": [
+      "#A67C52",
+      "#6B4A2E"
+    ],
+    "fit": "宽松",
+    "pattern": "格纹",
+    "season": [
+      "秋",
+      "冬"
+    ],
+    "style_tags": [
+      "复古",
+      "街头"
+    ],
+    "formality": 2,
+    "source": "ai",
+    "manual_override": false
+  },
+  {
+    "id": "w0005",
+    "image": "assets/items/prod_dress_gray.jpg",
+    "category": "top",
+    "type": "其他",
+    "color_name": "雾灰",
+    "color_hex": "#A8A8AE",
+    "palette": [
+      "#A8A8AE",
+      "#8C8C94"
+    ],
+    "fit": "合身",
+    "pattern": "纯色",
+    "season": [
+      "春",
+      "夏"
+    ],
+    "style_tags": [
+      "简约",
+      "温柔"
+    ],
+    "formality": 2,
+    "source": "ai",
+    "manual_override": false
+  },
+  {
+    "id": "w0006",
+    "image": "assets/items/prod_jogger_gray.jpg",
+    "category": "bottom",
+    "type": "长裤",
+    "color_name": "雾灰",
+    "color_hex": "#A8B0B8",
+    "palette": [
+      "#A8B0B8",
+      "#78808A"
+    ],
+    "fit": "直筒",
+    "pattern": "纯色",
+    "season": [
+      "春",
+      "秋"
+    ],
+    "style_tags": [
+      "简约",
+      "运动"
+    ],
+    "formality": 2,
+    "source": "ai",
+    "manual_override": false
+  },
+  {
+    "id": "w0007",
+    "image": "assets/items/prod_short_olive.jpg",
+    "category": "bottom",
+    "type": "短裤",
+    "color_name": "橄榄绿",
+    "color_hex": "#78824E",
+    "palette": [
+      "#78824E",
+      "#586238"
+    ],
+    "fit": "合身",
+    "pattern": "纯色",
+    "season": [
+      "夏"
+    ],
+    "style_tags": [
+      "简约",
+      "运动"
+    ],
+    "formality": 1,
+    "source": "ai",
+    "manual_override": false
+  },
+  {
+    "id": "w0008",
+    "image": "assets/items/prod_jogger_red.jpg",
+    "category": "bottom",
+    "type": "长裤",
+    "color_name": "砖红",
+    "color_hex": "#963237",
+    "palette": [
+      "#963237",
+      "#6E2328"
+    ],
+    "fit": "直筒",
+    "pattern": "纯色",
+    "season": [
+      "秋"
+    ],
+    "style_tags": [
+      "街头",
+      "运动"
+    ],
+    "formality": 2,
+    "source": "ai",
+    "manual_override": false
+  },
+  {
+    "id": "w0009",
+    "image": "assets/items/prod_sneaker_white.jpg",
+    "category": "shoes",
+    "type": "鞋",
+    "color_name": "米白",
+    "color_hex": "#EDE8DC",
+    "palette": [
+      "#EDE8DC",
+      "#C9B49A"
+    ],
+    "fit": "合身",
+    "pattern": "纯色",
+    "season": [
+      "春",
+      "夏",
+      "秋"
+    ],
+    "style_tags": [
+      "简约",
+      "运动"
+    ],
+    "formality": 1,
+    "source": "ai",
+    "manual_override": false
+  },
+  {
+    "id": "w0010",
+    "image": "assets/items/prod_sneaker_red.jpg",
+    "category": "shoes",
+    "type": "鞋",
+    "color_name": "红黑",
+    "color_hex": "#C23B3B",
+    "palette": [
+      "#C23B3B",
+      "#1C1C1E"
+    ],
+    "fit": "合身",
+    "pattern": "拼色",
+    "season": [
+      "春",
+      "秋"
+    ],
+    "style_tags": [
+      "街头",
+      "运动"
+    ],
+    "formality": 2,
+    "source": "ai",
+    "manual_override": false
+  },
+  {
+    "id": "w0011",
+    "image": "assets/items/prod_jacket.jpg",
+    "category": "outer",
+    "type": "外套",
+    "color_name": "卡其",
+    "color_hex": "#B8895A",
+    "palette": [
+      "#B8895A",
+      "#8F6840"
+    ],
+    "fit": "合身",
+    "pattern": "纯色",
+    "season": [
+      "秋",
+      "冬"
+    ],
+    "style_tags": [
+      "通勤",
+      "复古"
+    ],
+    "formality": 3,
+    "source": "ai",
+    "manual_override": false
+  },
+  {
+    "id": "w0012",
+    "image": "assets/items/prod_shoes_heel.jpg",
+    "category": "shoes",
+    "type": "鞋",
+    "color_name": "浅金棕",
+    "color_hex": "#C9A574",
+    "palette": [
+      "#C9A574",
+      "#A88858"
+    ],
+    "fit": "合身",
+    "pattern": "纯色",
+    "season": [
+      "春",
+      "夏"
+    ],
+    "style_tags": [
+      "甜美",
+      "通勤"
+    ],
+    "formality": 3,
+    "source": "ai",
+    "manual_override": false
+  },
+  {
+    "id": "w8112",
+    "image": "assets/items/w8112.png",
+    "category": null,
+    "type": null,
+    "color_name": null,
+    "color_hex": "#570105",
+    "palette": [],
+    "fit": null,
+    "pattern": null,
+    "season": [],
+    "style_tags": [],
+    "formality": 3,
+    "source": "manual",
+    "manual_override": true,
+    "cut_ok": true
+  },
+  {
+    "id": "w9777",
+    "image": "assets/items/w9777.png",
+    "category": null,
+    "type": null,
+    "color_name": null,
+    "color_hex": "#E5E5EA",
+    "palette": [],
+    "fit": null,
+    "pattern": null,
+    "season": [],
+    "style_tags": [],
+    "formality": 3,
+    "source": "manual",
+    "manual_override": true,
+    "cut_ok": true
+  }
+]

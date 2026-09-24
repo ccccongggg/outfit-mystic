@@ -1,0 +1,11 @@
+{
+  "name": "outfit-mystic",
+  "version": "0.1.0",
+  "private": true,
+  "description": "电子衣柜 × AI 玄学搭配 · 流程打通版",
+  "scripts": {
+    "serve": "python server/app.py",
+    "cut": "python scripts/remove_bg.py",
+    "tag": "python scripts/tag_image.py"
+  }
+}

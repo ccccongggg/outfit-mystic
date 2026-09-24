@@ -1,0 +1,173 @@
+/* web/shell.css —— 真机外壳层（可开关，不影响业务样式）
+   JS 在 <html> 上加 .phone-mode 即生效；切回网页模式时所有规则自动失效。
+   命名统一 phone-* 前缀，避免与业务样式（.shell / .view / .topbar）冲突。
+*/
+.phone-mode body, body.phone-mode {
+  margin: 0;
+  height: 100vh;
+  overflow: hidden;
+  background:
+    radial-gradient(1200px 700px at 50% -10%, #2a2340 0%, transparent 60%),
+    radial-gradient(700px 500px at 90% 100%, #3a2a55 0%, transparent 60%),
+    #14111d;
+}
+
+/* ---- 舞台 & 缩放 ---- */
+.phone-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+.phone-slot { display: flex; align-items: center; justify-content: center; }
+.phone-scaler {
+  width: 390px;
+  height: 844px;
+  flex: none;
+  transform: scale(var(--phone-scale, 1));
+  transform-origin: center center;
+}
+.phone-hint {
+  max-width: 520px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.85;
+  color: #9b93b4;
+}
+.phone-hint b { color: #d9d2ec; font-weight: 600; }
+.phone-hint kbd {
+  display: inline-block; padding: 1px 6px; margin: 0 2px; border-radius: 5px;
+  background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.14);
+  font-size: 11px; color: #d9d2ec;
+}
+
+/* ---- 机身 ---- */
+.phone {
+  position: relative;
+  width: 390px;
+  height: 844px;
+  border-radius: 58px;
+  background: linear-gradient(160deg, #4a4658 0%, #22202c 18%, #17151f 50%, #23212e 82%, #403c4e 100%);
+  box-shadow:
+    0 2px 3px rgba(255, 255, 255, 0.35) inset,
+    0 -2px 3px rgba(255, 255, 255, 0.14) inset,
+    0 0 0 1.5px rgba(10, 9, 14, 0.9),
+    0 40px 80px -20px rgba(0, 0, 0, 0.75),
+    0 10px 24px -8px rgba(0, 0, 0, 0.5);
+}
+.phone::after {
+  content: ""; position: absolute; inset: 0; border-radius: 58px; pointer-events: none;
+  background: linear-gradient(115deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,0) 26%, rgba(255,255,255,0) 74%, rgba(255,255,255,.12) 100%);
+  mix-blend-mode: screen;
+}
+.phone-btn { position: absolute; background: linear-gradient(180deg, #3a3648, #211f2a); box-shadow: 0 1px 1px rgba(255,255,255,.25) inset, 0 -1px 1px rgba(0,0,0,.6) inset; }
+.phone-btn.silent { left: -2.5px; top: 132px; width: 3px; height: 30px; border-radius: 2px; }
+.phone-btn.volup { left: -3px; top: 186px; width: 3.5px; height: 58px; border-radius: 2px; }
+.phone-btn.voldn { left: -3px; top: 252px; width: 3.5px; height: 58px; border-radius: 2px; }
+.phone-btn.power { right: -3px; top: 214px; width: 3.5px; height: 92px; border-radius: 2px; }
+
+/* ---- 屏幕 ---- */
+.phone-screen {
+  position: absolute; inset: 11px; border-radius: 47px; overflow: hidden;
+  display: flex; flex-direction: column;
+  background: #f7f2ea;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.6), 0 0 22px rgba(0,0,0,.5) inset;
+}
+.phone-screen > .grain { display: none; }
+/* 玻璃反光 */
+.phone-gloss {
+  position: absolute; inset: 0; pointer-events: none; z-index: 60;
+  background: linear-gradient(112deg, rgba(255,255,255,.14) 0%, rgba(255,255,255,0) 34%);
+}
+
+/* 灵动岛 */
+.phone-island {
+  position: absolute; top: 11px; left: 50%; transform: translateX(-50%); z-index: 55;
+  width: 118px; height: 33px; border-radius: 20px; background: #08070c;
+  display: flex; align-items: center; justify-content: center; gap: 8px; overflow: hidden;
+  box-shadow: 0 0 0 .5px rgba(255,255,255,.06);
+  transition: width .42s cubic-bezier(.22,.61,.36,1);
+}
+.phone-island .cam { width: 9px; height: 9px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #2c3a55, #0a0a12 70%); flex: none; transition: opacity .2s; }
+.phone-island .txt { font-size: 12px; color: #f1edf8; white-space: nowrap; opacity: 0; transform: translateY(4px); transition: opacity .28s cubic-bezier(.22,.61,.36,1) .06s, transform .28s cubic-bezier(.22,.61,.36,1) .06s; max-width: 0; }
+.phone-island.open { width: 214px; }
+.phone-island.open .txt { opacity: 1; transform: none; max-width: 170px; }
+.phone-island.open .cam { opacity: .25; }
+
+/* 状态栏 */
+.phone-status {
+  flex: none; height: 52px; padding: 15px 26px 0; position: relative; z-index: 40;
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 13px; font-weight: 600; color: #2b2430;
+}
+.phone-status .right { display: flex; align-items: center; gap: 6px; }
+.phone-status svg { display: block; }
+
+/* 顶部应用栏（原来的 .topbar，去掉导航交给底部 Tab） */
+.phone-mode .topbar { padding: 6px 20px 10px; flex: none; }
+.phone-mode .topbar .nav { display: none; }
+.phone-mode .topbar .brand-name { font-size: 15px; }
+.phone-mode .topbar .brand-sub { font-size: 10px; }
+
+/* 视口 + 轨道：滚动锁在屏内，横向整页切换 */
+.phone-viewport { flex: 1; min-height: 0; overflow: hidden; position: relative; }
+.phone-mode .shell {
+  display: flex; width: 400%; height: 100%; max-width: none; margin: 0; padding: 0;
+  transform: translateX(calc(var(--phone-i, 0) * -25%));
+  transition: transform .36s cubic-bezier(.22,.61,.36,1);
+  touch-action: pan-y;
+}
+.phone-mode .shell.dragging { transition: none; }
+.phone-mode .view {
+  display: block !important;
+  flex: none; width: 25%; height: 100%;
+  overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+  padding: 16px 18px 30px; animation: none;
+}
+.phone-mode .view::-webkit-scrollbar { width: 0; }
+.phone-mode .footer { display: none; }
+
+/* 底部 Tab + Home 条 */
+.phone-tabbar {
+  flex: none; position: relative; height: 64px; display: flex; align-items: flex-start; padding-top: 8px;
+  background: rgba(255, 253, 248, 0.94); backdrop-filter: blur(14px); border-top: 1px solid rgba(43,36,48,.1);
+}
+.phone-tab {
+  flex: 1; border: 0; background: transparent; cursor: pointer; padding: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  color: #8a8398; font-size: 10.5px; transition: color .24s, transform .18s;
+}
+.phone-tab svg { width: 23px; height: 23px; display: block; }
+.phone-tab.active { color: #8b6fa8; }
+.phone-tab:active { transform: scale(.94); }
+.phone-tab-ind {
+  position: absolute; top: 2px; left: 0; width: 26px; height: 3px; border-radius: 2px;
+  background: #8b6fa8; transition: transform .36s cubic-bezier(.22,.61,.36,1);
+}
+.phone-homebar { flex: none; height: 22px; display: flex; align-items: center; justify-content: center; background: inherit; }
+.phone-homebar i { display: block; width: 138px; height: 5px; border-radius: 3px; background: rgba(43,36,48,.28); }
+
+/* 屏幕内 Toast */
+.phone-toast {
+  position: absolute; left: 50%; bottom: 100px; transform: translate(-50%, 14px); z-index: 58;
+  background: rgba(43, 36, 48, 0.94); color: #f7f2ea; font-size: 12.5px;
+  padding: 10px 16px; border-radius: 14px; opacity: 0; pointer-events: none; white-space: nowrap;
+  transition: opacity .26s, transform .26s; box-shadow: 0 10px 26px rgba(0,0,0,.3);
+}
+.phone-toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* 模式切换按钮 */
+.phone-toggle {
+  border: 1px solid rgba(255,255,255,.16); background: rgba(255,255,255,.08); color: #d9d2ec;
+  border-radius: 999px; padding: 7px 16px; font-size: 12px; cursor: pointer;
+}
+.phone-toggle:hover { background: rgba(255,255,255,.14); }
+.phone-toggle.float { position: fixed; right: 18px; bottom: 18px; z-index: 60; }
+
+@media (max-height: 900px) {
+  .phone-hint { display: none; }
+}

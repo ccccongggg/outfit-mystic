@@ -1,14 +1,22 @@
 // web/app.js —— 三页合一：衣橱 / 入口 / 结果
-import { recommend, itemsByIds } from "./engine.js";
+// 引擎：analyze = 选款 + 逐件匹配度 + 整套分数；recommend / itemsByIds 仍可从 engine.js 单独引入
+import { analyze } from "./engine.js";
 
 const state = {
   items: [],
+  samples: [],
   tarotCards: [],
   constraint: null,
   result: null,
   pendingManualId: null,
   useServer: true,
   pendingFile: null,
+  // 风格选择（三种方式共用一份结果）
+  styleSel: {
+    tags: [],
+    prefs: { formality: 3, energy: 50, brightness: 55 },
+    look: null,
+  },
 };
 
 // 后台固定走本地小服务（预览页与 8787 不同源时也可用；服务已开 CORS）
@@ -71,7 +79,23 @@ function renderItems() {
     card.className = "item-card";
     const season = (it.season || []).join("·") || "四季";
     const styles = (it.style_tags || []).map((t) => `<span class="tag">${t}</span>`).join("");
+    const occ = (it.occasions || []).map((t) => `<span class="tag occ">${t}</span>`).join("");
     const sw = it.color_hex || "#ccc";
+    // 结构化风格档案（schema v2：含材质 / 场合；老数据缺失时留空）
+    const profile = [
+      ["品类", it.category || "-"],
+      ["类型", it.type || "-"],
+      ["颜色", `${it.color_name || "-"}${it.color_hex ? " " + it.color_hex : ""}`],
+      ["版型", it.fit || "-"],
+      ["材质", it.material || "-"],
+      ["图案", it.pattern || "-"],
+      ["季节", season],
+      ["场合", (it.occasions || []).join("、") || "-"],
+      ["风格", (it.style_tags || []).join("、") || "-"],
+      ["正式度", typeof it.formality === "number" ? it.formality : "-"],
+    ]
+      .map(([k, v]) => `<div class="kv"><span>${k}</span><b>${v}</b></div>`)
+      .join("");
     card.innerHTML = `
       <img src="${imgSrc(it.image)}" alt="${it.type || "单品"}" onerror="this.style.opacity=0.15;this.alt='图缺失'" />
       <div class="item-meta">
@@ -79,9 +103,12 @@ function renderItems() {
         <div class="item-tags">
           <span class="tag swatch color" style="--sw:${sw}">${it.color_hex || ""}</span>
           <span class="tag">${it.fit || ""}</span>
+          ${it.material ? `<span class="tag">${it.material}</span>` : ""}
           <span class="tag">${season}</span>
           ${styles}
+          ${occ}
         </div>
+        <details class="item-profile"><summary>风格档案</summary><div class="profile-grid">${profile}</div></details>
       </div>
     `;
     grid.appendChild(card);
@@ -123,6 +150,7 @@ async function loadItems() {
     setServiceStatus(false, "未连接到后台（python server/app.py）· 已切换本地入柜，刷新可能丢失");
   }
   renderItems();
+  renderStyleControls(); // 示例图点选要用最新衣橱
 }
 
 function saveLocalItem(item) {
@@ -150,8 +178,10 @@ async function localIngest(file) {
     palette: [],
     fit: "其他",
     pattern: "其他",
+    material: "其他",
     season: [],
     style_tags: [],
+    occasions: [],
     formality: 3,
     source: "local",
     manual_override: true,
@@ -440,14 +470,18 @@ async function saveManual() {
   if (!id) return;
   const season = [...$("#m-season").selectedOptions].map((o) => o.value);
   const style_tags = [...$("#m-style").selectedOptions].map((o) => o.value);
+  // schema v2：手动补标也写入材质 / 场合，保证老数据补齐后能参与匹配
+  const occasions = [...($("#m-occasion")?.selectedOptions || [])].map((o) => o.value);
   const payload = {
     id,
     category: $("#m-category").value,
     type: $("#m-type").value,
     color_name: $("#m-color-name").value || "未知",
     fit: $("#m-fit").value,
+    material: $("#m-material")?.value || "其他",
     season,
     style_tags,
+    occasions,
     formality: 2,
     manual_override: true,
   };
@@ -477,6 +511,249 @@ async function saveManual() {
   await loadItems();
   $("#manual-panel").classList.add("hidden");
   state.pendingManualId = null;
+}
+
+// ===== 内置示例衣物图：无素材也能跑通「抠底 → 打标 → 入柜」=====
+async function loadSamples() {
+  state.samples = [];
+  if (state.useServer) {
+    try {
+      const data = await fetchJSON("/api/samples");
+      state.samples = data.samples || [];
+    } catch {
+      state.samples = [];
+    }
+  }
+  if (!state.samples.length) {
+    try {
+      const res = await fetch("data/samples.json");
+      const j = await res.json();
+      state.samples = (j.samples || []).map((s) => ({
+        id: s.id,
+        title: s.title,
+        desc: s.desc,
+        url: s.file,
+        tags: s.tags || {},
+      }));
+    } catch {
+      state.samples = [];
+    }
+  }
+  renderSampleRow();
+}
+
+function renderSampleRow() {
+  const row = $("#sample-row");
+  if (!row) return;
+  row.innerHTML = "";
+  if (!state.samples.length) {
+    row.innerHTML = '<div class="muted">示例素材未加载（web/data/samples.json）</div>';
+    return;
+  }
+  for (const s of state.samples) {
+    const card = document.createElement("div");
+    card.className = "sample-card";
+    const tags = [
+      ...((s.tags && s.tags.style_tags) || []).map((t) => `<span class="tag">${t}</span>`),
+      s.tags && s.tags.material ? `<span class="tag">${s.tags.material}</span>` : "",
+      ...((s.tags && s.tags.occasions) || []).map((t) => `<span class="tag occ">${t}</span>`),
+    ].join("");
+    card.innerHTML = `
+      <img src="${imgSrc(s.url)}" alt="${s.title}" />
+      <div class="sc-body">
+        <div class="sc-title">${s.title}</div>
+        <div class="sc-desc">${s.desc || ""}</div>
+        <div class="sc-tags">${tags}</div>
+        <button class="btn small primary" data-sample="${s.id}">一键入柜</button>
+      </div>`;
+    row.appendChild(card);
+  }
+}
+
+async function ingestSample(id) {
+  const s = state.samples.find((x) => x.id === id);
+  if (!s) return;
+  showUploadError("");
+
+  if (state.useServer) {
+    showStatus(true);
+    setStep("cut", "on");
+    setStep("tag", "");
+    setStep("done", "");
+    setStatusMsg("示例图正在抠底…");
+    try {
+      const r = await fetchJSON("/api/ingest_sample", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      setStep("cut", r.item?.cut_ok ? "done" : "on");
+      setStep("tag", "on");
+      await loadItems();
+      setStep("tag", r.tag_ok ? "done" : "");
+      setStep("done", "done");
+      setStatusMsg(
+        `已入柜 ✓ ${r.item?.color_name || ""}${r.item?.type || ""}（${r.tag_ok ? "AI 打标" : "预置标签"}）`
+      );
+    } catch (err) {
+      showStatus(false);
+      showUploadError(`示例入柜失败：${err.message}`);
+      return;
+    }
+    setTimeout(() => showStatus(false), 2200);
+    return;
+  }
+
+  // 无后台：用 samples.json 里预置的标签直接本地入柜（流程照样跑通）
+  const newId = "w" + String(Date.now() % 10000).padStart(4, "0");
+  const item = {
+    id: newId,
+    image: imgSrc(s.url),
+    ...(s.tags || {}),
+    palette: (s.tags && s.tags.palette) || [],
+    source: "sample-preset",
+    manual_override: false,
+    cut_ok: false,
+    _local: true,
+  };
+  state.items.push(item);
+  saveLocalItem(item);
+  renderItems();
+  showUploadError(`已本地入柜：${s.title}（无后台，使用内置预置标签）`);
+}
+
+// ===== 风格选择：三种方式（标签勾选 / 滑动评分 / 示例图点选）=====
+const STYLE_TAGS = ["温柔", "简约", "通勤", "街头", "运动", "甜美", "极简", "复古"];
+const FORMALITY_LABEL = { 1: "很随意", 2: "休闲", 3: "日常", 4: "偏正式", 5: "很正式" };
+const LOOKS = [
+  {
+    id: "neat",
+    title: "通勤利落",
+    style_tags: ["通勤", "简约"],
+    occasion: "通勤",
+    ids: ["w0003", "w0006", "w0012"],
+    pref: { formality: 4, energy: 40, brightness: 60 },
+  },
+  {
+    id: "cozy",
+    title: "周末松弛",
+    style_tags: ["简约", "温柔"],
+    occasion: "休闲",
+    ids: ["w0001", "w0006", "w0009"],
+    pref: { formality: 2, energy: 35, brightness: 80 },
+  },
+  {
+    id: "street",
+    title: "街头有劲",
+    style_tags: ["街头", "运动"],
+    occasion: "休闲",
+    ids: ["w0002", "w0008", "w0010"],
+    pref: { formality: 2, energy: 85, brightness: 45 },
+  },
+];
+
+function renderStyleControls() {
+  const tp = $("#tag-picker");
+  if (tp) {
+    tp.innerHTML = STYLE_TAGS.map(
+      (t) => `<button type="button" class="chip ${state.styleSel.tags.includes(t) ? "on" : ""}" data-tag="${t}">${t}</button>`
+    ).join("");
+  }
+
+  const lp = $("#look-picker");
+  if (lp) {
+    lp.innerHTML = LOOKS.map((l) => {
+      const thumbs = l.ids
+        .map((id) => {
+          const it = state.items.find((x) => x.id === id);
+          return it ? `<img src="${imgSrc(it.image)}" alt="${it.color_name || it.type || ""}" />` : "";
+        })
+        .join("");
+      return `
+        <div class="look-card ${state.styleSel.look === l.id ? "on" : ""}" data-look="${l.id}" role="button" tabindex="0">
+          <div class="look-thumbs">${thumbs}</div>
+          <div class="look-title">${l.title}</div>
+          <div class="look-tags">${l.style_tags.map((t) => `<span class="tag">${t}</span>`).join("")}</div>
+        </div>`;
+    }).join("");
+  }
+
+  syncSliderLabels();
+  renderStyleSummary();
+}
+
+function syncSliderLabels() {
+  const p = state.styleSel.prefs;
+  const f = $("#s-formality");
+  if (f) {
+    f.value = p.formality;
+    $("#v-formality").textContent = `${p.formality}（${FORMALITY_LABEL[p.formality]}）`;
+  }
+  const e = $("#s-energy");
+  if (e) {
+    e.value = p.energy;
+    $("#v-energy").textContent = String(p.energy);
+  }
+  const b = $("#s-brightness");
+  if (b) {
+    b.value = p.brightness;
+    $("#v-brightness").textContent = String(p.brightness);
+  }
+}
+
+function renderStyleSummary() {
+  const s = state.styleSel;
+  const look = s.look ? LOOKS.find((l) => l.id === s.look) : null;
+  const parts = [
+    `风格词：${s.tags.length ? s.tags.join("、") : "未选"}`,
+    `正式度 ${s.prefs.formality} · 活力 ${s.prefs.energy} · 明度 ${s.prefs.brightness}`,
+    `示例图：${look ? look.title : "未选"}`,
+  ];
+  const el = $("#style-summary");
+  if (el) el.textContent = parts.join(" ｜ ");
+}
+
+function styleStory() {
+  const s = state.styleSel;
+  const bits = [];
+  if (s.tags.length) bits.push("想要" + s.tags.join("、"));
+  bits.push(`正式度${s.prefs.formality}（${FORMALITY_LABEL[s.prefs.formality]}）`);
+  bits.push(s.prefs.energy >= 60 ? "有活力一点" : s.prefs.energy <= 40 ? "安静一点" : "活力适中");
+  bits.push(s.prefs.brightness >= 70 ? "偏亮" : s.prefs.brightness <= 35 ? "偏暗" : "明暗适中");
+  return "你自己定的风格：" + bits.join("，") + "。";
+}
+
+/** 三种选择方式 → 合成一份风格约束（schema 与塔罗同构，只是 source 不同） */
+function buildStyleConstraint() {
+  const s = state.styleSel;
+  const look = s.look ? LOOKS.find((l) => l.id === s.look) : null;
+  const tags = [...new Set([...(look ? look.style_tags : []), ...s.tags])];
+  return {
+    source: "style",
+    occasion: (look && look.occasion) || null,
+    occasions: look && look.occasion ? [look.occasion] : [],
+    mood: null,
+    must_colors: [],
+    avoid_colors: [],
+    must_categories: ["top", "bottom", "shoes"],
+    weather: null,
+    season: [],
+    vibe: tags.join("/") || "自定义风格",
+    style_tags: tags,
+    story: styleStory(),
+    formality: s.prefs.formality,
+    prefs: { ...s.prefs },
+    extra: { look: s.look || null },
+  };
+}
+
+async function generateFromStyle() {
+  const c = buildStyleConstraint();
+  syncResultSource(c, "自定义风格");
+  state.constraint = c;
+  const dbg = $("#constraint-debug");
+  if (dbg) dbg.textContent = JSON.stringify(c, null, 2);
+  await runRecommend();
 }
 
 // ---------- 塔罗约束 ----------
@@ -568,10 +845,8 @@ function constraintFromOccasion() {
   return baseConstraint("occasion", { occasion: o.o, formality: o.formality, style_tags: o.style_tags, vibe: o.vibe, story: `场合·${o.o}：${o.story}` });
 }
 
-// 非塔罗入口：生成约束后复用现有展示区（不动 HTML/CSS），提示去结果页生成
-function applyConstraint(c, label) {
-  state.constraint = c;
-
+/** 把当前约束来源同步到入口页 / 结果页（塔罗与非塔罗入口共用） */
+function syncResultSource(c, label) {
   // 入口页：塔罗卡归位（避免与当前约束来源不一致——修「卡片不同步」）
   $("#tarot-deck")?.classList.remove("hidden");
   $("#tarot-flip")?.classList.add("hidden");
@@ -589,6 +864,14 @@ function applyConstraint(c, label) {
   $("#result-story").textContent = c.story;
   $("#result-reason").textContent = "点「生成今日穿搭」，规则会从衣橱里选一套。";
   $("#result-meta").textContent = "";
+  const ms = $("#match-summary");
+  if (ms) ms.classList.add("hidden");
+}
+
+// 非塔罗入口：生成约束后复用现有展示区（不动 HTML/CSS），提示去结果页生成
+function applyConstraint(c, label) {
+  state.constraint = c;
+  syncResultSource(c, label);
   alert(`${label}已生成约束：\n${c.story}\n\n去「结果」页点「生成今日穿搭」。`);
 }
 
@@ -671,8 +954,77 @@ async function writeReason(story, items, vibe) {
   }
 }
 
-function renderResult(pickedIds, reason) {
-  const picked = itemsByIds(state.items, pickedIds);
+/** 匹配度面板：整套分数 + 每件单品的分数条与命中理由 */
+function renderMatchPanel(a) {
+  const panel = $("#match-panel");
+  if (!panel) return;
+
+  const bars = a.perItem
+    .map((p) => {
+      const it = p.item;
+      return `
+        <div class="match-item">
+          <img src="${imgSrc(it.image)}" alt="${it.type || ""}" onerror="this.style.opacity=0.2" />
+          <div class="mi-main">
+            <div class="mi-head">
+              <b>${it.color_name || "单品"} · ${it.type || it.category || ""}</b>
+              <span class="mi-score">${p.score}%</span>
+            </div>
+            <div class="mi-bar"><i style="width:${p.score}%"></i></div>
+            <div class="mi-reasons">${p.reasons.join("；")}</div>
+          </div>
+        </div>`;
+    })
+    .join("");
+
+  panel.innerHTML = `
+    <div class="match-head">
+      <h2>风格匹配度</h2>
+      <div class="mh-score">${a.outfitScore}<small>%</small></div>
+    </div>
+    <div class="match-bar"><i style="width:${a.outfitScore}%"></i></div>
+    <div class="match-note">${
+      a.missing.length
+        ? `衣橱里缺 ${a.missing.map(catName).join(" / ")}，整套不完整（已扣分）`
+        : "三件套齐全 · 全部来自你衣橱里的真实单品"
+    }${a.harmony.length ? " ｜ " + a.harmony.join("；") : ""}</div>
+    <div class="match-list">${bars || '<div class="muted">没有可匹配的单品</div>'}</div>`;
+}
+
+function catName(cat) {
+  return { top: "上装", bottom: "下装", shoes: "鞋履", outer: "外套", bag: "包" }[cat] || cat;
+}
+
+/** 搭配逻辑：把「为什么是这三件」拆成可核对的几条 */
+function renderLogic(a, reason) {
+  const panel = $("#logic-panel");
+  if (!panel) return;
+  const [top, bottom, shoes] = ["top", "bottom", "shoes"].map((c) =>
+    a.picks.find((p) => p.category === c)
+  );
+  const lines = [];
+  lines.push(
+    `<li><b>槽位</b>：上装 ${top ? `${top.color_name}·${top.type}` : "—"} ／ 下装 ${
+      bottom ? `${bottom.color_name}·${bottom.type}` : "—"
+    } ／ 鞋 ${shoes ? `${shoes.color_name}·${shoes.type}` : "—"}（取自衣橱真实 id：${a.picks
+      .map((p) => p.id)
+      .join(", ")}）</li>`
+  );
+  const styles = [...new Set(a.picks.flatMap((p) => p.item.style_tags || []))];
+  lines.push(`<li><b>风格</b>：单品自带标签 ${styles.join("、") || "—"}；目标风格 ${
+    (state.constraint?.style_tags || []).join("、") || "不限"
+  }</li>`);
+  lines.push(`<li><b>配色</b>：${a.harmony.join("；") || "上下明暗接近，走稳妥路线"}</li>`);
+  lines.push(`<li><b>场合</b>：${state.constraint?.occasion || "日常"}（材质：${a.picks
+    .map((p) => p.item.material || "—")
+    .join(" / ")}）</li>`);
+  lines.push(`<li><b>结论</b>：${reason}</li>`);
+  panel.innerHTML = `<h2>搭配逻辑</h2><ol class="logic-list">${lines.join("")}</ol>`;
+}
+
+function renderResult(a, reason) {
+  const picked = a.picks;
+  const pickedIds = picked.map((p) => p.id);
   const byCat = {};
   for (const it of picked) byCat[it.category] = it;
 
@@ -708,11 +1060,21 @@ function renderResult(pickedIds, reason) {
 
   $("#result-reason").textContent = reason;
   $("#result-meta").textContent = meta.join("\n");
+
+  // 匹配度 + 搭配逻辑
+  renderMatchPanel(a);
+  renderLogic(a, reason);
+  const ms = $("#match-summary");
+  if (ms) {
+    ms.classList.remove("hidden");
+    ms.innerHTML = `<span>整套匹配度</span><b>${a.outfitScore}%</b>`;
+  }
+
   state.result = {
     items: pickedIds,
     reason,
     constraint: state.constraint,
-    score: 0,
+    score: a.outfitScore,
   };
   console.log("[result]", state.result);
   console.log("[constraint]", state.constraint);
@@ -720,18 +1082,18 @@ function renderResult(pickedIds, reason) {
 
 async function runRecommend() {
   if (!state.constraint) {
-    alert("请先到「入口」抽一张塔罗牌");
+    alert("请先到「入口」抽塔罗，或到「风格」页自己定风格");
     switchView("entry");
     return;
   }
-  const pickedIds = recommend(state.items, state.constraint);
-  const picked = itemsByIds(state.items, pickedIds);
+  // 一次性算完：选款 + 逐件匹配度 + 整套分数
+  const a = analyze(state.items, state.constraint);
   const reason = await writeReason(
     state.constraint.story || "今天适合温柔地对待自己",
-    picked,
+    a.picks,
     state.constraint.vibe || ""
   );
-  renderResult(pickedIds, reason);
+  renderResult(a, reason);
   switchView("result");
 }
 
@@ -815,6 +1177,66 @@ function bind() {
 
   $("#manual-save").addEventListener("click", saveManual);
 
+  // 内置示例图：一键入柜
+  $("#sample-row")?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-sample]");
+    if (btn) ingestSample(btn.dataset.sample);
+  });
+
+  // 风格选择 ①：标签勾选
+  $("#tag-picker")?.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-tag]");
+    if (!b) return;
+    const t = b.dataset.tag;
+    const arr = state.styleSel.tags;
+    const i = arr.indexOf(t);
+    if (i >= 0) arr.splice(i, 1);
+    else arr.push(t);
+    renderStyleControls();
+  });
+
+  // 风格选择 ②：滑动评分
+  for (const [sel, key] of [
+    ["#s-formality", "formality"],
+    ["#s-energy", "energy"],
+    ["#s-brightness", "brightness"],
+  ]) {
+    $(sel)?.addEventListener("input", (e) => {
+      state.styleSel.prefs[key] = Number(e.target.value);
+      syncSliderLabels();
+      renderStyleSummary();
+    });
+  }
+
+  // 风格选择 ③：示例图点选（选中会同步带动风格词与滑动条）
+  const pickLook = (id) => {
+    state.styleSel.look = state.styleSel.look === id ? null : id;
+    const l = LOOKS.find((x) => x.id === id);
+    if (state.styleSel.look && l) {
+      state.styleSel.prefs = { ...l.pref };
+      state.styleSel.tags = [...new Set([...state.styleSel.tags, ...l.style_tags])];
+    }
+    renderStyleControls();
+  };
+  $("#look-picker")?.addEventListener("click", (e) => {
+    const c = e.target.closest("[data-look]");
+    if (c) pickLook(c.dataset.look);
+  });
+  $("#look-picker")?.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    const c = e.target.closest("[data-look]");
+    if (c) {
+      e.preventDefault();
+      pickLook(c.dataset.look);
+    }
+  });
+
+  $("#btn-gen-style")?.addEventListener("click", generateFromStyle);
+  $("#btn-style-reset")?.addEventListener("click", () => {
+    state.styleSel = { tags: [], prefs: { formality: 3, energy: 50, brightness: 55 }, look: null };
+    renderStyleControls();
+  });
+
   const deck = $("#tarot-deck");
   deck.addEventListener("click", drawTarot);
   deck.addEventListener("keydown", (e) => {
@@ -845,6 +1267,8 @@ function bind() {
 async function init() {
   bind();
   await Promise.all([loadItems(), loadTarot()]);
+  await loadSamples();      // 无素材时的内置示例图
+  renderStyleControls();    // 风格选择的三种方式
 }
 
 init();

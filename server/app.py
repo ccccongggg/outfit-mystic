@@ -35,6 +35,7 @@ from write_reason import write_reason  # noqa: E402
 
 WEB = ROOT / "web"
 DATA = WEB / "data"
+SAMPLES_JSON = DATA / "samples.json"
 UPLOADS = ROOT / "uploads"
 CUTS = ROOT / "cache" / "cuts"
 TAGGED = ROOT / "cache" / "tagged"
@@ -60,6 +61,17 @@ def _save_items(items: list) -> None:
 
 def _new_id() -> str:
     return "w" + format(int(time.time() * 1000) % 10000, "04d")
+
+
+def _load_samples() -> list:
+    """内置示例衣物图（无素材时可直接入柜跑通主链路）。"""
+    if not SAMPLES_JSON.exists():
+        return []
+    try:
+        data = json.loads(SAMPLES_JSON.read_text(encoding="utf-8"))
+        return data.get("samples", []) if isinstance(data, dict) else []
+    except json.JSONDecodeError:
+        return []
 
 
 def _parse_multipart(body: bytes, content_type: str) -> tuple[bytes, str]:
@@ -160,8 +172,10 @@ def ingest(file_bytes: bytes, filename: str) -> dict:
             "palette": [],
             "fit": None,
             "pattern": None,
+            "material": None,
             "season": [],
             "style_tags": [],
+            "occasions": [],
             "formality": 3,
         }
 
@@ -238,6 +252,22 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json(200, {"items": _load_items()})
             return
 
+        if path == "/api/samples":
+            samples = _load_samples()
+            self._send_json(200, {
+                "samples": [
+                    {
+                        "id": s.get("id"),
+                        "title": s.get("title"),
+                        "desc": s.get("desc"),
+                        "url": s.get("file"),
+                        "tags": s.get("tags") or {},
+                    }
+                    for s in samples
+                ]
+            })
+            return
+
         if path == "/" or path == "/index.html":
             self._send_file(WEB / "index.html")
             return
@@ -297,6 +327,43 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json(200, {"reason": reason})
             return
 
+        if path == "/api/ingest_sample":
+            # 无素材时：把内置示例图当作一次真实上传走完整 ingest（抠底 + VLM 打标 + 入柜）
+            try:
+                data = json.loads(body.decode("utf-8") or "{}")
+            except json.JSONDecodeError:
+                data = {}
+            sid = data.get("id")
+            sample = next((s for s in _load_samples() if s.get("id") == sid), None)
+            if not sample:
+                self._send_json(404, {"message": "sample not found"})
+                return
+            sample_path = WEB / str(sample.get("file", ""))
+            if not sample_path.is_file():
+                self._send_json(404, {"message": "sample file missing"})
+                return
+            try:
+                result = ingest(sample_path.read_bytes(), sample_path.name)
+            except Exception as exc:  # noqa: BLE001
+                self._send_json(500, {"stage": "cut", "message": str(exc)})
+                return
+            if "error" in result:
+                self._send_json(500, {"stage": result["error"], "message": result["message"]})
+                return
+            # 打标失败时回落到 samples.json 里预置的标签，保证流程仍可继续
+            if not result.get("tag_ok"):
+                for key, val in (sample.get("tags") or {}).items():
+                    result["item"].setdefault(key, val)
+                result["item"]["source"] = "sample-preset"
+                items = _load_items()
+                for it in items:
+                    if it.get("id") == result["item"]["id"]:
+                        it.update(result["item"])
+                _save_items(items)
+                result["tag_ok"] = True
+            self._send_json(200, result)
+            return
+
         if path == "/api/items/manual":
             try:
                 data = json.loads(body.decode("utf-8") or "{}")
@@ -309,7 +376,8 @@ class Handler(BaseHTTPRequestHandler):
                 if it.get("id") == item_id:
                     for key in (
                         "category", "type", "color_name", "color_hex", "fit",
-                        "pattern", "season", "style_tags", "formality",
+                        "pattern", "material", "season", "style_tags",
+                        "occasions", "formality",
                     ):
                         if key in data:
                             it[key] = data[key]

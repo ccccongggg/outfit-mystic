@@ -1,0 +1,86 @@
+{
+  "schema_version": 2,
+  "note": "内置示例衣物图：无素材时可直接入柜跑通主链路。tags 由 VLM 真实打标产出（schema v2：含 material / occasions），断网时前端直接复用这份标签本地入柜。",
+  "samples": [
+    {
+      "id": "s1",
+      "file": "assets/samples/sample_white_tee.jpg",
+      "title": "白色棉质短袖",
+      "desc": "白底·单件平铺，抠底友好",
+      "tags": {
+        "category": "top",
+        "type": "短袖",
+        "color_name": "白色",
+        "color_hex": "#E5E5EA",
+        "palette": ["#E5E5EA"],
+        "fit": "合身",
+        "pattern": "纯色",
+        "material": "棉",
+        "season": ["春", "秋"],
+        "style_tags": ["简约"],
+        "occasions": ["休闲"],
+        "formality": 2
+      }
+    },
+    {
+      "id": "s2",
+      "file": "assets/samples/sample_stripe_top.jpg",
+      "title": "米色条纹短袖",
+      "desc": "有图案，考验打标识别",
+      "tags": {
+        "category": "top",
+        "type": "短袖",
+        "color_name": "米色",
+        "color_hex": "#E0E0E0",
+        "palette": ["#E0E0E0"],
+        "fit": "合身",
+        "pattern": "印花",
+        "material": "棉",
+        "season": ["春", "秋"],
+        "style_tags": ["简约"],
+        "occasions": ["休闲"],
+        "formality": 2
+      }
+    },
+    {
+      "id": "s3",
+      "file": "assets/samples/sample_denim_jacket.jpg",
+      "title": "黑色短外套",
+      "desc": "外搭单品，可叠穿",
+      "tags": {
+        "category": "outer",
+        "type": "外套",
+        "color_name": "黑色",
+        "color_hex": "#E8E8E8",
+        "palette": ["#E8E8E8"],
+        "fit": "合身",
+        "pattern": "纯色",
+        "material": "皮革",
+        "season": ["春", "秋"],
+        "style_tags": ["简约"],
+        "occasions": ["休闲", "通勤"],
+        "formality": 2
+      }
+    },
+    {
+      "id": "s4",
+      "file": "assets/samples/sample_sneaker.jpg",
+      "title": "红色运动鞋",
+      "desc": "亮色鞋履，做整套的点睛",
+      "tags": {
+        "category": "shoes",
+        "type": "鞋",
+        "color_name": "红色",
+        "color_hex": "#CD021C",
+        "palette": ["#CD021C"],
+        "fit": "合身",
+        "pattern": "纯色",
+        "material": "运动面料",
+        "season": ["春", "秋"],
+        "style_tags": ["简约", "运动"],
+        "occasions": ["休闲", "运动"],
+        "formality": 1
+      }
+    }
+  ]
+}

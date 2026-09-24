@@ -22,6 +22,7 @@
     </div>
     <nav class="nav">
       <button class="nav-btn active" data-view="wardrobe">衣橱</button>
+      <button class="nav-btn" data-view="style">风格</button>
       <button class="nav-btn" data-view="entry">入口</button>
       <button class="nav-btn" data-view="result">结果</button>
     </nav>
@@ -105,6 +106,15 @@
         </div>
       </div>
 
+      <!-- 没有素材？内置示例衣物图，点一下就走完「抠底→打标→入柜」 -->
+      <div class="sample-box">
+        <div class="sample-head">
+          <h2>没有照片？用内置示例图跑通流程</h2>
+          <span class="muted">示例素材为网络公开商品图 · 点击即入柜（走和上传完全相同的链路）</span>
+        </div>
+        <div id="sample-row" class="sample-row"></div>
+      </div>
+
       <div id="manual-panel" class="manual-panel hidden">
         <div class="manual-title">手动补标（VLM 不可用时）</div>
         <div class="manual-grid">
@@ -133,6 +143,21 @@
               <option>直筒</option><option>阔腿</option><option>其他</option>
             </select>
           </label>
+          <label>材质
+            <select id="m-material">
+              <option>棉</option><option>麻</option><option>牛仔</option><option>针织</option>
+              <option>羊毛</option><option>皮革</option><option>丝绸</option><option>雪纺</option>
+              <option>涤纶</option><option>运动面料</option><option>灯芯绒</option><option>卫衣布</option>
+              <option>其他</option>
+            </select>
+          </label>
+          <label>场合
+            <select id="m-occasion" multiple size="4">
+              <option>通勤</option><option>约会</option><option>休闲</option><option>运动</option>
+              <option>聚会</option><option>旅行</option><option>居家</option><option>正式</option>
+              <option>校园</option>
+            </select>
+          </label>
           <label>季节
             <select id="m-season" multiple size="4">
               <option>春</option><option>夏</option><option>秋</option><option>冬</option>
@@ -149,6 +174,51 @@
       </div>
 
       <div id="item-grid" class="item-grid"></div>
+    </section>
+
+    <!-- ========== 风格选择（三种方式） ========== -->
+    <section id="style" class="view">
+      <div class="section-head">
+        <h1>选风格</h1>
+        <p class="muted">三种表达方式任选（也可叠加），组合成一份风格约束后再生成穿搭。</p>
+      </div>
+
+      <div class="style-block">
+        <div class="style-block-head"><span class="idx">①</span><h2>标签勾选</h2><span class="muted">直接挑你想要的风格词</span></div>
+        <div id="tag-picker" class="chip-row"></div>
+      </div>
+
+      <div class="style-block">
+        <div class="style-block-head"><span class="idx">②</span><h2>滑动评分</h2><span class="muted">用三个维度表达倾向</span></div>
+        <div class="sliders">
+          <label class="slider-row">
+            <span class="sl-name">正式度</span>
+            <input type="range" id="s-formality" min="1" max="5" step="1" value="3" />
+            <span class="sl-val" id="v-formality">3（日常）</span>
+          </label>
+          <label class="slider-row">
+            <span class="sl-name">活力</span>
+            <input type="range" id="s-energy" min="0" max="100" step="5" value="50" />
+            <span class="sl-val" id="v-energy">50</span>
+          </label>
+          <label class="slider-row">
+            <span class="sl-name">明度</span>
+            <input type="range" id="s-brightness" min="0" max="100" step="5" value="55" />
+            <span class="sl-val" id="v-brightness">55</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="style-block">
+        <div class="style-block-head"><span class="idx">③</span><h2>示例图点选</h2><span class="muted">看哪套顺眼就点哪套</span></div>
+        <div id="look-picker" class="look-row"></div>
+      </div>
+
+      <div class="style-summary" id="style-summary"></div>
+      <div class="style-actions">
+        <button class="btn primary" id="btn-gen-style">按这个风格生成穿搭</button>
+        <button class="btn ghost" id="btn-style-reset">清空选择</button>
+      </div>
     </section>
 
     <!-- ========== 入口 ========== -->
@@ -241,10 +311,15 @@
           <div class="story-text" id="result-story">抽一张牌，开始今天的仪式。</div>
           <div class="reason-text" id="result-reason">理由将在这里出现。</div>
           <div class="result-meta" id="result-meta"></div>
+          <div class="match-summary hidden" id="match-summary"></div>
           <button class="btn primary" id="btn-run">生成今日穿搭</button>
           <button class="btn ghost" id="btn-back-entry">再抽一张</button>
         </aside>
       </div>
+
+      <!-- 匹配度 + 每件单品的搭配逻辑 -->
+      <div class="match-panel" id="match-panel"></div>
+      <div class="logic-panel" id="logic-panel"></div>
     </section>
   </main>
 

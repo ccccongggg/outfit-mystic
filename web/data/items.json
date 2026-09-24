@@ -23,7 +23,12 @@
     ],
     "formality": 2,
     "source": "ai",
-    "manual_override": false
+    "manual_override": false,
+    "material": "棉",
+    "occasions": [
+      "休闲",
+      "通勤"
+    ]
   },
   {
     "id": "w0002",
@@ -49,7 +54,11 @@
     ],
     "formality": 3,
     "source": "ai",
-    "manual_override": false
+    "manual_override": false,
+    "material": "棉",
+    "occasions": [
+      "休闲"
+    ]
   },
   {
     "id": "w0003",
@@ -74,7 +83,11 @@
     ],
     "formality": 3,
     "source": "ai",
-    "manual_override": false
+    "manual_override": false,
+    "material": "棉",
+    "occasions": [
+      "休闲"
+    ]
   },
   {
     "id": "w0004",
@@ -99,7 +112,11 @@
     ],
     "formality": 2,
     "source": "ai",
-    "manual_override": false
+    "manual_override": false,
+    "material": "棉",
+    "occasions": [
+      "休闲"
+    ]
   },
   {
     "id": "w0005",
@@ -124,7 +141,12 @@
     ],
     "formality": 2,
     "source": "ai",
-    "manual_override": false
+    "manual_override": false,
+    "material": "其他",
+    "occasions": [
+      "通勤",
+      "休闲"
+    ]
   },
   {
     "id": "w0006",
@@ -149,7 +171,11 @@
     ],
     "formality": 2,
     "source": "ai",
-    "manual_override": false
+    "manual_override": false,
+    "material": "卫衣布",
+    "occasions": [
+      "休闲"
+    ]
   },
   {
     "id": "w0007",
@@ -173,7 +199,11 @@
     ],
     "formality": 1,
     "source": "ai",
-    "manual_override": false
+    "manual_override": false,
+    "material": "棉",
+    "occasions": [
+      "休闲"
+    ]
   },
   {
     "id": "w0008",
@@ -197,7 +227,11 @@
     ],
     "formality": 2,
     "source": "ai",
-    "manual_override": false
+    "manual_override": false,
+    "material": "卫衣布",
+    "occasions": [
+      "休闲"
+    ]
   },
   {
     "id": "w0009",
@@ -223,7 +257,12 @@
     ],
     "formality": 1,
     "source": "ai",
-    "manual_override": false
+    "manual_override": false,
+    "material": "皮革",
+    "occasions": [
+      "休闲",
+      "运动"
+    ]
   },
   {
     "id": "w0010",
@@ -248,7 +287,11 @@
     ],
     "formality": 2,
     "source": "ai",
-    "manual_override": false
+    "manual_override": false,
+    "material": "皮革",
+    "occasions": [
+      "休闲"
+    ]
   },
   {
     "id": "w0011",
@@ -273,7 +316,12 @@
     ],
     "formality": 3,
     "source": "ai",
-    "manual_override": false
+    "manual_override": false,
+    "material": "棉",
+    "occasions": [
+      "通勤",
+      "休闲"
+    ]
   },
   {
     "id": "w0012",
@@ -298,7 +346,12 @@
     ],
     "formality": 3,
     "source": "ai",
-    "manual_override": false
+    "manual_override": false,
+    "material": "皮革",
+    "occasions": [
+      "通勤",
+      "正式"
+    ]
   },
   {
     "id": "w8112",
@@ -323,7 +376,12 @@
     "formality": 1,
     "source": "ai",
     "manual_override": false,
-    "cut_ok": true
+    "cut_ok": true,
+    "material": "皮革",
+    "occasions": [
+      "休闲",
+      "运动"
+    ]
   },
   {
     "id": "w9777",

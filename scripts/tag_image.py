@@ -35,6 +35,12 @@ FIT = {"紧身", "合身", "宽松", "直筒", "阔腿", "其他"}
 PATTERN = {"纯色", "条纹", "格纹", "印花", "其他"}
 SEASON = {"春", "夏", "秋", "冬"}
 STYLE = {"温柔", "简约", "通勤", "街头", "运动", "甜美", "极简", "复古"}
+# schema v2 扩展字段：材质 + 适用场合（老数据缺失时按 [] / 其他 兜底，向后兼容）
+MATERIAL = {
+    "棉", "麻", "牛仔", "丹宁", "针织", "羊毛", "皮革", "丝绸",
+    "雪纺", "涤纶", "运动面料", "灯芯绒", "卫衣布", "其他",
+}
+OCCASION = {"通勤", "约会", "休闲", "运动", "聚会", "旅行", "居家", "正式", "校园"}
 
 PROMPT = (
     "你是服装档案员。看这张衣服图，只返回 JSON，不要 Markdown 围栏，不要解释。\n"
@@ -45,8 +51,10 @@ PROMPT = (
     '  "color_hex": "#RRGGBB",\n'
     '  "fit": "紧身|合身|宽松|直筒|阔腿|其他",\n'
     '  "pattern": "纯色|条纹|格纹|印花|其他",\n'
+    '  "material": "棉|麻|牛仔|针织|羊毛|皮革|丝绸|雪纺|涤纶|运动面料|灯芯绒|卫衣布|其他",\n'
     '  "season": ["春","秋"],\n'
     '  "style_tags": ["温柔","简约"],\n'
+    '  "occasions": ["通勤","休闲"],\n'
     '  "formality": 2\n'
     "}"
 )
@@ -105,6 +113,8 @@ def _sanitize(raw: dict) -> dict:
 
     season = [s for s in (raw.get("season") or []) if s in SEASON]
     style_tags = [s for s in (raw.get("style_tags") or []) if s in STYLE]
+    occasions = [o for o in (raw.get("occasions") or []) if o in OCCASION]
+    material = raw.get("material") if raw.get("material") in MATERIAL else "其他"
 
     formality = raw.get("formality", 2)
     try:
@@ -126,8 +136,10 @@ def _sanitize(raw: dict) -> dict:
         "palette": [color_hex],
         "fit": fit,
         "pattern": pattern,
+        "material": material,
         "season": season,
         "style_tags": style_tags,
+        "occasions": occasions,
         "formality": formality,
     }
 

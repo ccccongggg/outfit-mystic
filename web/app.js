@@ -426,18 +426,87 @@ function constraintFromTarot(card) {
   };
 }
 
-// 其它入口空壳，便于队友后补
+// ===== 多入口约束生成（与塔罗同构，只改 source；引擎零改动，不动 HTML/CSS）=====
+const MOODS = [
+  { mood: "想被治愈", style_tags: ["温柔", "简约"], vibe: "soft / cozy", story: "今天适合温柔地对待自己，慢一点也没关系" },
+  { mood: "元气满满", style_tags: ["运动", "街头"], vibe: "bright / energetic", story: "状态在线，穿点有劲的，今天要冲" },
+  { mood: "安静独处", style_tags: ["极简", "复古"], vibe: "quiet / focused", story: "想把自己调成静音，选一身不吵的衣服" },
+  { mood: "浪漫", style_tags: ["甜美", "温柔"], vibe: "soft / dreamy", story: "今天想有点甜，let it be gentle" },
+  { mood: "松弛", style_tags: ["简约", "通勤"], vibe: "easy / relaxed", story: "不费力也好看，松弛感拉满" },
+];
+const WEATHERS = [
+  { w: "晴", season: ["春", "夏", "秋"], avoid_colors: [], style_tags: ["简约"], vibe: "clear / light", story: "天晴，穿轻快点的" },
+  { w: "雨", season: ["春", "秋", "冬"], avoid_colors: ["白"], style_tags: ["通勤"], vibe: "calm / practical", story: "下雨，深色更安心，别太娇气" },
+  { w: "冷", season: ["秋", "冬"], avoid_colors: [], style_tags: ["复古", "通勤"], vibe: "warm / layered", story: "降温了，叠穿保暖优先" },
+  { w: "热", season: ["夏"], avoid_colors: [], style_tags: ["运动", "简约"], vibe: "cool / airy", story: "好热，透气清爽最重要" },
+  { w: "雪", season: ["冬"], avoid_colors: ["白"], style_tags: ["复古"], vibe: "quiet / snow", story: "下雪天，保暖又别全白撞景" },
+];
+const COLORS = [
+  { name: "奶油白", must: ["奶油白", "米"] },
+  { name: "雾蓝", must: ["蓝", "灰"] },
+  { name: "橄榄绿", must: ["绿", "橄榄"] },
+  { name: "砖红", must: ["红", "砖"] },
+  { name: "卡其", must: ["卡其", "棕"] },
+  { name: "浅紫", must: ["紫", "浅"] },
+];
+const OCCASIONS = [
+  { o: "通勤", formality: 3, style_tags: ["通勤", "简约"], vibe: "neat / pro", story: "上班日，利落得体优先" },
+  { o: "约会", formality: 2, style_tags: ["甜美", "温柔"], vibe: "soft / lovely", story: "约会局，温柔一点更对味" },
+  { o: "出游", formality: 1, style_tags: ["运动", "街头"], vibe: "free / fun", story: "出去玩，舒服好动最关键" },
+  { o: "聚会", formality: 3, style_tags: ["复古", "街头"], vibe: "bold / social", story: "聚会场合，有点态度更好" },
+];
+
+function rnd(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+function baseConstraint(source, extra) {
+  return Object.assign({
+    source,
+    occasion: null,
+    mood: null,
+    must_colors: [],
+    avoid_colors: [],
+    must_categories: ["top", "bottom", "shoes"],
+    weather: null,
+    season: [],
+    vibe: "",
+    style_tags: [],
+    story: "",
+    extra: {},
+  }, extra);
+}
+
 function constraintFromMood() {
-  alert("敬请期待");
-  return null;
+  const m = rnd(MOODS);
+  return baseConstraint("mood", { mood: m.mood, style_tags: m.style_tags, vibe: m.vibe, story: `心情·${m.mood}：${m.story}` });
 }
 function constraintFromBlind() {
-  alert("敬请期待");
-  return null;
+  const season = rnd([["春", "秋"], ["夏"], ["秋", "冬"], ["春", "夏"]]);
+  const style = rnd([["温柔", "简约"], ["街头", "运动"], ["复古", "通勤"], ["甜美", "极简"]]);
+  return baseConstraint("blind", { season, style_tags: style, vibe: "mystery / surprise", story: "盲盒：交给命运，今天穿它挑的那套" });
 }
 function constraintFromWeather() {
-  alert("敬请期待");
-  return null;
+  const x = rnd(WEATHERS);
+  return baseConstraint("weather", { weather: x.w, season: x.season, avoid_colors: x.avoid_colors, style_tags: x.style_tags, vibe: x.vibe, story: `天气·${x.w}：${x.story}` });
+}
+function constraintFromColor() {
+  const c = rnd(COLORS);
+  return baseConstraint("color", { must_colors: c.must, style_tags: [], vibe: "color / intent", story: `色彩·想穿${c.name}：用这个颜色定今天基调` });
+}
+function constraintFromOccasion() {
+  const o = rnd(OCCASIONS);
+  return baseConstraint("occasion", { occasion: o.o, formality: o.formality, style_tags: o.style_tags, vibe: o.vibe, story: `场合·${o.o}：${o.story}` });
+}
+
+// 非塔罗入口：生成约束后复用现有展示区（不动 HTML/CSS），提示去结果页生成
+function applyConstraint(c, label) {
+  state.constraint = c;
+  $("#constraint-debug").textContent = JSON.stringify(c, null, 2);
+  $("#result-tarot-img").classList.add("hidden");
+  $(".story-card-placeholder")?.classList.remove("hidden");
+  $("#result-story").textContent = c.story;
+  $("#result-reason").textContent = "点「生成今日穿搭」，规则会从衣橱里选一套。";
+  $("#result-meta").textContent = "";
+  alert(`${label}已生成约束：\n${c.story}\n\n去「结果」页点「生成今日穿搭」。`);
 }
 
 async function loadTarot() {
@@ -676,10 +745,10 @@ function bind() {
   $$(".stub-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const kind = btn.closest(".entry-card")?.dataset.stub;
-      if (kind === "mood") constraintFromMood();
-      else if (kind === "blind") constraintFromBlind();
-      else if (kind === "weather") constraintFromWeather();
-      else alert("敬请期待");
+      const labelMap = { mood: "心情", blind: "盲盒", weather: "天气", color: "色彩", occasion: "场合" };
+      const fnMap = { mood: constraintFromMood, blind: constraintFromBlind, weather: constraintFromWeather, color: constraintFromColor, occasion: constraintFromOccasion };
+      const fn = fnMap[kind];
+      if (fn) applyConstraint(fn(), labelMap[kind] || kind);
     });
   });
 

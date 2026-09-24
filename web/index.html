@@ -67,6 +67,19 @@
         </aside>
 
         <div class="intake-main">
+          <!-- 入库方式：本地抠底 / 联网找白底图，两条路互补 -->
+          <div class="mode-row">
+            <span class="mode-label">入柜方式</span>
+            <div class="seg" id="ingest-mode" role="group" aria-label="入柜方式">
+              <button type="button" class="seg-btn active" data-mode="cut">AI 抠图</button>
+              <button type="button" class="seg-btn" data-mode="web">联网找白底图</button>
+              <button type="button" class="seg-btn" data-mode="auto">自动</button>
+            </div>
+          </div>
+          <p class="mode-hint" id="mode-hint">
+            用本地算法把你这张照片的背景去掉（离线可用，永远能跑通）。
+          </p>
+
           <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="上传或拖入衣服照片">
             <input id="file-input" type="file" accept="image/jpeg,image/png,image/webp" hidden />
             <input id="camera-input" type="file" accept="image/*" capture="environment" hidden />
@@ -105,6 +118,21 @@
           </div>
 
           <div id="upload-error" class="upload-error hidden"></div>
+        </div>
+      </div>
+
+      <!-- 联网搜到的白底图候选：交给人确认，不替用户拍板 -->
+      <div id="found-modal" class="found-modal hidden">
+        <div class="found-card">
+          <div class="found-head">
+            <div class="found-title">联网找到这些白底图</div>
+            <div class="found-sub" id="found-sub"></div>
+          </div>
+          <div id="found-grid" class="found-grid"></div>
+          <div class="found-actions">
+            <button type="button" class="btn ghost" id="btn-found-mine">用我自己那张的抠图</button>
+            <button type="button" class="btn ghost" id="btn-found-cancel">取消</button>
+          </div>
         </div>
       </div>
 

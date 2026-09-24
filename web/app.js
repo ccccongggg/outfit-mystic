@@ -11,6 +11,8 @@ const state = {
   pendingManualId: null,
   useServer: true,
   pendingFile: null,
+  // 入柜方式：cut=本地抠底（默认） / web=联网找白底图 / auto=先联网，失败回落抠图
+  ingestMode: "cut",
   // 风格选择（三种方式共用一份结果）
   styleSel: {
     tags: [],
@@ -19,8 +21,11 @@ const state = {
   },
 };
 
-// 后台固定走本地小服务（预览页与 8787 不同源时也可用；服务已开 CORS）
-const API_BASE = "http://127.0.0.1:8787";
+// 后台地址：页面由服务提供时优先用页面自身源（换端口也不会错），否则回落到默认 8787
+const API_BASE = (() => {
+  const o = (typeof location !== "undefined" && location.origin) || "";
+  return o && o !== "null" && !o.startsWith("file") ? o : "http://127.0.0.1:8787";
+})();
 
 // 上传约束（与左侧规范文案保持一致）
 const UPLOAD_RULES = {
@@ -68,6 +73,36 @@ async function fetchJSON(url, options) {
     throw new Error(msg);
   }
   return res.json();
+}
+
+/** JSON POST 小助手 */
+function postJSON(url, body) {
+  return fetchJSON(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body || {}),
+  });
+}
+
+/** HTML 转义（候选图 reason 来自网络，必须转义后再拼进 innerHTML） */
+function esc(s) {
+  return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+/** 取 URL 主机名（候选图来源站点，展示用） */
+function hostOf(u) {
+  if (!u) return "";
+  try {
+    return new URL(u, API_BASE).hostname.replace(/^www\./, "");
+  } catch {
+    return "";
+  }
+}
+
+/** 服务端返回的路径（如 /api/findimg/...）拼成可请求地址 */
+function absUrl(u) {
+  if (!u) return "";
+  return u.startsWith("http") ? u : API_BASE + (u.startsWith("/") ? u : "/" + u);
 }
 
 // ---------- 衣橱 ----------
@@ -393,6 +428,109 @@ async function stageFile(file) {
   $("#dropzone").classList.add("disabled");
 }
 
+// ---------- 入柜方式：本地抠底 / 联网找白底图（两条路互补） ----------
+const MODE_HINT = {
+  cut: "用本地算法把你这张照片的背景去掉（离线可用，永远能跑通）。",
+  web: "先识别你这件衣服，再去全网找它的白底商品图 —— 找到后由你挑一张入柜，找不到就回落抠图。",
+  auto: "优先联网找白底图，找不到（或断网）自动回落到本地抠底，两条路都不耽误。",
+};
+
+function setIngestMode(mode) {
+  state.ingestMode = mode;
+  $$("#ingest-mode .seg-btn").forEach((b) => b.classList.toggle("active", b.dataset.mode === mode));
+  $("#mode-hint").textContent = MODE_HINT[mode] || MODE_HINT.cut;
+}
+
+/** 联网搜到的白底图不替用户拍板：弹出来让人选。
+ *  返回：候选 path（用它入柜）/ ""（改用自己那张的抠图）/ null（取消） */
+function openFoundModal(found) {
+  return new Promise((resolve) => {
+    const modal = $("#found-modal");
+    const grid = $("#found-grid");
+    const cands = (found.candidates || []).slice(0, 5);
+
+    $("#found-sub").textContent = found.verified
+      ? `AI 已复核品类与颜色（检索词来自你这张图的结构化标签）· 共 ${cands.length} 个候选，点一张入柜`
+      : `AI 复核不可用：${found.message || "VLM 无响应"} · 请目视确认后再入柜`;
+
+    grid.innerHTML = cands
+      .map(
+        (c, i) => `
+        <button type="button" class="found-item" data-path="${esc(c.path || "")}" data-i="${i}">
+          <img src="${esc(absUrl(c.url || ""))}" alt="候选 ${i + 1}" loading="lazy" />
+          <div class="found-meta">
+            <span class="badge ${c.vlm && c.vlm.ok ? "ok" : "no"}">${c.vlm && c.vlm.ok ? "已复核" : "未通过"}</span>
+            ${c.width || "?"}×${c.height || "?"} · 白底 ${Math.round((c.white_ratio || 0) * 100)}%
+            <div class="found-src">${esc(hostOf(c.page_url) || "全网检索")}</div>
+            <div>${esc((c.vlm && c.vlm.reason) || "")}</div>
+          </div>
+        </button>`
+      )
+      .join("");
+
+    const close = (val) => {
+      modal.classList.add("hidden");
+      $("#btn-found-mine").onclick = null;
+      $("#btn-found-cancel").onclick = null;
+      modal.onclick = null;
+      resolve(val);
+    };
+
+    $$(".found-item", grid).forEach((el) => {
+      el.onclick = () => close(el.dataset.path || "");
+    });
+    $("#btn-found-mine").onclick = () => close("");
+    $("#btn-found-cancel").onclick = () => close(null);
+    modal.onclick = (e) => {
+      if (e.target === modal) close(null);
+    };
+
+    modal.classList.remove("hidden");
+  });
+}
+
+/** 一步：打标 → 联网搜图 → 人工挑 → 入柜。返回 {result} 或 {cancelled:true} */
+async function runWebSearchPath(prepared) {
+  setStep("cut", "done");
+  setStep("tag", "done");
+
+  // 没识别出品类/类型/颜色，搜出来的必然是噪声 —— 直接跳过，回落抠图
+  const t = prepared.tags || {};
+  if (!t.type && !t.category && !t.color_name) {
+    return { failed: true, message: "这张图没识别出足够标签，无法联网搜同款" };
+  }
+
+  setStatusMsg("正在全网找白底同款图…");
+
+  let found = null;
+  try {
+    found = await postJSON("/api/find_image", { tags: prepared.tags });
+  } catch (err) {
+    return { failed: true, message: err.message };
+  }
+  if (!found || !found.ok || !(found.candidates || []).length) {
+    return { failed: true, message: (found && found.message) || "没找到候选" };
+  }
+
+  const choice = await openFoundModal(found);
+  if (choice === null) {
+    showStatus(false);
+    return { cancelled: true };
+  }
+
+  setStatusMsg(choice ? "用选中的白底图入柜…" : "用你这张的抠图结果入柜…");
+  const body = { pending: prepared.pending };
+  if (choice) body.found_path = choice;
+  try {
+    const result = await postJSON("/api/commit", body);
+    return { result };
+  } catch (err) {
+    showStatus(false);
+    showUploadError(`入柜失败：${err.message}`);
+    return { cancelled: true };
+  }
+}
+
 async function handleUpload(file) {
   if (!file) return;
 
@@ -402,6 +540,39 @@ async function handleUpload(file) {
   setStep("done", "");
   setStatusMsg("正在抠底…");
   showUploadError("");
+
+  const mode = state.ingestMode;
+
+  // 联网找白底图 / 自动：先打标拿结构化标签 → 全网搜同款 → 人挑 → 入柜
+  if ((mode === "web" || mode === "auto") && state.useServer) {
+    let prepared = null;
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      prepared = await fetchJSON("/api/prepare", { method: "POST", body: form });
+    } catch (err) {
+      prepared = null; // 后台版本旧或不可达 → 走原来的抠图路径
+    }
+
+    if (prepared && prepared.pending) {
+      const r = await runWebSearchPath(prepared);
+      if (r.result) {
+        await finishIngest(r.result, false);
+        return;
+      }
+      if (r.cancelled) return;
+      // 搜图没找到：直接把刚打完标的那张入柜（等价于抠底路径），不重复传文件
+      setStatusMsg(`联网没找到可信的白底图（${r.message}）· 改用你这张的抠图结果…`);
+      try {
+        const res = await postJSON("/api/commit", { pending: prepared.pending });
+        await finishIngest(res, false);
+        return;
+      } catch {
+        /* commit 失败 → 落到下面的 /ingest 原路径 */
+      }
+    }
+    setStatusMsg("联网搜图不可用，回落 AI 抠图…");
+  }
 
   const form = new FormData();
   form.append("file", file);
@@ -428,16 +599,23 @@ async function handleUpload(file) {
     }
   }
 
+  await finishIngest(result, result.local);
+}
+
+/** 入柜收尾：刷新列表 → 更新步骤条 → 需要时开手动补标 */
+async function finishIngest(result, local) {
   // 列表刷新（服务端路径会重拉；本地路径已 push）
-  if (!result.local) {
+  if (!local) {
     await loadItems();
   }
+  setStep("cut", result.item?.cut_ok ? "done" : "");
   setStep("tag", result.tag_ok ? "done" : "");
   setStep("done", "done");
+  const fromWeb = result.item?.from_web_search;
   setStatusMsg(
     result.tag_ok
-      ? "已入柜 ✓"
-      : result.local
+      ? fromWeb ? "已用联网白底图入柜 ✓" : "已入柜 ✓"
+      : local
         ? result.message || "已本地入柜（标签待补）✓"
         : "已入柜（标签待补）✓"
   );
@@ -1103,6 +1281,12 @@ function bind() {
     btn.addEventListener("click", () => switchView(btn.dataset.view));
   });
 
+  // 入柜方式切换（AI 抠图 / 联网找白底图 / 自动）
+  $$("#ingest-mode .seg-btn").forEach((btn) => {
+    btn.addEventListener("click", () => setIngestMode(btn.dataset.mode));
+  });
+  setIngestMode(state.ingestMode);
+
   const dropzone = $("#dropzone");
   const fileInput = $("#file-input");
   const cameraInput = $("#camera-input");
@@ -1262,6 +1446,12 @@ function bind() {
     resetTarot();
     switchView("entry");
   });
+}
+
+// 测试钩子：jsdom 冒烟测试（scripts/test_intake.mjs）需要直接拿到这些内部函数。
+// 只读引用，不改变任何业务行为。
+if (typeof window !== "undefined") {
+  window.__outfitApp = { state, setIngestMode, openFoundModal, esc, hostOf, absUrl, handleUpload, finishIngest };
 }
 
 async function init() {

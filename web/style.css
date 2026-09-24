@@ -773,3 +773,46 @@ body {
 .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 14px; margin-top: 6px; }
 .profile-grid .kv { display: flex; justify-content: space-between; border-bottom: 1px dashed var(--line); padding: 3px 0; }
 .tag.occ { background: rgba(139, 111, 168, 0.1); }
+
+/* ---------- 入柜方式（本地抠底 / 联网找白底图） ---------- */
+.mode-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
+.mode-label { font-size: 12px; color: var(--ink-soft); letter-spacing: 0.04em; }
+.seg { display: inline-flex; background: var(--paper-2); border-radius: 999px; padding: 3px; gap: 2px; }
+.seg-btn {
+  border: 0; background: transparent; color: var(--ink-soft);
+  font-family: var(--sans); font-size: 12.5px; padding: 6px 14px;
+  border-radius: 999px; cursor: pointer; transition: all 0.18s ease;
+}
+.seg-btn:hover { color: var(--ink); }
+.seg-btn.active { background: var(--card); color: var(--ink); box-shadow: 0 1px 6px rgba(43, 36, 48, 0.1); font-weight: 600; }
+.mode-hint { margin: 0 0 12px; font-size: 12px; line-height: 1.6; color: var(--ink-soft); }
+
+/* ---------- 联网白底图候选确认 ---------- */
+.found-modal {
+  position: fixed; inset: 0; z-index: 90;
+  background: rgba(43, 36, 48, 0.42); backdrop-filter: blur(3px);
+  display: flex; align-items: center; justify-content: center; padding: 18px;
+}
+.found-modal.hidden { display: none; }
+.found-card {
+  width: min(560px, 100%); max-height: 88vh; overflow: auto;
+  background: var(--card); border-radius: var(--radius);
+  box-shadow: 0 20px 60px rgba(43, 36, 48, 0.22); padding: 18px;
+}
+.found-head { margin-bottom: 12px; }
+.found-title { font-family: var(--serif); font-size: 17px; }
+.found-sub { margin-top: 4px; font-size: 12px; color: var(--ink-soft); line-height: 1.6; }
+.found-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+.found-item {
+  border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+  background: var(--paper); cursor: pointer; padding: 0; text-align: left;
+  font-family: var(--sans); transition: transform 0.16s ease, border-color 0.16s ease;
+}
+.found-item:hover { transform: translateY(-2px); border-color: var(--accent); }
+.found-item img { width: 100%; height: 120px; object-fit: contain; background: #fff; display: block; }
+.found-meta { padding: 6px 8px; font-size: 11px; color: var(--ink-soft); line-height: 1.45; }
+.found-meta .badge { display: inline-block; padding: 1px 6px; border-radius: 999px; font-size: 10px; margin-right: 4px; }
+.found-meta .badge.ok { background: rgba(107, 143, 113, 0.16); color: var(--ok); }
+.found-meta .badge.no { background: rgba(160, 90, 90, 0.14); color: var(--danger); }
+.found-src { color: var(--linen); font-size: 10px; margin: 2px 0; word-break: break-all; }
+.found-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }

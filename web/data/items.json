@@ -303,18 +303,26 @@
   {
     "id": "w8112",
     "image": "assets/items/w8112.png",
-    "category": null,
-    "type": null,
-    "color_name": null,
-    "color_hex": "#570105",
-    "palette": [],
-    "fit": null,
-    "pattern": null,
-    "season": [],
-    "style_tags": [],
-    "formality": 3,
-    "source": "manual",
-    "manual_override": true,
+    "category": "shoes",
+    "type": "鞋",
+    "color_name": "红色",
+    "color_hex": "#580104",
+    "palette": [
+      "#580104"
+    ],
+    "fit": "合身",
+    "pattern": "纯色",
+    "season": [
+      "春",
+      "秋"
+    ],
+    "style_tags": [
+      "简约",
+      "运动"
+    ],
+    "formality": 1,
+    "source": "ai",
+    "manual_override": false,
     "cut_ok": true
   },
   {

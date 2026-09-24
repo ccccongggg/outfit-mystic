@@ -253,6 +253,69 @@ function readImageSize(file) {
   });
 }
 
+function loadImageEl(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(img);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("image load failed"));
+    };
+    img.src = url;
+  });
+}
+
+/**
+ * 录入端预检：识别「难以干净抠底」的图片（如人物上身照、杂乱背景）。
+ * 原理：干净商品图四边应基本是纯白/纯色；若边界白像素占比过低，则自动抠底
+ * 大概率残留背景或切不干净，提前告知用户改用「单件平铺、白底」图。
+ */
+async function analyzeCutDifficulty(file) {
+  try {
+    const img = await loadImageEl(file);
+    const W = 64;
+    const H = Math.max(1, Math.round((64 * img.naturalHeight) / img.naturalWidth));
+    const cv = document.createElement("canvas");
+    cv.width = W;
+    cv.height = H;
+    const ctx = cv.getContext("2d");
+    ctx.drawImage(img, 0, 0, W, H);
+    const data = ctx.getImageData(0, 0, W, H).data;
+    const isWhite = (r, g, b) => r > 240 && g > 240 && b > 240;
+    let total = 0;
+    let white = 0;
+    for (let x = 0; x < W; x++) {
+      for (const y of [0, H - 1]) {
+        const i = (y * W + x) * 4;
+        total++;
+        if (isWhite(data[i], data[i + 1], data[i + 2])) white++;
+      }
+    }
+    for (let y = 0; y < H; y++) {
+      for (const x of [0, W - 1]) {
+        const i = (y * W + x) * 4;
+        total++;
+        if (isWhite(data[i], data[i + 1], data[i + 2])) white++;
+      }
+    }
+    const ratio = white / total;
+    const hardToCut = ratio < 0.6;
+    return {
+      hardToCut,
+      ratio,
+      reason: hardToCut
+        ? "背景不是纯白/纯色，自动抠底大概率残留背景或切不干净"
+        : "",
+    };
+  } catch {
+    return { hardToCut: false, ratio: 1, reason: "" };
+  }
+}
+
 function hidePreview() {
   $("#preview-panel").classList.add("hidden");
   $("#preview-img").src = "";
@@ -276,6 +339,9 @@ async function stageFile(file) {
     return;
   }
 
+  // 录入端预检：识别「难以干净抠底」的图片（人物上身照 / 杂乱背景等）
+  const cut = await analyzeCutDifficulty(file);
+
   state.pendingFile = file;
   const panel = $("#preview-panel");
   panel.classList.remove("hidden");
@@ -287,6 +353,11 @@ async function stageFile(file) {
   rows.push(`<div class="pass">✓ 分辨率达标（${check.w}×${check.h}）</div>`);
   rows.push(`<div class="pass">✓ 请再目视确认：单件、无遮挡、完整入镜</div>`);
   for (const w of check.warns) rows.push(`<div class="warn">△ ${w}</div>`);
+  if (cut.hardToCut) {
+    rows.push(
+      `<div class="warn strong">⚠ 这张图${cut.reason}。建议改用「单件平铺、白底/纯色背景」的商品图；若坚持上传，将以原图入柜、由你手动补标签。</div>`
+    );
+  }
   $("#preview-checks").innerHTML = rows.join("");
 
   $("#dropzone").classList.add("disabled");
@@ -500,9 +571,21 @@ function constraintFromOccasion() {
 // 非塔罗入口：生成约束后复用现有展示区（不动 HTML/CSS），提示去结果页生成
 function applyConstraint(c, label) {
   state.constraint = c;
+
+  // 入口页：塔罗卡归位（避免与当前约束来源不一致——修「卡片不同步」）
+  $("#tarot-deck")?.classList.remove("hidden");
+  $("#tarot-flip")?.classList.add("hidden");
+
+  // 调试区可见 constraint（验收 A4）
   $("#constraint-debug").textContent = JSON.stringify(c, null, 2);
+
+  // 结果页：卡片区反映当前来源，不再固定显示「尚未抽牌」
   $("#result-tarot-img").classList.add("hidden");
-  $(".story-card-placeholder")?.classList.remove("hidden");
+  const ph = $(".story-card-placeholder");
+  if (ph) {
+    ph.textContent = `${label} · 已生成约束`;
+    ph.classList.remove("hidden");
+  }
   $("#result-story").textContent = c.story;
   $("#result-reason").textContent = "点「生成今日穿搭」，规则会从衣橱里选一套。";
   $("#result-meta").textContent = "";

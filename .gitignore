@@ -5,3 +5,12 @@ __pycache__/
 *.pyc
 .DS_Store
 node_modules/
+# 开发期中间产物（真实预置图已落位 web/assets/items/，无需入库）
+web/assets/items/_cand/
+web/assets/items/_backup_fake/
+_pip_install*.log
+scripts/_dl_*.jpg
+scripts/_pexels_test.jpg
+scripts/probe_*.py
+scripts/dl_test.py
+scripts/dl_items.py

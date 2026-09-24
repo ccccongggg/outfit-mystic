@@ -291,6 +291,15 @@ body {
 .preview-checks .pass { color: var(--ok); }
 .preview-checks .fail { color: var(--danger); }
 .preview-checks .warn { color: var(--warn); }
+.preview-checks .warn.strong {
+  color: var(--danger);
+  background: rgba(220, 80, 80, 0.12);
+  border: 1px solid rgba(220, 80, 80, 0.45);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-weight: 600;
+  line-height: 1.5;
+}
 .preview-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 
 .upload-error {

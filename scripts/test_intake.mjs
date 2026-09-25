@@ -213,6 +213,28 @@ check(
   `${emptyOf("outer").textContent} / ${noteOf("outer").textContent}`
 );
 check("A9 不用外套的格子标成 off", slotOf("outer").classList.contains("slot-off"));
+check("A9 四格状态挂到 data-state（拼贴靠它决定出不出空框）", slotOf("outer").dataset.state === "off" && slotOf("bottom").dataset.state === "skip", `${slotOf("outer").dataset.state}/${slotOf("bottom").dataset.state}`);
+
+// ---- A9b 拼贴板形态（图一四格 → 图二一张拼贴）----
+// 左列只剩连衣裙、右列只剩鞋 → 各自占满整列，不再是四个等大格子
+const collage = window.document.querySelector("#collage");
+check("A9b 拼贴板成一整块", !!window.document.querySelector("#collage .look-board"));
+check("A9b 单件的那一列占满整列", collage.classList.contains("left-one") && collage.classList.contains("right-one"));
+check(
+  "A9b 顶部有氛围标签",
+  window.document.querySelectorAll("#look-chips .lk").length >= 2,
+  [...window.document.querySelectorAll("#look-chips .lk")].map((x) => x.textContent).join("/")
+);
+check(
+  "A9b 拼贴下有说明行（替代格子里的「待选」）",
+  window.document.querySelector("#look-note").textContent.includes("连衣裙自带") &&
+    window.document.querySelector("#look-note").textContent.includes("今天不用"),
+  window.document.querySelector("#look-note").textContent
+);
+check(
+  "A9b 手写签名在位",
+  window.document.querySelector(".look-sign").textContent.includes("Look")
+);
 check(
   "A9 meta 把「今天不用」和「缺件」分开说",
   !window.document.querySelector("#result-meta").textContent.includes("缺 1 件槽位"),
@@ -228,6 +250,7 @@ app.state.constraint = {
 app.renderResult(app.analyze(wardrobe, app.state.constraint), "月亮说今天走安静路线");
 
 check("A9 挑不出时格子标成 blank", slotOf("outer").classList.contains("slot-blank"));
+check("A9 示例格在拼贴里仍然可见", slotOf("outer").dataset.state === "empty");
 check("A9 挑不出时给示例卡", !sampleOf("outer").classList.contains("hidden"));
 check("A9 示例卡写明是「示例」", sampleOf("outer").querySelector(".sample-badge").textContent === "示例");
 check(

@@ -203,11 +203,17 @@
 
 /* ---- 结果页：双列 → 单列，拼贴压缩 ---- */
 .phone-mode .result-layout { grid-template-columns: 1fr; gap: 14px; }
-.phone-mode .collage { min-height: 0; padding: 12px; gap: 10px; grid-template-rows: auto auto; }
-.phone-mode .slot { min-height: 96px; border-radius: 10px; }
-.phone-mode .slot-img { padding: 8px; }
-.phone-mode .slot-label { top: 7px; left: 9px; font-size: 10px; }
-.phone-mode .slot-empty { font-size: 11px; letter-spacing: 0.14em; }
+.phone-mode .collage { min-height: 0; padding: 12px; gap: 10px; }
+.phone-mode .look-board { aspect-ratio: 3 / 4; gap: 1px 4px; padding: 3px; }
+.phone-mode .slot { min-height: 0; }
+.phone-mode .slot-img { padding: 3px; }
+.phone-mode .slot-label { top: 1px; left: 2px; font-size: 9px; }
+.phone-mode .slot-empty { font-size: 10.5px; letter-spacing: 0.12em; }
+.phone-mode .look-chips .lk { font-size: 10px; padding: 2px 8px; }
+.phone-mode .look-sign { font-size: 12px; right: 7px; bottom: 4px; }
+.phone-mode .look-note { font-size: 10.5px; }
+.phone-mode .sample-name { font-size: 11px; }
+.phone-mode .sample-why { font-size: 10px; }
 .phone-mode .story-panel { padding: 16px; gap: 11px; }
 .phone-mode .story-card-art { width: 84px; height: 124px; }
 .phone-mode .story-text { font-size: 14px; }

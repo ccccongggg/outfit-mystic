@@ -1359,6 +1359,45 @@ const SLOT_SEL = {
   outer: ".slot-outer",
 };
 
+/** 拼贴顶部的氛围标签：风格 + 主色 + 一个从正式度推出来的调性词 */
+function renderLookChips() {
+  const box = $("#look-chips");
+  if (!box) return;
+  const c = state.constraint || {};
+  const out = [];
+  out.push(...(c.style_tags || []).slice(0, 2));
+  out.push(...(c.must_colors || []).slice(0, 2));
+  const f = c.prefs && typeof c.prefs.formality === "number" ? c.prefs.formality : c.formality;
+  if (typeof f === "number") out.push(f <= 2 ? "低饱和" : f >= 4 ? "利落正式" : "耐看日常");
+  const occ = c.occasion || (c.occasions || [])[0];
+  if (occ) out.push(occ + "气质");
+  if (!out.length) out.push("今天");
+  box.innerHTML = out
+    .slice(0, 5)
+    .map((t) => `<span class="lk">${esc(t)}</span>`)
+    .join("");
+}
+
+/** 拼贴下面那行：把「没出现的格子」的原因说清楚（今天不用 / 连衣裙自带 / 衣橱里缺） */
+function renderLookNote(slots) {
+  const box = $("#look-note");
+  if (!box) return;
+  const lines = [];
+  for (const s of slots.filter((x) => x.state === "skip")) {
+    lines.push(`<b>${esc(s.label)}</b>：连衣裙自带，不用另配`);
+  }
+  for (const s of slots.filter((x) => x.state === "off")) {
+    const w = s.why || {};
+    const wt = [w.weather, w.thickness].filter(Boolean).join(" · ");
+    lines.push(`<b>${esc(s.label)}</b>：今天不用${wt ? `（${esc(wt)}）` : ""}`);
+  }
+  for (const s of slots.filter((x) => x.state === "empty")) {
+    lines.push(`<b>${esc(s.label)}</b>：衣橱里还没有，那一格放的是示例`);
+  }
+  box.innerHTML = lines.join("<br />");
+  box.classList.toggle("hidden", lines.length === 0);
+}
+
 /**
  * 一格一格画。四种状态必须分开表达 —— 之前全写「待选」，
  * 于是「连衣裙被选中但没格可放」和「今天本来就不穿外套」长得一模一样。
@@ -1371,6 +1410,10 @@ function drawSlot(s) {
   const empty = root.querySelector(".slot-empty");
   const note = root.querySelector(".slot-note");
   const sample = root.querySelector(".slot-sample");
+
+  // 状态同时挂到 DOM 上：拼贴板靠 [data-state] 决定「出不出现」
+  // （off / skip 不画空框，原因写到拼贴下面那行）
+  root.dataset.state = s.state;
 
   // 老 HTML 缓存可能没有 note/sample 节点，一律可选链，别因为少个节点整页报错
   root.classList.remove("slot-off", "slot-blank");
@@ -1453,6 +1496,20 @@ function renderResult(a, reason) {
   // 四格状态由引擎给（on / skip / off / empty），UI 只负责表达，不自己判断
   const slots = a.slots || [];
   for (const s of slots) drawSlot(s);
+
+  // 拼贴排版：某一列只剩一件时让它占满整列（连衣裙 + 鞋 不再各占半格）
+  const board = $("#collage");
+  if (board) {
+    const shown = (k) => {
+      const s = slots.find((x) => x.k === k);
+      return !!s && (s.state === "on" || s.state === "empty");
+    };
+    board.classList.toggle("left-one", ["top", "bottom"].filter(shown).length <= 1);
+    board.classList.toggle("right-one", ["outer", "shoes"].filter(shown).length <= 1);
+  }
+  renderLookChips();
+  renderLookNote(slots);
+
   const offLabels = slots.filter((s) => s.state === "off").map((s) => s.label);
   const skipLabels = slots.filter((s) => s.state === "skip").map((s) => s.label);
   const emptyLabels = slots.filter((s) => s.state === "empty").map((s) => s.label);

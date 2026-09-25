@@ -353,35 +353,45 @@
       </div>
 
       <div class="result-layout">
+        <!-- 一整张拼贴：单品按「上身/下身 在左，外搭/鞋 在右」摆开，
+             不再画四个虚线格子 —— 空的那格不出现，原因写进下面的说明行 -->
         <div class="collage" id="collage">
-          <div class="slot slot-top" data-slot="top">
-            <span class="slot-label">上衣</span>
-            <img class="slot-img hidden" alt="上衣" />
-            <div class="slot-empty">待选</div>
-            <div class="slot-sample hidden"></div>
-            <div class="slot-note hidden"></div>
+          <div class="look-chips" id="look-chips"></div>
+          <div class="look-board">
+            <span class="deco d1">✦</span>
+            <span class="deco d2">✦</span>
+            <span class="deco d3">✧</span>
+            <div class="slot slot-top" data-slot="top">
+              <span class="slot-label">上衣</span>
+              <img class="slot-img hidden" alt="上衣" />
+              <div class="slot-empty">待选</div>
+              <div class="slot-sample hidden"></div>
+              <div class="slot-note hidden"></div>
+            </div>
+            <div class="slot slot-bottom" data-slot="bottom">
+              <span class="slot-label">下装</span>
+              <img class="slot-img hidden" alt="下装" />
+              <div class="slot-empty">待选</div>
+              <div class="slot-sample hidden"></div>
+              <div class="slot-note hidden"></div>
+            </div>
+            <div class="slot slot-outer" data-slot="outer">
+              <span class="slot-label">外套</span>
+              <img class="slot-img hidden" alt="外套" />
+              <div class="slot-empty">待选</div>
+              <div class="slot-sample hidden"></div>
+              <div class="slot-note hidden"></div>
+            </div>
+            <div class="slot slot-shoes" data-slot="shoes">
+              <span class="slot-label">鞋</span>
+              <img class="slot-img hidden" alt="鞋" />
+              <div class="slot-empty">待选</div>
+              <div class="slot-sample hidden"></div>
+              <div class="slot-note hidden"></div>
+            </div>
+            <div class="look-sign">Today's<br /><em>Look</em> <span>♡</span></div>
           </div>
-          <div class="slot slot-bottom" data-slot="bottom">
-            <span class="slot-label">下装</span>
-            <img class="slot-img hidden" alt="下装" />
-            <div class="slot-empty">待选</div>
-            <div class="slot-sample hidden"></div>
-            <div class="slot-note hidden"></div>
-          </div>
-          <div class="slot slot-shoes" data-slot="shoes">
-            <span class="slot-label">鞋</span>
-            <img class="slot-img hidden" alt="鞋" />
-            <div class="slot-empty">待选</div>
-            <div class="slot-sample hidden"></div>
-            <div class="slot-note hidden"></div>
-          </div>
-          <div class="slot slot-outer" data-slot="outer">
-            <span class="slot-label">外套</span>
-            <img class="slot-img hidden" alt="外套" />
-            <div class="slot-empty">待选</div>
-            <div class="slot-sample hidden"></div>
-            <div class="slot-note hidden"></div>
-          </div>
+          <div class="look-note" id="look-note"></div>
         </div>
 
         <aside class="story-panel">

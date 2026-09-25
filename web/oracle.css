@@ -384,12 +384,11 @@ html.nav-hybrid body { padding-bottom: 56px; }
 .result-source i { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
 .result-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
 
-/* 拼贴从 3 格改成 2×2（上装/下装/鞋/外套） */
-.slot-bottom { grid-column: 2; grid-row: 1; }
-.slot-shoes { grid-column: 1; grid-row: 2; }
-.slot-outer { grid-column: 2; grid-row: 2; }
-.collage { min-height: 380px; }
-.slot { min-height: 140px; }
+/* 拼贴板的格子定位已收进 style.css 的 .look-board（上身/下身 在左，外搭/鞋 在右）。
+   这里只补桌面端的观感微调，不再改 slot 的 grid-column/row。 */
+.collage { min-height: 0; }
+.slot { min-height: 0; }
+.look-board { aspect-ratio: 4 / 5; }
 
 /* ---------- 手机模式 ---------- */
 .phone-mode .drawer { position: absolute; inset: 0; z-index: 60; }

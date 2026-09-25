@@ -8,6 +8,9 @@ node_modules/
 # 开发期中间产物（真实预置图已落位 web/assets/items/，无需入库）
 web/assets/items/_cand/
 web/assets/items/_backup_fake/
+# 女装化过程的中间产物：候选图可重新检索，原图备份在 git 历史里，都不入库
+web/assets/items/_cand_women/
+web/assets/items/_backup_unisex/
 _pip_install*.log
 scripts/_dl_*.jpg
 scripts/_pexels_test.jpg

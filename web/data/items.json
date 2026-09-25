@@ -3,7 +3,7 @@
     "id": "w0001",
     "image": "assets/items/prod_tee_white.jpg",
     "category": "top",
-    "type": "短袖",
+    "type": "吊带",
     "color_name": "柔白",
     "color_hex": "#F2F0EB",
     "palette": [
@@ -14,20 +14,19 @@
     "pattern": "纯色",
     "season": [
       "春",
-      "夏",
-      "秋"
+      "夏"
     ],
     "style_tags": [
-      "简约",
-      "温柔"
+      "温柔",
+      "甜美"
     ],
     "formality": 2,
     "source": "ai",
     "manual_override": false,
-    "material": "棉",
+    "material": "真丝",
     "occasions": [
-      "休闲",
-      "通勤"
+      "约会",
+      "休闲"
     ]
   },
   {
@@ -49,15 +48,16 @@
       "秋"
     ],
     "style_tags": [
-      "极简",
-      "街头"
+      "甜美",
+      "通勤"
     ],
     "formality": 3,
     "source": "ai",
     "manual_override": false,
-    "material": "棉",
+    "material": "雪纺",
     "occasions": [
-      "休闲"
+      "约会",
+      "通勤"
     ]
   },
   {
@@ -122,12 +122,12 @@
     "id": "w0005",
     "image": "assets/items/prod_dress_gray.jpg",
     "category": "top",
-    "type": "其他",
-    "color_name": "雾灰",
-    "color_hex": "#A8A8AE",
+    "type": "连衣裙",
+    "color_name": "奶白",
+    "color_hex": "#F1EEE8",
     "palette": [
-      "#A8A8AE",
-      "#8C8C94"
+      "#F1EEE8",
+      "#D8D6D0"
     ],
     "fit": "合身",
     "pattern": "纯色",
@@ -159,7 +159,7 @@
       "#A8B0B8",
       "#78808A"
     ],
-    "fit": "直筒",
+    "fit": "宽松",
     "pattern": "纯色",
     "season": [
       "春",
@@ -167,13 +167,14 @@
     ],
     "style_tags": [
       "简约",
-      "运动"
+      "通勤"
     ],
-    "formality": 2,
+    "formality": 3,
     "source": "ai",
     "manual_override": false,
-    "material": "卫衣布",
+    "material": "西装面料",
     "occasions": [
+      "通勤",
       "休闲"
     ]
   },
@@ -181,7 +182,7 @@
     "id": "w0007",
     "image": "assets/items/prod_short_olive.jpg",
     "category": "bottom",
-    "type": "短裤",
+    "type": "半身裙",
     "color_name": "橄榄绿",
     "color_hex": "#78824E",
     "palette": [
@@ -191,45 +192,50 @@
     "fit": "合身",
     "pattern": "纯色",
     "season": [
-      "夏"
+      "春",
+      "夏",
+      "秋"
     ],
     "style_tags": [
       "简约",
-      "运动"
+      "复古"
     ],
-    "formality": 1,
+    "formality": 2,
     "source": "ai",
     "manual_override": false,
     "material": "棉",
     "occasions": [
-      "休闲"
+      "休闲",
+      "约会"
     ]
   },
   {
     "id": "w0008",
     "image": "assets/items/prod_jogger_red.jpg",
     "category": "bottom",
-    "type": "长裤",
+    "type": "半身裙",
     "color_name": "砖红",
     "color_hex": "#963237",
     "palette": [
       "#963237",
       "#6E2328"
     ],
-    "fit": "直筒",
+    "fit": "合身",
     "pattern": "纯色",
     "season": [
+      "春",
       "秋"
     ],
     "style_tags": [
-      "街头",
-      "运动"
+      "温柔",
+      "复古"
     ],
     "formality": 2,
     "source": "ai",
     "manual_override": false,
-    "material": "卫衣布",
+    "material": "棉",
     "occasions": [
+      "约会",
       "休闲"
     ]
   },
@@ -253,15 +259,15 @@
     ],
     "style_tags": [
       "简约",
-      "运动"
+      "通勤"
     ],
-    "formality": 1,
+    "formality": 2,
     "source": "ai",
     "manual_override": false,
     "material": "皮革",
     "occasions": [
-      "休闲",
-      "运动"
+      "通勤",
+      "休闲"
     ]
   },
   {
@@ -269,27 +275,28 @@
     "image": "assets/items/prod_sneaker_red.jpg",
     "category": "shoes",
     "type": "鞋",
-    "color_name": "红黑",
-    "color_hex": "#C23B3B",
+    "color_name": "正红",
+    "color_hex": "#C41E2A",
     "palette": [
-      "#C23B3B",
-      "#1C1C1E"
+      "#C41E2A",
+      "#B01B25"
     ],
     "fit": "合身",
-    "pattern": "拼色",
+    "pattern": "纯色",
     "season": [
       "春",
       "秋"
     ],
     "style_tags": [
-      "街头",
-      "运动"
+      "甜美",
+      "复古"
     ],
     "formality": 2,
     "source": "ai",
     "manual_override": false,
     "material": "皮革",
     "occasions": [
+      "约会",
       "休闲"
     ]
   },
@@ -304,7 +311,7 @@
       "#B8895A",
       "#8F6840"
     ],
-    "fit": "合身",
+    "fit": "宽松",
     "pattern": "纯色",
     "season": [
       "秋",

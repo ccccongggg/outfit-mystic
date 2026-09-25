@@ -12,6 +12,12 @@
 //   must_categories / formality / prefer_materials
 //   prefs: { formality:1-5, energy:0-100, brightness:0-100 }   ← 滑动条偏好
 
+/** 连身单品判定：连衣裙/连体裤自带下装，选中后不再另配 bottom。 */
+export function isOnepiece(item) {
+  const t = (item && item.type) || "";
+  return /连衣裙|连体|吊带裙|背带裙|套装裙/.test(t);
+}
+
 export function recommend(items, constraint) {
   const cats = constraint.must_categories || ["top", "bottom", "shoes"];
   const pool = items.filter((it) => it && it.category);
@@ -44,12 +50,18 @@ export function recommend(items, constraint) {
   };
 
   // 4) 每槽位取分最高的 1 件；某槽位空则该槽位留空（允许 2 件套）
+  //    连衣裙是连身单品：上身选中它之后就不再取下装，避免「连衣裙 + 半裙」这种无效搭配
   const picked = [];
+  let onepiece = false;
   for (const cat of cats) {
+    if (onepiece && cat === "bottom") continue;
     const slot = cand
       .filter((it) => it.category === cat)
       .sort((a, b) => scoreOf(b) - scoreOf(a));
-    if (slot[0]) picked.push(slot[0].id);
+    if (slot[0]) {
+      picked.push(slot[0].id);
+      if (isOnepiece(slot[0])) onepiece = true;
+    }
   }
   return picked;
 }
@@ -199,7 +211,11 @@ export function analyze(items, constraint) {
   const picks = itemsByIds(items, ids);
   const perItem = picks.map((it) => ({ item: it, ...matchScore(it, constraint) }));
   const cats = constraint.must_categories || ["top", "bottom", "shoes"];
-  const missing = cats.filter((c) => !picks.some((p) => p.category === c));
+  // 连身单品自带下装 → bottom 不算缺失（否则会被当缺件扣分）
+  const onepiece = picks.some(isOnepiece);
+  const missing = cats.filter(
+    (c) => !picks.some((p) => p.category === c) && !(onepiece && c === "bottom")
+  );
 
   const base = perItem.length
     ? perItem.reduce((a, b) => a + b.score, 0) / perItem.length

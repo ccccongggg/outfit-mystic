@@ -304,13 +304,18 @@ VERIFY_PROMPT = (
     "2) 背景必须是【专业棚拍白底】：纯白或接近纯白、无纹理、无阴影渐变、无桌面/地板/木纹/大理石纹理。\n"
     "   在自家地板/床上/桌上随手拍的照片，即使背景很浅，background 也只能算 solid 或 scene。\n"
     "3) 有人（模特上身、手持、脚穿）→ has_person=true。\n"
+    "4) 女装判定：画面里的衣物必须是女装款式（吊带、雪纺衫、衬衫、针织衫、连衣裙、半身裙、"
+    "阔腿裤、风衣、单鞋、高跟鞋等）。明显是男装/童装 → is_womenswear=false。\n"
     "{\n"
     '  "is_single_product": true|false,   // 是否单件单品\n'
     '  "has_person": true|false,\n'
+    '  "is_womenswear": true|false,\n'
     '  "background": "white|solid|scene|other",  // white=专业棚拍纯白底；solid=纯色但非纯白或带纹理；scene=生活场景；other=其他\n'
     '  "scene": "商品图|模特上身|生活场景|其他",\n'
     '  "category": "top|bottom|outer|shoes|bag|other",\n'
-    '  "type": "短袖|长袖|短裤|长裤|外套|鞋|包|其他",\n'
+    '  "type": "短袖|长袖|吊带|短裤|长裤|半身裙|连衣裙|外套|鞋|包|其他",\n'
+    '  // 归类口径：阔腿裤/西装裤/牛仔裤/运动裤 都算 长裤；短裙/百褶裙/A字裙/包臀裙 都算 半身裙；\n'
+    '  // 无袖/细吊带/抹胸 算 吊带；风衣/大衣/西装外套/针织开衫 算 外套；单鞋/凉鞋/靴子/运动鞋 都算 鞋\n'
     '  "color_name": "中文色名"\n'
     "}"
 )
@@ -378,6 +383,8 @@ def vlm_check(path: Path, expected: dict) -> dict:
         return {"ok": False, "reason": "是模特上身照，不是单品图", "verdict": verdict}
     if not verdict.get("is_single_product"):
         return {"ok": False, "reason": f"不是独立商品图（{verdict.get('scene') or '未知场景'}）", "verdict": verdict}
+    if (expected or {}).get("require_womenswear") and verdict.get("is_womenswear") is False:
+        return {"ok": False, "reason": "不是女装款式（男装/童装/中性款）", "verdict": verdict}
 
     # 背景由 VLM 判 + 像素采样交叉验证（像素采样扛不住拼图/水印/渐变，VLM 扛不住「浅色地板」）
     bg = (verdict.get("background") or "").lower()

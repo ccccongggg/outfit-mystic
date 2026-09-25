@@ -6,6 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>电子衣柜 × 玄学搭配</title>
   <link rel="stylesheet" href="style.css" />
+  <!-- 「拿主意」这一层：抽屉 → 挂衣杆四板块 → 入口 → 统一约束 -->
+  <link rel="stylesheet" href="oracle.css" />
   <!-- 真机外壳层（可开关）：?mode=web 切回网页模式 -->
   <link rel="stylesheet" href="shell.css" />
 </head>
@@ -14,7 +16,46 @@
 
   <div class="grain" aria-hidden="true"></div>
 
+  <!-- ========== 一级 · 侧边抽屉 ========== -->
+  <div id="drawer" class="drawer" aria-hidden="true">
+    <div class="drawer-scrim" data-close></div>
+    <aside class="drawer-panel">
+      <div class="drawer-head">
+        <span class="brand-mark">✦</span>
+        <div>
+          <div class="brand-name">电子衣柜</div>
+          <div class="brand-sub">× 玄学搭配</div>
+        </div>
+      </div>
+
+      <button class="drawer-hero" data-go="home">
+        <span class="dh-t">拿主意</span>
+        <span class="dh-s">抽 · 拖 · 点 · 说，选一种定今天</span>
+      </button>
+
+      <div class="drawer-line"><span>配套</span></div>
+      <button class="drawer-sub" data-go="wardrobe">我的衣柜<span>放单品的地方</span></button>
+      <button class="drawer-sub" data-go="plaza">广场<span>看别人怎么决定</span></button>
+
+      <div class="drawer-foot">
+        <div class="drawer-quote">我们不做推荐。我们只帮你把今天定下来。</div>
+        <div class="drawer-nav">
+          <span class="dn-label">导航形态</span>
+          <div class="dn-seg">
+            <button type="button" data-navmode="drawer">纯抽屉</button>
+            <button type="button" data-navmode="hybrid">抽屉 + 底栏</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- 灰卡点开的小卡片 / 底部 Tab（B 版） -->
+  <div id="stub-sheet" class="stub-sheet"></div>
+  <div id="otabbar" class="otabbar"></div>
+
   <header class="topbar">
+    <button class="menu-btn" id="btn-menu" aria-label="打开菜单"><span></span><span></span><span></span></button>
     <div class="brand">
       <span class="brand-mark">✦</span>
       <div>
@@ -22,11 +63,13 @@
         <div class="brand-sub">× 玄学搭配</div>
       </div>
     </div>
-    <nav class="nav">
-      <button class="nav-btn active" data-view="wardrobe">衣橱</button>
-      <button class="nav-btn" data-view="style">风格</button>
-      <button class="nav-btn" data-view="entry">入口</button>
+    <!-- 老导航仍在（手机外壳会读它），但主流程已经走抽屉 -->
+    <nav class="nav" hidden>
+      <button class="nav-btn" data-view="home">拿主意</button>
+      <button class="nav-btn" data-view="wardrobe">衣柜</button>
+      <button class="nav-btn" data-view="plaza">广场</button>
       <button class="nav-btn" data-view="result">结果</button>
+      <button class="nav-btn" data-view="style">风格</button>
     </nav>
   </header>
 
@@ -251,67 +294,58 @@
       </div>
     </section>
 
-    <!-- ========== 入口 ========== -->
-    <section id="entry" class="view">
-      <div class="section-head">
-        <h1>今日氛围</h1>
-        <p class="muted">选一个入口，生成穿搭约束。本期主推塔罗。</p>
-      </div>
+    <!-- ========== 拿主意 · 首屏（挂衣杆 + 天气芯片）========== -->
+    <section id="home" class="view"></section>
 
-      <div class="entry-grid">
-        <article class="entry-card featured">
-          <div class="entry-badge">主推</div>
-          <div class="tarot-stage" id="tarot-stage">
-            <div class="tarot-deck" id="tarot-deck" role="button" tabindex="0" aria-label="抽一张塔罗牌">
-              <div class="tarot-back">
-                <div class="tarot-ornament">✦</div>
-                <div class="tarot-back-text">DRAW</div>
-              </div>
-            </div>
-            <div class="tarot-flip hidden" id="tarot-flip">
-              <img id="tarot-img" alt="塔罗牌面" />
-              <div class="tarot-card-name" id="tarot-name"></div>
-            </div>
+    <!-- ========== 板块页（动态取板块名）========== -->
+    <section id="board" class="view"></section>
+
+    <!-- ========== 抽取式 · 塔罗 ========== -->
+    <section id="tarot" class="view">
+      <div class="board-head" style="--bc:#534AB7;--bs:#EDEBFB;--bi:#3C3489">
+        <button class="board-back" data-go="board">‹ 抽取式</button>
+        <h1>抽一张牌</h1>
+        <p class="muted">随机一张大阿尔卡纳，翻牌出牌义。</p>
+      </div>
+      <div class="tarot-stage" id="tarot-stage">
+        <div class="tarot-deck" id="tarot-deck" role="button" tabindex="0" aria-label="抽一张塔罗牌">
+          <div class="tarot-back">
+            <div class="tarot-ornament">✦</div>
+            <div class="tarot-back-text">DRAW</div>
           </div>
-          <h2>塔罗</h2>
-          <p>随机抽 1 张牌，得到今天的穿搭约束。</p>
-          <button class="btn primary" id="btn-tarot">抽取一张牌</button>
-          <div class="constraint-debug" id="constraint-debug"></div>
-        </article>
-
-        <article class="entry-card dim" data-stub="mood">
-          <h2>心情</h2>
-          <p>用一句话形容今天的心情。</p>
-          <button class="btn ghost stub-btn">敬请期待</button>
-        </article>
-        <article class="entry-card dim" data-stub="blind">
-          <h2>盲盒</h2>
-          <p>闭眼随机，交给命运。</p>
-          <button class="btn ghost stub-btn">敬请期待</button>
-        </article>
-        <article class="entry-card dim" data-stub="weather">
-          <h2>天气</h2>
-          <p>按今天体感选衣。</p>
-          <button class="btn ghost stub-btn">敬请期待</button>
-        </article>
-        <article class="entry-card dim" data-stub="color">
-          <h2>色彩</h2>
-          <p>先定一个想穿的颜色。</p>
-          <button class="btn ghost stub-btn">敬请期待</button>
-        </article>
-        <article class="entry-card dim" data-stub="occasion">
-          <h2>场合</h2>
-          <p>通勤 / 约会 / 出游。</p>
-          <button class="btn ghost stub-btn">敬请期待</button>
-        </article>
+        </div>
+        <div class="tarot-flip hidden" id="tarot-flip">
+          <img id="tarot-img" alt="塔罗牌面" />
+          <div class="tarot-card-name" id="tarot-name"></div>
+        </div>
       </div>
+      <div class="entry-actions">
+        <button class="btn primary" id="btn-tarot">抽取一张牌</button>
+        <button class="btn primary hidden" id="btn-tarot-ok">就这张牌</button>
+      </div>
+      <div class="constraint-debug" id="constraint-debug"></div>
     </section>
+
+    <!-- ========== 抽取式 · 刮刮乐 / 调节式 · 能量条 / 选择式 · 人设 ========== -->
+    <section id="scratch" class="view"></section>
+    <section id="energy" class="view"></section>
+    <section id="identity" class="view"></section>
+
+    <!-- ========== 输入式 · 一句话 ========== -->
+    <section id="input" class="view"></section>
+
+    <!-- ========== 扩展位 ========== -->
+    <section id="ext" class="view"></section>
+
+    <!-- ========== 广场 ========== -->
+    <section id="plaza" class="view"></section>
 
     <!-- ========== 结果 ========== -->
     <section id="result" class="view">
       <div class="section-head">
-        <h1>今日穿搭</h1>
+        <h1>今天穿这套</h1>
         <p class="muted">规则从衣橱里选出的成套单品。</p>
+        <div class="result-source hidden" id="result-source"></div>
       </div>
 
       <div class="result-layout">
@@ -331,6 +365,11 @@
             <img class="slot-img hidden" alt="鞋" />
             <div class="slot-empty">待选</div>
           </div>
+          <div class="slot slot-outer" data-slot="outer">
+            <span class="slot-label">外套</span>
+            <img class="slot-img hidden" alt="外套" />
+            <div class="slot-empty">待选</div>
+          </div>
         </div>
 
         <aside class="story-panel">
@@ -342,8 +381,11 @@
           <div class="reason-text" id="result-reason">理由将在这里出现。</div>
           <div class="result-meta" id="result-meta"></div>
           <div class="match-summary hidden" id="match-summary"></div>
-          <button class="btn primary" id="btn-run">生成今日穿搭</button>
-          <button class="btn ghost" id="btn-back-entry">再抽一张</button>
+          <div class="result-actions">
+            <button class="btn primary" id="btn-run">生成今日穿搭</button>
+            <button class="btn ghost" id="btn-reroll">换一套</button>
+            <button class="btn ghost" id="btn-back-entry">换个板块</button>
+          </div>
         </aside>
       </div>
 

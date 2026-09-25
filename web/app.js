@@ -1,6 +1,8 @@
 // web/app.js —— 三页合一：衣橱 / 入口 / 结果
 // 引擎：analyze = 选款 + 逐件匹配度 + 整套分数；recommend / itemsByIds 仍可从 engine.js 单独引入
 import { analyze } from "./engine.js";
+import { install as installOracle } from "./oracle.js";
+import { normalizeItems } from "./vocab.js";
 
 const state = {
   items: [],
@@ -48,9 +50,11 @@ function imgSrc(path) {
   return p;
 }
 
-function switchView(name) {
+export function switchView(name) {
   $$(".view").forEach((v) => v.classList.toggle("active", v.id === name));
   $$(".nav-btn").forEach((b) => b.classList.toggle("active", b.dataset.view === name));
+  document.documentElement.dataset.view = name;
+  window.__oracle?.syncTabs?.(name);
 }
 
 async function fetchJSON(url, options) {
@@ -107,6 +111,8 @@ function absUrl(u) {
 
 // ---------- 衣橱 ----------
 function renderItems() {
+  // 入柜后补一次口径归一：新入的单品也要进受控词表，否则「雾蓝」永远配不上「浅蓝」
+  state.items = normalizeItems(state.items);
   const grid = $("#item-grid");
   grid.innerHTML = "";
   for (const it of state.items) {
@@ -163,14 +169,14 @@ async function loadItems() {
   // 优先服务端，失败则读本地 JSON + localStorage
   try {
     const data = await fetchJSON("/api/items");
-    state.items = data.items || [];
+    state.items = normalizeItems(data.items || []);
     state.useServer = true;
     setServiceStatus(true, "已连接本地服务 · 抠底/打标/写入衣橱可用");
   } catch {
     state.useServer = false;
     try {
       const res = await fetch("data/items.json");
-      state.items = await res.json();
+      state.items = normalizeItems(await res.json());
     } catch {
       state.items = [];
     }
@@ -179,6 +185,8 @@ async function loadItems() {
       for (const it of local) {
         if (!state.items.some((x) => x.id === it.id)) state.items.push(it);
       }
+      // 统一口径：所有单品都过一遍受控词表（8 风格 / 24 色 / 7 品类）
+      state.items = normalizeItems(state.items);
     } catch {
       /* ignore */
     }
@@ -936,6 +944,9 @@ async function generateFromStyle() {
 
 // ---------- 塔罗约束 ----------
 function constraintFromTarot(card) {
+  // 走「拿主意」那一层的同一份协议（带来源徽章 + 天气厚薄），引擎零改动
+  const o = window.__oracle;
+  if (o && o.constraintFromTarot) return o.constraintFromTarot(card);
   return {
     source: "tarot",
     occasion: "日常",
@@ -1090,6 +1101,7 @@ function drawTarot() {
   $("#result-story").textContent = state.constraint.story;
   $("#result-reason").textContent = "点「生成今日穿搭」，规则会从衣橱里选一套。";
   $("#result-meta").textContent = "";
+  $("#btn-tarot-ok")?.classList.remove("hidden");
 }
 
 function resetTarot() {
@@ -1177,24 +1189,30 @@ function catName(cat) {
 function renderLogic(a, reason) {
   const panel = $("#logic-panel");
   if (!panel) return;
-  const [top, bottom, shoes] = ["top", "bottom", "shoes"].map((c) =>
-    a.picks.find((p) => p.category === c)
-  );
+  const SLOT_LABEL = { top: "上装", bottom: "下装", shoes: "鞋", outer: "外套", dress: "连衣裙" };
+  const catOf = (p) => p.category_std || p.category;
+  const bySlot = (c) => a.picks.find((p) => catOf(p) === c);
+  const onepiece = a.picks.some((p) => catOf(p) === "dress");
+  const slotLine = ["top", "bottom", "shoes", "outer"]
+    .map((c) => {
+      if (onepiece && c === "bottom") return null;
+      const p = bySlot(c);
+      return `${SLOT_LABEL[c]} ${p ? `${p.color_name}·${p.type}` : "—"}`;
+    })
+    .filter(Boolean)
+    .join(" ／ ");
   const lines = [];
   lines.push(
-    `<li><b>槽位</b>：上装 ${top ? `${top.color_name}·${top.type}` : "—"} ／ 下装 ${
-      bottom ? `${bottom.color_name}·${bottom.type}` : "—"
-    } ／ 鞋 ${shoes ? `${shoes.color_name}·${shoes.type}` : "—"}（取自衣橱真实 id：${a.picks
-      .map((p) => p.id)
-      .join(", ")}）</li>`
+    `<li><b>槽位</b>：${slotLine}（取自衣橱真实 id：${a.picks.map((p) => p.id).join(", ")}）</li>`
   );
-  const styles = [...new Set(a.picks.flatMap((p) => p.item.style_tags || []))];
+  // 注意 analyze() 的 picks 是单品本身，perItem 才是 { item, score, reasons }
+  const styles = [...new Set(a.picks.flatMap((p) => p.style_tags || []))];
   lines.push(`<li><b>风格</b>：单品自带标签 ${styles.join("、") || "—"}；目标风格 ${
     (state.constraint?.style_tags || []).join("、") || "不限"
   }</li>`);
   lines.push(`<li><b>配色</b>：${a.harmony.join("；") || "上下明暗接近，走稳妥路线"}</li>`);
   lines.push(`<li><b>场合</b>：${state.constraint?.occasion || "日常"}（材质：${a.picks
-    .map((p) => p.item.material || "—")
+    .map((p) => p.material || "—")
     .join(" / ")}）</li>`);
   lines.push(`<li><b>结论</b>：${reason}</li>`);
   panel.innerHTML = `<h2>搭配逻辑</h2><ol class="logic-list">${lines.join("")}</ol>`;
@@ -1204,17 +1222,21 @@ function renderResult(a, reason) {
   const picked = a.picks;
   const pickedIds = picked.map((p) => p.id);
   const byCat = {};
-  for (const it of picked) byCat[it.category] = it;
+  for (const it of picked) byCat[it.category_std || it.category] = it;
 
+  // 参考稿口径：上装 + 下装 + 鞋 + 外套，固定出 4 件
   const slots = [
     ["top", ".slot-top"],
     ["bottom", ".slot-bottom"],
     ["shoes", ".slot-shoes"],
+    ["outer", ".slot-outer"],
   ];
+  const onepiece = picked.some((p) => (p.category_std || p.category) === "dress");
 
   let filled = 0;
   for (const [cat, sel] of slots) {
     const root = $(sel);
+    if (!root) continue;
     const img = root.querySelector(".slot-img");
     const empty = root.querySelector(".slot-empty");
     const it = byCat[cat];
@@ -1227,10 +1249,23 @@ function renderResult(a, reason) {
     } else {
       img.classList.add("hidden");
       empty.classList.remove("hidden");
+      empty.textContent = onepiece && cat === "bottom" ? "连衣裙自带下装" : "待选";
     }
   }
 
-  const missing = 3 - filled;
+  // 来源徽章：这一套是从哪个入口来的
+  const badge = $("#result-source");
+  const src = state.constraint && state.constraint.src;
+  if (badge) {
+    if (src) {
+      badge.classList.remove("hidden");
+      badge.innerHTML = `<i style="background:${esc(src.color || "#888780")}"></i>来自「<b>${esc(src.label)}</b>」· ${esc(src.board || "")}`;
+    } else {
+      badge.classList.add("hidden");
+    }
+  }
+
+  const missing = slots.length - filled;
   const meta = [];
   meta.push(`选中 ${picked.length} 件 · 全部来自衣橱真实 id`);
   if (missing > 0) meta.push(`缺 ${missing} 件槽位，允许成套不完整`);
@@ -1260,8 +1295,9 @@ function renderResult(a, reason) {
 
 async function runRecommend() {
   if (!state.constraint) {
-    alert("请先到「入口」抽塔罗，或到「风格」页自己定风格");
-    switchView("entry");
+    alert("先去「拿主意」挑一种定今天的方式：抽牌 / 拖电量 / 选人设 / 说一句话。");
+    window.__oracle?.go("home");
+    switchView("home");
     return;
   }
   // 一次性算完：选款 + 逐件匹配度 + 整套分数
@@ -1273,6 +1309,21 @@ async function runRecommend() {
   );
   renderResult(a, reason);
   switchView("result");
+}
+
+/**
+ * 换一套（参考稿第 6 节）：把当前这套里随机一件记进「排除名单」再重算一次，
+ * 保证换出来的不一样。
+ */
+export async function reroll() {
+  const c = state.constraint;
+  if (!c) return runRecommend();
+  const a = analyze(state.items, c);
+  if (a.picks.length) {
+    const drop = a.picks[Math.floor(Math.random() * a.picks.length)].id;
+    c.exclude_ids = [...new Set([...(c.exclude_ids || []), drop])];
+  }
+  await runRecommend();
 }
 
 // ---------- 启动 ----------
@@ -1442,9 +1493,13 @@ function bind() {
   });
 
   $("#btn-run").addEventListener("click", runRecommend);
+  $("#btn-tarot-ok")?.addEventListener("click", runRecommend);
+  $("#btn-reroll")?.addEventListener("click", reroll);
   $("#btn-back-entry").addEventListener("click", () => {
     resetTarot();
-    switchView("entry");
+    // 换个板块：回到挂衣杆重新挑一种定今天的方式
+    if (window.__oracle) window.__oracle.go("home");
+    else switchView("home");
   });
 }
 
@@ -1459,6 +1514,19 @@ async function init() {
   await Promise.all([loadItems(), loadTarot()]);
   await loadSamples();      // 无素材时的内置示例图
   renderStyleControls();    // 风格选择的三种方式
+
+  // 装「拿主意」这一层：抽屉 → 挂衣杆四板块 → 入口 → 统一约束
+  // 传进去的能力就三个，引擎与结果页保持原样
+  installOracle({
+    state,
+    switchView,
+    runRecommend,
+    imgSrc,
+    onConstraint: (c) => {
+      const dbg = $("#constraint-debug");
+      if (dbg) dbg.textContent = JSON.stringify(c, null, 2);
+    },
+  });
 }
 
 init();

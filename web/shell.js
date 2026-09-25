@@ -66,38 +66,74 @@
     const topbar = document.querySelector(".topbar");
     const main = document.querySelector("main.shell") || document.querySelector(".shell");
     const footer = document.querySelector(".footer");
-    // 业务侧的固定定位弹窗（联网找图的候选确认）必须脱离 main.shell：
+    // 业务侧所有固定定位的浮层都必须脱离 main.shell：
     // main.shell 在手机模式下被 transform 拉成 400% 宽的横向轨道，有 transform 的祖先
-    // 会成为 position:fixed 的包含块，弹窗会按 4 倍屏宽铺开 → 屏内右侧被切、内容错乱。
+    // 会成为 position:fixed 的包含块，浮层会按 4 倍屏宽铺开 → 屏内右侧被切、内容错乱。
     // 搬到 viewport 下（position:relative）后，改成 absolute 铺满屏幕即可。
-    const modal = document.querySelector("#found-modal");
+    //   #found-modal  联网找图的候选确认
+    //   #drawer       「拿主意」的侧边抽屉
+    //   #stub-sheet   灰卡点开的说明卡片
+    const FLOAT_SEL = ["#found-modal", "#drawer", "#stub-sheet"];
+    const floats = FLOAT_SEL.map((sel) => {
+      const n = document.querySelector(sel);
+      return n ? { node: n, home: n.parentNode } : null;
+    }).filter(Boolean);
+    const modal = floats.find((f) => f.node.id === "found-modal")?.node || null;
     const modalHome = modal ? modal.parentNode : null;
 
     if (main) viewport.appendChild(main);
-    if (modal) viewport.appendChild(modal);
+    floats.forEach((f) => viewport.appendChild(f.node));
     screen.appendChild(viewport);
 
     // 底部 Tab（复用顶部导航的 data-view，点击等价于点原来的 nav-btn）
     const tabbar = el("div", "phone-tabbar");
     const ind = el("span", "phone-tab-ind");
     tabbar.appendChild(ind);
-    const navBtns = [...document.querySelectorAll(".nav-btn")];
-    const tabs = navBtns.map((b) => {
-      const t = el("button", "phone-tab");
-      t.type = "button";
-      t.dataset.view = b.dataset.view;
-      t.innerHTML =
-        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
-        (ICONS[b.dataset.view] || ICONS.result) +
-        "</svg><span>" + (LABELS[b.dataset.view] || b.textContent.trim()) + "</span>";
-      t.addEventListener("click", () => {
-        b.click();
-        setTimeout(syncIndex, 0);
-        buzz();
+
+    // 底部 Tab 的清单优先问「拿主意」那一层要（它会按导航形态 A/B 给不同的项），
+    // 拿不到就退回顶部导航的 data-view。
+    let tabs = [];
+    let navBtns = [];
+    let srcBtns = [];
+    function navDefs() {
+      const o = window.__oracle;
+      if (o && typeof o.navItems === "function") {
+        return o.navItems().map((n) => ({ view: n.view, label: n.label, fire: () => o.go(n.view) }));
+      }
+      const list = [...document.querySelectorAll(".nav-btn")];
+      srcBtns = list;
+      return list.map((b) => ({
+        view: b.dataset.view,
+        label: LABELS[b.dataset.view] || b.textContent.trim(),
+        fire: () => b.click(),
+      }));
+    }
+    function rebuildTabs() {
+      tabs.forEach((t) => t.remove());
+      tabs = [];
+      navBtns = [];
+      const defs = navDefs();
+      tabbar.style.display = defs.length ? "" : "none";
+      defs.forEach((d) => {
+        const t = el("button", "phone-tab");
+        t.type = "button";
+        t.dataset.view = d.view;
+        t.innerHTML =
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
+          (ICONS[d.view] || ICONS.result) +
+          "</svg><span>" + d.label + "</span>";
+        t.addEventListener("click", () => {
+          d.fire();
+          setTimeout(syncIndex, 0);
+          buzz();
+        });
+        tabbar.appendChild(t);
+        tabs.push(t);
+        navBtns.push(t);
       });
-      tabbar.appendChild(t);
-      return t;
-    });
+      syncIndex();
+    }
+    rebuildTabs();
     screen.appendChild(tabbar);
 
     const homebar = el("div", "phone-homebar");
@@ -130,12 +166,30 @@
     stage.appendChild(hint);
     stage.appendChild(toggle);
 
-    built = { stage, slot, scaler, phone, screen, viewport, tabbar, tabs, ind, island, toast, main, topbar, footer, navBtns, modal, modalHome };
+    built = { stage, slot, scaler, phone, screen, viewport, tabbar, tabs, ind, island, toast, main, topbar, footer, navBtns, srcBtns, modal, modalHome, floats, rebuildTabs };
+
+    // 导航形态在抽屉里被切换（A 纯抽屉 / B 抽屉+底栏）时重建底部 Tab
+    window.addEventListener("oracle:nav", () => {
+      if (built && built.rebuildTabs) built.rebuildTabs();
+    });
     return built;
   }
 
   // ---------- 状态同步 ----------
   function currentIndex() {
+    // 优先认 documentElement.dataset.view：app.js 的 switchView 和 oracle 的 go 都会写它，
+    // 这样纯抽屉模式（没有底部 Tab 可点）也能把轨道下标对上。
+    const v = document.documentElement.dataset.view;
+    if (v && built) {
+      const byView = built.navBtns.findIndex((b) => b.dataset.view === v);
+      if (byView >= 0) return byView;
+    }
+    // 顺序很关键：先问业务侧真正的来源（.nav-btn），最后才看 Tab 自己。
+    // 因为 syncIndex 会给 Tab 打 active，先看 Tab 会把自己上一轮的结果锁死。
+    if (built && built.srcBtns && built.srcBtns.length) {
+      const k = built.srcBtns.findIndex((b) => b.classList.contains("active"));
+      if (k >= 0) return k;
+    }
     const btns = built ? built.navBtns : [];
     const i = btns.findIndex((b) => b.classList.contains("active"));
     return i < 0 ? 0 : i;
@@ -189,6 +243,7 @@
   // ---------- 横向滑动翻页 ----------
   function bindSwipe() {
     if (!built || built.swipeBound) return;
+    if (!built.tabs.length) return; // A 版纯抽屉没有底部 Tab，横滑切页就无从谈起
     built.swipeBound = true;
     const track = built.main;
     let x0 = 0, y0 = 0, dx = 0, dragging = false, horiz = false;
@@ -270,6 +325,7 @@
 
   function bindKeys() {
     if (!built || built.keysBound) return;
+    if (!built.tabs.length) return;
     built.keysBound = true;
     document.addEventListener("keydown", (e) => {
       if (!document.documentElement.classList.contains("phone-mode")) return;
@@ -301,8 +357,9 @@
 
   function disable() {
     if (built) {
-      const { stage, topbar, main, footer, modal, modalHome } = built;
-      if (modal && modalHome) modalHome.appendChild(modal); // 先放回业务 DOM，否则会随外壳一起被移除
+      const { stage, topbar, main, footer, floats } = built;
+      // 先放回业务 DOM，否则这些浮层会随外壳一起被移除
+      (floats || []).forEach((f) => f.home && f.home.appendChild(f.node));
       if (topbar) document.body.appendChild(topbar);
       if (main) document.body.appendChild(main);
       if (footer) document.body.appendChild(footer);
@@ -333,7 +390,7 @@
     else addFloatToggle();
   }
 
-  window.PhoneShell = { enable, disable, island, toast, fit };
+  window.PhoneShell = { enable, disable, island, toast, fit, sync: syncIndex, rebuildTabs: () => built && built.rebuildTabs && built.rebuildTabs() };
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();

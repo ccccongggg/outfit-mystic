@@ -143,11 +143,11 @@
 /* 硬保险：屏内不出现横向滚动；栅格子项允许收缩（防中文长词撑破容器） */
 .phone-mode .view { overflow-x: hidden; padding: 14px 14px 28px; }
 .phone-mode .intake, .phone-mode .intake-main,
-.phone-mode .item-grid, .phone-mode .entry-grid, .phone-mode .result-layout,
+.phone-mode .item-grid, .phone-mode .entries, .phone-mode .result-layout,
 .phone-mode .manual-grid, .phone-mode .sample-row, .phone-mode .look-row,
 .phone-mode .preview-body, .phone-mode .found-grid, .phone-mode .collage,
 .phone-mode .profile-grid, .phone-mode .slider-row { min-width: 0; }
-.phone-mode .item-grid > *, .phone-mode .entry-grid > *, .phone-mode .result-layout > *,
+.phone-mode .item-grid > *, .phone-mode .entries > *, .phone-mode .result-layout > *,
 .phone-mode .sample-row > *, .phone-mode .manual-grid > * { min-width: 0; }
 
 /* 标题降级 */
@@ -192,11 +192,10 @@
 .phone-mode .sliders { max-width: none; }
 
 /* ---- 入口页：三列挤压 + 右侧被裁 → 单列 ---- */
-.phone-mode .entry-grid { grid-template-columns: 1fr; gap: 12px; }
-.phone-mode .entry-card,
-.phone-mode .entry-card.featured { grid-column: auto; grid-row: auto; padding: 18px; }
-.phone-mode .entry-card h2 { font-size: 18px; }
-.phone-mode .entry-card p { font-size: 12.5px; margin-bottom: 12px; }
+.phone-mode .entries { grid-template-columns: 1fr; gap: 12px; }
+.phone-mode .oc-entry { grid-column: auto; grid-row: auto; padding: 14px; }
+.phone-mode .oc-entry .ec-name { font-size: 15px; }
+.phone-mode .oc-entry .ec-desc { font-size: 12.5px; }
 .phone-mode .tarot-stage { min-height: 168px; margin-bottom: 12px; }
 .phone-mode .tarot-deck { width: 104px; height: 158px; }
 .phone-mode .tarot-flip { width: 112px; }

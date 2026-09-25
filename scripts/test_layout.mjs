@@ -7,10 +7,15 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // 先剥掉注释 —— 注释里也会出现 ".phone-mode"，不剥会被当成选择器
-const css = fs.readFileSync(path.join(ROOT, "web", "shell.css"), "utf-8").replace(/\/\*[\s\S]*?\*\//g, "");
+// shell.css + oracle.css：两处都有 .phone-mode 覆盖，都要校验选择器能命中真元素
+const css = ["shell.css", "oracle.css"]
+  .map((f) => fs.readFileSync(path.join(ROOT, "web", f), "utf-8"))
+  .join("\n")
+  .replace(/\/\*[\s\S]*?\*\//g, "");
 const html = fs.readFileSync(path.join(ROOT, "web", "index.html"), "utf-8");
 const appJs = fs.readFileSync(path.join(ROOT, "web", "app.js"), "utf-8");
 const shellJs = fs.readFileSync(path.join(ROOT, "web", "shell.js"), "utf-8");
+const oracleJs = fs.readFileSync(path.join(ROOT, "web", "oracle.js"), "utf-8");
 
 let ok = 0;
 let total = 0;
@@ -44,7 +49,7 @@ for (const m of html.matchAll(/class="([^"]+)"/g)) {
   for (const c of m[1].split(/\s+/)) if (c) htmlClasses.add(c);
 }
 const jsClasses = new Set();
-for (const src of [appJs, shellJs]) {
+for (const src of [appJs, shellJs, oracleJs]) {
   for (const m of src.matchAll(/class="([^"]+)"/g)) {
     for (const c of m[1].replace(/\$\{[^}]*\}/g, " ").split(/\s+/)) if (c && !c.includes("$")) jsClasses.add(c);
   }
@@ -69,7 +74,7 @@ check("所有 .phone-mode 选择器的类名都能命中真实元素", missing.l
 // 3) 业务桌面布局必须在手机模式下被覆盖（否则又会挤爆）
 const expected = [
   [".phone-mode .item-grid", "1fr 1fr"],
-  [".phone-mode .entry-grid", "1fr"],
+  [".phone-mode .entries", "1fr"],
   [".phone-mode .result-layout", "1fr"],
   [".phone-mode .preview-body", "1fr"],
   [".phone-mode .manual-grid", "1fr 1fr"],
@@ -116,16 +121,16 @@ check(
 
 // 7) 外壳搬迁逻辑：候选弹窗必须被搬出 main 轨道，并在退出时还原（位置错了按钮会丢）
 check(
-  "shell.js 把候选弹窗搬出 main 轨道",
-  /(getElementById|querySelector)\(["']#?found-modal["']\)/.test(shellJs) && /viewport\.appendChild\(modal\)/.test(shellJs)
+  "shell.js 把固定定位浮层搬出 main 轨道",
+  /#found-modal/.test(shellJs) && /#drawer/.test(shellJs) && /#stub-sheet/.test(shellJs) && /floats\.forEach\(\(f\) => viewport\.appendChild\(f\.node\)\)/.test(shellJs)
 );
 // 引用必须在搬迁前抓：phone/screen/viewport 当时还是游离节点，
 // 一旦把 main 搬走，document.getElementById 就再也查不到了
 check(
-  "弹窗引用在 main 搬迁之前获取",
-  /querySelector\(["']#found-modal["']\)[\s\S]{0,400}?viewport\.appendChild\(main\)/.test(shellJs)
+  "浮层引用在 main 搬迁之前获取",
+  /const FLOAT_SEL[\s\S]{0,600}?if \(main\) viewport\.appendChild\(main\)/.test(shellJs)
 );
-check("shell.js 退出时把候选弹窗放回原父节点", /modalHome\.appendChild\(modal\)/.test(shellJs));
+check("shell.js 退出时把浮层放回原父节点", /\(floats \|\| \[\]\)\.forEach\(\(f\) => f\.home && f\.home\.appendChild\(f\.node\)\)/.test(shellJs));
 
 console.log(`\n${ok}/${total} 通过`);
 process.exit(ok === total ? 0 : 1);

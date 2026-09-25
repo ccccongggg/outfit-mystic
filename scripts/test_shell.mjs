@@ -65,7 +65,21 @@ check(
 
 const tabs = [...document.querySelectorAll(".phone-tab")];
 check("底部 Tab 数量 = 导航项数", tabs.length === document.querySelectorAll(".nav-btn").length, `${tabs.length} 个`);
-check("Tab 文案正确", tabs.map((t) => t.textContent.trim()).join("/") === "衣橱/风格/入口/结果", tabs.map((t) => t.textContent.trim()).join("/"));
+check(
+  "Tab 文案正确",
+  tabs.map((t) => t.textContent.trim()).join("/") === "拿主意/衣橱/广场/结果/风格",
+  tabs.map((t) => t.textContent.trim()).join("/")
+);
+
+// 抽屉和灰卡卡片同样是 position:fixed，必须一起脱离 main 轨道
+for (const [sel, name] of [["#drawer", "抽屉"], ["#stub-sheet", "灰卡卡片"]]) {
+  const n = document.querySelector(sel);
+  check(
+    `${name}已脱离 main 轨道`,
+    !!n && !!n.closest(".phone-viewport") && !n.closest("main.shell"),
+    n ? "父级 ." + n.parentElement.className : "未找到"
+  );
+}
 
 // 模拟业务切页（app.js 的 switchView 行为：先清后加），外壳应自动同步轨道与 Tab
 const navBtns = [...document.querySelectorAll(".nav-btn")];
@@ -94,5 +108,5 @@ check(
   modal ? "父级 ." + modal.parentElement.className : "丢失"
 );
 
-console.log(`\n${ok}/17 通过`);
-process.exit(ok === 17 ? 0 : 1);
+console.log(`\n${ok}/19 通过`);
+process.exit(ok === 19 ? 0 : 1);

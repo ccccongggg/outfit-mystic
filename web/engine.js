@@ -10,42 +10,62 @@
 // constraint 可扩展字段（缺省都按「不限制」处理，便于后续接入更多入口）：
 //   must_colors / avoid_colors / style_tags / season / occasions
 //   must_categories / formality / prefer_materials
+//   exclude_ids: string[]        ← 「换一套」用：这些 id 本次不许再被选中
 //   prefs: { formality:1-5, energy:0-100, brightness:0-100 }   ← 滑动条偏好
+//
+// 参考稿第 6 节的口径：入口只负责把模糊念头翻译成约束，出搭配只有这一套引擎。
+// 颜色 / 风格的匹配一律走 vocab.js 的受控词表，不许各写各的。
+
+import { colorHit, styleHit, categoryOf } from "./vocab.js";
+
+/** 默认四件套：上装 + 下装 + 鞋 + 外套。连衣裙占用「上装」槽位。 */
+export const DEFAULT_SLOTS = ["top", "bottom", "shoes", "outer"];
+
+/** 槽位 → 允许的单品品类。连衣裙和上衣抢同一个上身槽。 */
+const SLOT_MAP = {
+  top: ["top", "dress"],
+  dress: ["dress"],
+  bottom: ["bottom"],
+  shoes: ["shoes"],
+  outer: ["outer"],
+  accessory: ["accessory"],
+  bag: ["bag"],
+};
 
 /** 连身单品判定：连衣裙/连体裤自带下装，选中后不再另配 bottom。 */
 export function isOnepiece(item) {
-  const t = (item && item.type) || "";
-  return /连衣裙|连体|吊带裙|背带裙|套装裙/.test(t);
+  return categoryOf(item) === "dress";
 }
 
 export function recommend(items, constraint) {
-  const cats = constraint.must_categories || ["top", "bottom", "shoes"];
+  const c = constraint || {};
+  const cats = c.must_categories || DEFAULT_SLOTS;
   const pool = items.filter((it) => it && it.category);
+
+  // 0) 换一套：排除名单
+  const banned = new Set(c.exclude_ids || []);
 
   // 1) 硬筛：季节
   let cand = pool.filter((it) => {
-    if (!constraint.season || !constraint.season.length) return true;
+    if (banned.has(it.id)) return false;
+    if (!c.season || !c.season.length) return true;
     if (!it.season || !it.season.length) return true;
-    return it.season.some((s) => constraint.season.includes(s));
+    return it.season.some((s) => c.season.includes(s));
   });
 
-  // 2) 硬筛：禁用色（按 color_name 粗匹配）
+  // 2) 硬筛：禁用色（走受控词表，约束写「浅蓝」要能命中单品「雾蓝」）
   cand = cand.filter((it) => {
-    if (!constraint.avoid_colors || !constraint.avoid_colors.length) return true;
-    const name = it.color_name || "";
-    return !constraint.avoid_colors.some((c) => name.includes(c) || (c && c.includes(name)));
+    if (!c.avoid_colors || !c.avoid_colors.length) return true;
+    return !colorHit(it.color_name, c.avoid_colors);
   });
 
   // 3) 软分：必须色 + 风格标签重合
   const scoreOf = (it) => {
     let s = 0;
-    for (const c of constraint.must_colors || []) {
-      const name = it.color_name || "";
-      if (name.includes(c) || (c && c.includes(name))) s += 3;
+    for (const col of c.must_colors || []) {
+      if (colorHit(it.color_name, [col])) s += 3;
     }
-    for (const t of constraint.style_tags || []) {
-      if ((it.style_tags || []).includes(t)) s += 2;
-    }
+    s += styleHit(it.style_tags, c.style_tags || []).length * 2;
     return s + Math.random() * 0.01;
   };
 
@@ -55,8 +75,9 @@ export function recommend(items, constraint) {
   let onepiece = false;
   for (const cat of cats) {
     if (onepiece && cat === "bottom") continue;
+    const allow = SLOT_MAP[cat] || [cat];
     const slot = cand
-      .filter((it) => it.category === cat)
+      .filter((it) => allow.includes(categoryOf(it)))
       .sort((a, b) => scoreOf(b) - scoreOf(a));
     if (slot[0]) {
       picked.push(slot[0].id);
@@ -86,12 +107,6 @@ function luminance(hex) {
   return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
 }
 
-function colorHit(name, keys) {
-  const n = name || "";
-  if (!n) return false;
-  return (keys || []).some((k) => k && (n.includes(k) || k.includes(n)));
-}
-
 /**
  * 单件单品与当前风格倾向的匹配度（0-100）+ 可读理由。
  * 各项加权后可解释：风格 / 颜色 / 季节 / 场合 / 正式度 / 材质 / 滑动偏好。
@@ -102,15 +117,14 @@ export function matchScore(item, constraint) {
   const reasons = [];
   let score = 20; // 基础分：在衣橱里、可成套
 
-  // 风格标签
-  const want = c.style_tags || [];
-  const hitStyles = want.filter((t) => (item.style_tags || []).includes(t));
+  // 风格标签（受控 8 风格，别名也认）
+  const hitStyles = styleHit(item.style_tags, c.style_tags || []);
   if (hitStyles.length) {
     score += Math.min(40, hitStyles.length * 18);
     reasons.push("风格命中：" + hitStyles.join("、"));
   }
 
-  // 颜色
+  // 颜色（受控 24 色，别名也认）
   if ((c.must_colors || []).length && colorHit(item.color_name, c.must_colors)) {
     score += 22;
     reasons.push(`颜色贴合想要的「${c.must_colors.join("/")}」`);
@@ -210,7 +224,7 @@ export function analyze(items, constraint) {
   const ids = recommend(items, constraint);
   const picks = itemsByIds(items, ids);
   const perItem = picks.map((it) => ({ item: it, ...matchScore(it, constraint) }));
-  const cats = constraint.must_categories || ["top", "bottom", "shoes"];
+  const cats = constraint.must_categories || DEFAULT_SLOTS;
   // 连身单品自带下装 → bottom 不算缺失（否则会被当缺件扣分）
   const onepiece = picks.some(isOnepiece);
   const missing = cats.filter(

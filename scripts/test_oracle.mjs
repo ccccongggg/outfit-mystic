@@ -46,10 +46,11 @@ globalThis.fetch = async (url) => {
   return { ok: true, status: 200, statusText: "OK", json: async () => body };
 };
 
+const { loadWebIntoNode } = await import("./_web_loader.mjs");
 try {
-  await import(new URL("../web/app.js", import.meta.url).href);
+  loadWebIntoNode();
 } catch (e) {
-  console.log("IMPORT ERR:", (e && e.stack) || e);
+  console.log("LOAD ERR:", (e && e.stack) || e);
 }
 // init() 是异步的（拉衣橱 / 塔罗 / 示例图），等它跑完再断言
 await new Promise((r) => setTimeout(r, 100));
@@ -59,14 +60,15 @@ const doc = window.document;
 check("oracle 已挂载", !!orc);
 if (!orc) { console.log(`\n0/${total} 通过`); process.exit(1); }
 
-// ---------- 1) 三级架构：首屏挂衣杆 ----------
-const rail = [...doc.querySelectorAll("#rail .rail-item")];
-check("挂衣杆有 5 个槽位（4 板块 + 扩展位）", rail.length === 5, rail.map((r) => r.dataset.board).join("/"));
+// ---------- 1) 三级架构：首屏卡片栈 ----------
+const stack = [...doc.querySelectorAll("#stack-viewport .stack-card")];
+check("卡片栈有 5 张（4 板块 + 扩展位）", stack.length === 5, stack.map((c) => c.dataset.board).join("/"));
 check("默认停在首屏", doc.documentElement.dataset.view === "home");
 check("天气芯片默认西安", (doc.querySelector(".wc-city")?.textContent || "") === "西安");
 
 // ---------- 2) 板块页 ----------
-rail[0].click(); // 抽取式
+stack[0].click(); // 抽取式
+await new Promise((r) => setTimeout(r, 150)); // 等卡片栈点击的 100ms 动画延迟
 const cards = [...doc.querySelectorAll("#board .oc-entry")];
 check("进板块页", doc.documentElement.dataset.view === "board");
 check("抽取式有 3 张入口卡（2 亮 + 1 灰）", cards.length === 3, cards.map((c) => c.dataset.entry || "灰卡").join("/"));
@@ -84,16 +86,23 @@ doc.querySelector("#stub-sheet .ss-list") && doc.querySelector('#stub-sheet [dat
 const keys = ["source", "src", "must_colors", "avoid_colors", "style_tags", "must_categories", "season", "prefs", "story"];
 const picked = {};
 
-// ① 抽取式 · 塔罗
+// ① 抽取式 · 塔罗（圆盘抽三张牌：自动抽满 3 张后再 emit）
 doc.querySelector('#board .oc-entry[data-entry="tarot"]').click();
 check("进塔罗页", doc.documentElement.dataset.view === "tarot");
-doc.querySelector("#btn-tarot").click();
-await new Promise((r) => setTimeout(r, 30)); // 抽牌是 resetTarot + rAF(drawTarot)，要等一帧
+const wheel = doc.querySelector("#wheel");
+check("塔罗页渲染出圆盘（22 张牌轮）", wheel && wheel.querySelectorAll(".wheel-card").length === 22, wheel?.querySelectorAll(".wheel-card").length + "");
+// 抽满 3 张 → 触发「就按这三张 · 出发」按钮
+const pickBtn = doc.querySelector("#wheel-pick");
+for (let i = 0; i < 3; i++) { pickBtn.click(); await new Promise((r) => setTimeout(r, 50)); }
+await new Promise((r) => setTimeout(r, 400)); // 让 autoAdvance 的 360ms 过渡跑完
+doc.querySelector("#wheel-go").click();
+await new Promise((r) => setTimeout(r, 30));
 picked.tarot = window.__outfitApp.state.constraint;
-check("塔罗产出约束", !!picked.tarot && picked.tarot.src.label.startsWith("塔罗 · "), picked.tarot?.src?.label);
+check("塔罗三牌阵产出约束", !!picked.tarot && picked.tarot.src.label.startsWith("三牌阵 · "), picked.tarot?.src?.label);
 
 // ② 调节式 · 能量条
-rail[1].click();
+stack[1].click();
+await new Promise((r) => setTimeout(r, 150)); // 卡片栈 100ms 延迟 + 缓冲
 doc.querySelector('#board .oc-entry[data-entry="energy"]').click();
 check("进能量条", doc.documentElement.dataset.view === "energy");
 const range = doc.querySelector("#e-range");
@@ -106,7 +115,8 @@ picked.energy = window.__outfitApp.state.constraint;
 check("能量条产出约束且偏明艳", picked.energy?.style_tags.includes("明艳"), picked.energy?.story);
 
 // ③ 选择式 · 人设
-rail[2].click();
+stack[2].click();
+await new Promise((r) => setTimeout(r, 150));
 doc.querySelector('#board .oc-entry[data-entry="identity"]').click();
 doc.querySelector('#identity .id-card[data-id="villain"]').click();
 doc.querySelector("#i-ok").click();
@@ -115,7 +125,8 @@ picked.identity = window.__outfitApp.state.constraint;
 check("人设产出约束且避雷藕粉", picked.identity?.avoid_colors.includes("藕粉"), picked.identity?.story);
 
 // ④ 输入式 · 一句话
-rail[3].click();
+stack[3].click();
+await new Promise((r) => setTimeout(r, 150));
 doc.querySelector('#board .oc-entry[data-entry="input"]').click();
 const inp = doc.querySelector("#kw-input");
 inp.value = "今天好累，不想动";
@@ -161,7 +172,7 @@ check(
 check("广州不需要外套 → 占位里没有 outer", !c2.must_categories.includes("outer"), c2.must_categories.join("/"));
 
 // ---------- 6) 受控词表归一 ----------
-const { normColor, normStyle } = await import(new URL("../web/vocab.js", import.meta.url).href);
+const { normColor, normStyle } = window.Outfit;
 check("雾蓝 → 浅蓝", normColor("雾蓝") === "浅蓝", normColor("雾蓝"));
 check("柔白 → 纯白", normColor("柔白") === "纯白", normColor("柔白"));
 check("浅金棕 → 焦糖", normColor("浅金棕") === "焦糖", normColor("浅金棕"));

@@ -1,13 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 320">
   <rect width="220" height="320" rx="14" fill="#2B2430"/>
-  <rect x="10" y="10" width="200" height="300" rx="10" fill="#1E1A24" stroke="#8B6FA8" stroke-width="1.5"/>
-  <circle cx="110" cy="120" r="42" fill="none" stroke="#C4B0D9" stroke-width="1.5"/>
-  <circle cx="110" cy="120" r="8" fill="#F7F2EA"/>
-  <!-- 8-point star -->
-  <g stroke="#F7F2EA" stroke-width="1.5" fill="none">
-    <path d="M110 55 L118 105 L160 90 L122 120 L160 150 L118 135 L110 185 L102 135 L60 150 L98 120 L60 90 L102 105 Z"/>
-  </g>
+  <rect x="10" y="10" width="200" height="300" rx="10" fill="#1E1A24" stroke="#C4B0D9" stroke-width="1.5"/>
+  <path d="M110 55 L118 105 L160 90 L122 120 L160 150 L118 135 L110 185 L102 135 L60 150 L98 120 L60 90 L102 105 Z" fill="none" stroke="#F7F2EA" stroke-width="1.5"/><circle cx="110" cy="120" r="6" fill="#F7F2EA"/>
   <text x="110" y="230" text-anchor="middle" fill="#F7F2EA" font-family="serif" font-size="22" letter-spacing="6">星星</text>
   <text x="110" y="255" text-anchor="middle" fill="#C4B0D9" font-family="serif" font-size="10" letter-spacing="3">THE STAR</text>
-  <circle cx="110" cy="290" r="4" fill="#8B6FA8"/>
+  <circle cx="110" cy="290" r="4" fill="#C4B0D9"/>
 </svg>

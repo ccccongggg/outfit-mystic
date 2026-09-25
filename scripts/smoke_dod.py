@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import os
+import shutil
 import sys
 import urllib.request
 import uuid
@@ -20,15 +22,23 @@ def check(name: str, ok: bool, detail: str = "") -> bool:
 def main() -> int:
     results = []
 
-    # A1/A2/A3 upload
+    # A1/A2/A3 upload —— 样例图优先 uploads/sample_tee.jpg，没有就用自带示例
     sample = ROOT / "uploads" / "sample_tee.jpg"
     if not sample.exists():
-        print("missing uploads/sample_tee.jpg")
+        for alt in (
+            ROOT / "web" / "assets" / "samples" / "sample_white_tee.jpg",
+            ROOT / "web" / "assets" / "items" / "prod_tee_white.jpg",
+        ):
+            if alt.exists():
+                sample = alt
+                break
+    if not sample.exists():
+        print("missing sample image (uploads/sample_tee.jpg or web/assets/samples/)")
         return 1
     boundary = "----smoke" + uuid.uuid4().hex
     body = (
         f"--{boundary}\r\n"
-        f'Content-Disposition: form-data; name="file"; filename="sample_tee.jpg"\r\n'
+        f'Content-Disposition: form-data; name="file"; filename="{sample.name}"\r\n'
         f"Content-Type: image/jpeg\r\n\r\n"
     ).encode() + sample.read_bytes() + f"\r\n--{boundary}--\r\n".encode()
     req = urllib.request.Request(
@@ -66,20 +76,44 @@ def main() -> int:
     }
     results.append(check("A4 约束 story+style_tags", bool(constraint["story"] and constraint["style_tags"])))
 
-    # A5 engine real ids — load engine via a tiny inline reimplementation mirror
+    # A5 —— 真调 web/engine.js（借 Node 跑 _pick_for_smoke.mjs），
+    # 不许再用 Python 内联「按品类各挑一件」冒充，那不算真调引擎。
     ids = {i["id"] for i in items}
-    # Prefer Node if present to run real engine.js
-    picked = [i["id"] for i in items if i.get("category") in ("top", "bottom", "shoes")]
-    # group best-effort one per category
-    seen = set()
     real = []
-    for cat in ("top", "bottom", "shoes"):
-        for i in items:
-            if i.get("category") == cat and i["id"] not in seen:
-                real.append(i["id"])
-                seen.add(i["id"])
-                break
-    results.append(check("A5 真实 id 成套", bool(real) and all(r in ids for r in real), f"{real}"))
+    engine_detail = "engine.js via node"
+    try:
+        import subprocess
+
+        node = shutil.which("node") or os.environ.get("MIMO_NODE") or "node"
+        payload = json.dumps({"items": items, "constraint": constraint}, ensure_ascii=False)
+        # Windows 默认 locale 是 GBK，Node 吐的 UTF-8 JSON 会被解炸；必须显式 utf-8
+        proc = subprocess.run(
+            [node, str(ROOT / "scripts" / "_pick_for_smoke.mjs")],
+            input=payload.encode("utf-8"),
+            capture_output=True,
+            timeout=30,
+            cwd=str(ROOT),
+        )
+        out = (proc.stdout or b"").decode("utf-8", errors="replace")
+        err = (proc.stderr or b"").decode("utf-8", errors="replace")
+        if proc.returncode != 0:
+            engine_detail = f"node exit {proc.returncode}: {err[:160]}"
+        else:
+            picked = json.loads(out)
+            real = picked.get("ids") or picked.get("picks") or []
+            engine_detail = (
+                f"ids={real} score={picked.get('outfitScore')} "
+                f"slots={[(s.get('k'), s.get('state')) for s in (picked.get('slots') or [])]}"
+            )
+    except Exception as e:  # noqa: BLE001 —— 冒烟要继续跑完 A6/A7
+        engine_detail = f"engine call failed: {e}"
+    results.append(
+        check(
+            "A5 真调 engine.js 成套",
+            bool(real) and all(r in ids for r in real) and len(real) >= 2,
+            engine_detail,
+        )
+    )
 
     # A6/A7 reason
     req = urllib.request.Request(

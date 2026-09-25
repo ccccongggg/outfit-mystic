@@ -8,7 +8,16 @@
   const PW = 390;
   const PH = 844;
 
-  const LABELS = { wardrobe: "衣橱", style: "风格", entry: "入口", result: "结果" };
+  // file:// 打开时浏览器可能把文档当成不透明来源，直接读 localStorage 会抛
+  // SecurityError（手机模拟恰好是最常双击打开的场景）。统一走 SafeStore：
+  // 读不到当没存过，写不进就算了 —— 只是"不记得上次的选择"，不影响外壳。
+  const store = window.SafeStore || { get: (k, f) => f, set: () => false };
+
+  const LABELS = {
+    wardrobe: "衣橱", style: "风格", entry: "入口", result: "结果",
+    home: "拿主意", board: "板块", plaza: "广场",
+    tarot: "塔罗", scratch: "刮刮乐", energy: "能量", identity: "人设", input: "一句话",
+  };
   const ICONS = {
     wardrobe: '<path d="M4 7h16v13H4z"/><path d="M9 7V4.5h6V7"/><path d="M4 12h16"/>',
     style: '<path d="M12 3.5l2.2 5.1 5.6.5-4.2 3.7 1.2 5.4L12 15.6 7.2 18.2l1.2-5.4L4.2 9.1l5.6-.5z"/>',
@@ -29,7 +38,7 @@
   function desiredMode() {
     const q = new URLSearchParams(location.search).get("mode");
     if (q === "web" || q === "phone") return q;
-    return localStorage.getItem(KEY) || "phone";
+    return store.get(KEY, "phone");
   }
 
   // ---------- 构建外壳 ----------
@@ -50,9 +59,23 @@
         <div class="phone-status">
           <span id="phone-clock">--:--</span>
           <span class="right">
-            <svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0.5" width="3" height="11.5" rx="1" opacity=".35"/></svg>
-            <svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M1 4.2 A10 10 0 0 1 15 4.2"/><path d="M3.6 6.9 A6.4 6.4 0 0 1 12.4 6.9"/><circle cx="8" cy="10" r="1.1" fill="currentColor" stroke="none"/></svg>
-            <svg width="26" height="13" viewBox="0 0 26 13"><rect x="0.8" y="0.8" width="21" height="11.4" rx="3.4" fill="none" stroke="currentColor" stroke-opacity=".45" stroke-width="1.2"/><rect x="2.6" y="2.6" width="14.6" height="7.8" rx="2.2" fill="currentColor"/><path d="M23.6 4.4 v4.2 a2.4 2.4 0 0 0 0-4.2 z" fill="currentColor" fill-opacity=".5"/></svg>
+            <svg class="signal" width="18" height="12" viewBox="0 0 18 12" fill="currentColor" aria-label="信号">
+              <rect x="0" y="8" width="3" height="4" rx="0.6"/>
+              <rect x="5" y="5.5" width="3" height="6.5" rx="0.6"/>
+              <rect x="10" y="3" width="3" height="9" rx="0.6"/>
+              <rect x="15" y="0.5" width="3" height="11.5" rx="0.6"/>
+            </svg>
+            <svg class="wifi" width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-label="Wi-Fi">
+              <path d="M1 4.2 A10 10 0 0 1 15 4.2"/>
+              <path d="M3.6 6.9 A6.4 6.4 0 0 1 12.4 6.9"/>
+              <circle cx="8" cy="10" r="1.1" fill="currentColor" stroke="none"/>
+            </svg>
+            <svg class="battery" width="28" height="13" viewBox="0 0 28 13" aria-label="电量">
+              <rect x="0.8" y="0.8" width="22.4" height="11.4" rx="3" fill="none" stroke="currentColor" stroke-opacity=".45" stroke-width="1.2"/>
+              <rect id="phone-battery-fill" x="2.4" y="2.4" width="19" height="8.2" rx="1.8" fill="currentColor"/>
+              <path d="M24.4 4.4 v4.2 a2.4 2.4 0 0 0 0-4.2 z" fill="currentColor" fill-opacity=".5"/>
+              <text id="phone-battery-pct" x="11.5" y="9.8" font-size="6.4" font-weight="700" text-anchor="middle" fill="#faf6ee" opacity=".95" font-family="-apple-system, BlinkMacSystemFont, sans-serif">85</text>
+            </svg>
           </span>
         </div>
       </div>`;
@@ -131,6 +154,15 @@
         tabs.push(t);
         navBtns.push(t);
       });
+      // 关键：rebuildTabs 里 `tabs = []` 是给模块级变量重新赋值，
+      // 但 built.tabs 还指向旧数组引用 —— 之后 syncIndex 的 forEach
+      // 永远遍历不到新创建的 phone-tab，active class / indicator 全废。
+      // 重建后必须把新数组同步回 built 对象。
+      if (built) {
+        built.tabs = tabs;
+        built.navBtns = navBtns;
+        built.srcBtns = srcBtns;
+      }
       syncIndex();
     }
     rebuildTabs();
@@ -164,9 +196,12 @@
     scaler.appendChild(phone);
     stage.appendChild(slot);
     stage.appendChild(hint);
-    stage.appendChild(toggle);
+    // 模式切换按钮：固定在屏幕外右上角，必须挂在 body 上（不能放 stage，
+    // stage 的 flex column 会让它跑到手机壳下方;也不能挂 phone-scaler 上，
+    // phone-scaler 被 transform: scale() 包住，fixed 会变成相对 scaler 的视口）
+    document.body.appendChild(toggle);
 
-    built = { stage, slot, scaler, phone, screen, viewport, tabbar, tabs, ind, island, toast, main, topbar, footer, navBtns, srcBtns, modal, modalHome, floats, rebuildTabs };
+    built = { stage, slot, scaler, phone, screen, viewport, tabbar, tabs, ind, island, toast, main, topbar, footer, navBtns, srcBtns, modal, modalHome, floats, rebuildTabs, toggle };
 
     // 导航形态在抽屉里被切换（A 纯抽屉 / B 抽屉+底栏）时重建底部 Tab
     window.addEventListener("oracle:nav", () => {
@@ -177,8 +212,10 @@
 
   // ---------- 状态同步 ----------
   function currentIndex() {
-    // 优先认 documentElement.dataset.view：app.js 的 switchView 和 oracle 的 go 都会写它，
-    // 这样纯抽屉模式（没有底部 Tab 可点）也能把轨道下标对上。
+    // 索引基准必须是 navBtns / tabs 的顺序（两数组同一来源），
+    // 因为 indicator 的 translateX 是按 i * tabWidth 算的，active class 也按 k === i 设。
+    // 而 .shell 的子节点顺序跟 navBtns 不一致（CSS 也只装 4 个 view），
+    // 所以**不能**用 .shell 顺序 —— 之前用 .shell 顺序会让 active class 设到错的 Tab 上。
     const v = document.documentElement.dataset.view;
     if (v && built) {
       const byView = built.navBtns.findIndex((b) => b.dataset.view === v);
@@ -216,6 +253,23 @@
     const d = new Date();
     const n = document.getElementById("phone-clock");
     if (n) n.textContent = d.getHours() + ":" + String(d.getMinutes()).padStart(2, "0");
+  }
+
+  // 电池百分比优先用浏览器 API，否则画一个"还不错的"假值
+  function refreshBattery() {
+    const fill = document.getElementById("phone-battery-fill");
+    const pct = document.getElementById("phone-battery-pct");
+    if (!fill || !pct) return;
+    let val = 85;
+    if (navigator.getBattery) {
+      navigator.getBattery().then((b) => {
+        const p = Math.round(b.level * 100);
+        fill.setAttribute("width", String((p / 100) * 19));
+        pct.textContent = String(p);
+      }).catch(() => { /* ignore */ });
+    }
+    fill.setAttribute("width", String((val / 100) * 19));
+    pct.textContent = String(val);
   }
 
   function island(text) {
@@ -321,6 +375,26 @@
         if (t && !err.classList.contains("hidden")) toast(t.slice(0, 30));
       }).observe(err, { childList: true, characterData: true, subtree: true });
     }
+
+    // 视图切换 → 灵动岛闪现当前 view 名（仅在 phone-mode 下播）
+    // 关键：跳过初次挂载触发的"首跳"（空 → home），不然 boot 测试会被这个 class 干扰
+    let primed = false;
+    let lastView = document.documentElement.dataset.view || "";
+    new MutationObserver(() => {
+      const v = document.documentElement.dataset.view;
+      if (!v || v === lastView) return;
+      const prev = lastView;
+      lastView = v;
+      if (!primed) { primed = true; return; } // 首跳不弹岛
+      const label = LABELS[v] || v;
+      if (label) island(label);
+      // 触发屏幕轻微「点亮」效果（亮度一过）
+      const s = built.screen;
+      s.style.transition = "filter .22s ease";
+      s.style.filter = "brightness(1.08)";
+      setTimeout(() => { s.style.filter = ""; }, 220);
+      void prev;
+    }).observe(document.documentElement, { attributes: true, attributeFilter: ["data-view"] });
   }
 
   function bindKeys() {
@@ -346,28 +420,31 @@
     bindObservers();
     bindKeys();
     tickClock();
+    refreshBattery();
     clearInterval(tickClock._t);
     tickClock._t = setInterval(tickClock, 15000);
     window.addEventListener("resize", fit);
     fit();
     syncIndex();
-    localStorage.setItem(KEY, "phone");
+    store.set(KEY, "phone");
     setTimeout(() => island("电子衣柜已就绪"), 800);
   }
 
   function disable() {
     if (built) {
-      const { stage, topbar, main, footer, floats } = built;
+      const { stage, topbar, main, footer, floats, toggle } = built;
       // 先放回业务 DOM，否则这些浮层会随外壳一起被移除
       (floats || []).forEach((f) => f.home && f.home.appendChild(f.node));
       if (topbar) document.body.appendChild(topbar);
       if (main) document.body.appendChild(main);
       if (footer) document.body.appendChild(footer);
+      // toggle 现在挂在 body 上（fixed 定位），不会随 stage 一起被删,显式 remove
+      if (toggle && toggle.isConnected) toggle.remove();
       if (stage.isConnected) stage.remove();
       window.removeEventListener("resize", fit);
     }
     document.documentElement.classList.remove("phone-mode");
-    localStorage.setItem(KEY, "web");
+    store.set(KEY, "web");
     addFloatToggle();
   }
 

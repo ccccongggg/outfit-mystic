@@ -353,6 +353,290 @@ html.nav-hybrid body { padding-bottom: 56px; }
 #scratch-canvas.gone { display: none; }
 .scratch-hint { font-size: 12px; color: var(--linen); }
 
+/* ---------- 首屏 · 卡片栈（替代旧 .rail）---------- */
+.card-stack { margin-top: 18px; user-select: none; -webkit-user-select: none; }
+.stack-viewport {
+  position: relative;
+  height: 220px;
+  perspective: 1200px;
+  cursor: grab;
+  touch-action: pan-y;
+}
+.stack-viewport:active { cursor: grabbing; }
+.stack-card {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: min(78vw, 320px);
+  min-height: 156px;
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--bs);
+  border: 1px solid var(--bc);
+  border-left: 4px solid var(--bc);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 36px rgba(43, 36, 48, 0.12), 0 2px 4px rgba(43, 36, 48, 0.05);
+  cursor: pointer;
+  transform-origin: center;
+  will-change: transform, opacity, filter;
+  outline: none;
+  transition: box-shadow 0.18s ease;
+}
+.stack-card:focus-visible { box-shadow: 0 0 0 3px var(--bc), 0 12px 36px rgba(43, 36, 48, 0.18); }
+.stack-card:hover:not([aria-hidden="true"]) { box-shadow: 0 16px 40px rgba(43, 36, 48, 0.18); }
+.stack-icon {
+  flex: 0 0 auto;
+  width: 56px; height: 56px;
+  display: grid; place-items: center;
+  background: var(--card);
+  border-radius: 14px;
+  color: var(--bc);
+}
+.stack-icon svg { width: 36px; height: 36px; }
+.stack-body { display: flex; flex-direction: column; gap: 4px; flex: 1 1 auto; min-width: 0; }
+.stack-t { font-family: var(--serif); font-size: 18px; font-weight: 600; color: var(--bi); letter-spacing: 0.04em; }
+.stack-s { font-size: 12.5px; color: var(--ink); }
+.stack-how { font-size: 11px; color: var(--linen); margin-top: 4px; letter-spacing: 0.06em; }
+.stack-go {
+  flex: 0 0 auto;
+  width: 28px; height: 28px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: var(--card);
+  color: var(--bc);
+  font-size: 18px;
+  font-family: var(--serif);
+}
+.stack-nav {
+  display: flex; align-items: center; justify-content: center; gap: 14px;
+  margin-top: 14px;
+}
+.stack-arrow {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink-soft);
+  font-size: 16px;
+  cursor: pointer;
+  display: grid; place-items: center;
+  transition: background 0.16s ease, color 0.16s ease, transform 0.12s ease;
+}
+.stack-arrow:hover { background: var(--paper-2); color: var(--ink); transform: scale(1.04); }
+.stack-arrow:active { transform: scale(0.94); }
+.stack-dots { display: flex; gap: 6px; }
+.stack-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  border: none;
+  background: var(--line);
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.16s ease, transform 0.16s ease, width 0.22s ease;
+}
+.stack-dot.on { background: var(--bc); width: 22px; border-radius: 4px; }
+
+/* ---------- 抽取式 · 圆盘抽三张牌 ---------- */
+.tarot3-head {
+  position: relative;
+  padding-bottom: 4px;
+}
+.tarot3-counter {
+  position: absolute;
+  right: 4px; top: 4px;
+  font-family: var(--serif);
+  font-size: 13px;
+  color: var(--accent);
+  background: var(--bs);
+  padding: 4px 10px;
+  border-radius: 999px;
+  letter-spacing: 0.04em;
+}
+.tarot3-counter span { font-weight: 700; color: var(--bi); }
+
+.wheel-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  max-width: 460px;
+  margin: 12px auto 16px;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 50% 50%, #211A38 0%, #16102A 70%, #0E0820 100%);
+  border-radius: 24px;
+  border: 1px solid rgba(201, 168, 106, 0.16);
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  box-shadow: inset 0 0 60px rgba(83, 74, 183, 0.25);
+}
+.wheel-pointer {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center;
+  z-index: 5;
+  pointer-events: none;
+}
+.wp-dot {
+  width: 12px; height: 12px;
+  background: #C9A86A;
+  border-radius: 50%;
+  box-shadow: 0 0 14px #C9A86A, 0 0 4px #fff8e0 inset;
+}
+.wp-stem {
+  width: 2px; height: 24px;
+  background: linear-gradient(180deg, #C9A86A 0%, rgba(201, 168, 106, 0) 100%);
+}
+.wheel {
+  position: relative;
+  width: 84%;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  transform-style: preserve-3d;
+  cursor: grab;
+  outline: none;
+}
+.wheel:active { cursor: grabbing; }
+.wheel-card {
+  position: absolute;
+  top: calc(50% + var(--cy, 0) * var(--r, 140px));
+  left: calc(50% + var(--cx, 0) * var(--r, 140px));
+  width: 56px; height: 84px;
+  margin-left: -28px; margin-top: -42px;
+  --scale: 1;
+  --lift: 0px;
+  --glow: 0;
+  transform: translateY(var(--lift)) rotate(var(--deg, 0deg)) scale(var(--scale));
+  background: var(--card);
+  border: 1px solid rgba(201, 168, 106, 0.25);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  transition: transform 320ms cubic-bezier(.22,.61,.36,1),
+              box-shadow 240ms ease,
+              filter 240ms ease,
+              border-color 240ms ease,
+              opacity 240ms ease;
+}
+.wheel-card img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+.wheel-card .wc-num {
+  position: absolute;
+  bottom: 2px; right: 4px;
+  font-family: var(--serif);
+  font-size: 9px;
+  color: #C9A86A;
+  background: rgba(11, 7, 24, 0.7);
+  padding: 1px 4px;
+  border-radius: 4px;
+  letter-spacing: 0.06em;
+}
+.wheel-card.selected {
+  --scale: 1.14;
+  --lift: -8px;
+  border-color: #C9A86A;
+  box-shadow: 0 0 32px rgba(201, 168, 106, 0.7), 0 14px 32px rgba(201, 168, 106, 0.4), 0 4px 14px rgba(0, 0, 0, 0.4);
+  filter: brightness(1.12);
+  z-index: 3;
+}
+.wheel-card.picked {
+  opacity: 0.34;
+  filter: grayscale(0.7);
+}
+.wheel-card.picked.selected {
+  opacity: 0.6;
+  filter: grayscale(0.4) brightness(1.05);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+
+.wheel-pick {
+  position: absolute;
+  bottom: 18px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  padding: 10px 22px;
+  background: #C9A86A;
+  color: #211A38;
+  border: none;
+  border-radius: 999px;
+  font-family: var(--serif);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  box-shadow: 0 8px 22px rgba(201, 168, 106, 0.35);
+  transition: transform 0.16s ease, box-shadow 0.16s ease, opacity 0.16s ease;
+}
+.wheel-pick:hover { transform: translateX(-50%) translateY(-1px); box-shadow: 0 12px 28px rgba(201, 168, 106, 0.45); }
+.wheel-pick:active { transform: translateX(-50%) translateY(1px); }
+.wheel-pick:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+
+.tarot3-slots {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 6px 0 14px;
+}
+.tarot3-slot {
+  background: var(--card);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  padding: 10px 8px;
+  text-align: center;
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+.tarot3-slot.on {
+  border-style: solid;
+  border-color: #C9A86A;
+  background: linear-gradient(180deg, rgba(201, 168, 106, 0.08), rgba(201, 168, 106, 0.02));
+}
+.t3s-label {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--linen);
+  margin-bottom: 2px;
+}
+.t3s-name {
+  display: block;
+  font-family: var(--serif);
+  font-size: 14px;
+  color: var(--bi);
+}
+.tarot3-slot.on .t3s-name { color: #854F0B; font-weight: 600; }
+.tarot3-reset {
+  grid-column: 1 / -1;
+  margin-top: 4px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: background 0.16s ease, color 0.16s ease;
+}
+.tarot3-reset:hover { background: var(--paper-2); color: var(--ink); }
+.tarot3-reveal { margin-top: 8px; }
+
+@media (max-width: 480px) {
+  .stack-card { width: 86vw; padding: 14px 16px; }
+  .stack-icon { width: 48px; height: 48px; }
+  .stack-icon svg { width: 30px; height: 30px; }
+  .stack-t { font-size: 16px; }
+  .wheel-card { width: 48px; height: 72px; margin-left: -24px; margin-top: -36px; }
+}
+
 /* ---------- 广场 ---------- */
 .feed-filter { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
 .ff {
@@ -400,3 +684,10 @@ html.nav-hybrid body { padding-bottom: 56px; }
 .phone-mode .feed { grid-template-columns: 1fr; }
 .phone-mode .result-layout { grid-template-columns: 1fr; }
 .phone-mode .kw-alt { grid-template-columns: 1fr; }
+/* 卡片栈：手机屏内容区只有 ~330px，78vw/320px 太宽，
+   收窄 + 配合 oracle.js 把相邻偏移从 70% → 42%，左右各露 ~30% 不溢出 */
+.phone-mode .stack-card { width: min(72vw, 268px); padding: 16px 16px; }
+.phone-mode .stack-icon { width: 48px; height: 48px; }
+.phone-mode .stack-icon svg { width: 30px; height: 30px; }
+.phone-mode .stack-t { font-size: 16px; }
+.phone-mode .stack-viewport { height: 200px; }

@@ -1,3 +1,15 @@
+/* ------------------------------------------------------------------
+   经典脚本（原为 ES module，语义等价）
+   改因：file:// 下浏览器禁止加载 <script type="module">，双击 index.html
+        会整页无法交互。改成经典脚本 + window.Outfit 命名空间后，
+        双击打开 / 起本地服务两种方式都能完整跑。
+   依赖：由 index.html 按顺序 defer 加载，公共名挂在 window.Outfit 上。
+------------------------------------------------------------------ */
+(function (NS) {
+"use strict";
+  const { colorHit, styleHit, categoryOf, STYLES, normStyle } = NS;   // 原来是 import { ... } from "./vocab.js"
+  NS.require("engine.js", { colorHit, styleHit, categoryOf, STYLES, normStyle });
+
 // web/engine.js —— 打通版最小推荐引擎
 // 规则负责选款 + 风格匹配度；保证「选出的都在衣橱里 + 能成套」
 //
@@ -17,16 +29,15 @@
 // 参考稿第 6 节的口径：入口只负责把模糊念头翻译成约束，出搭配只有这一套引擎。
 // 颜色 / 风格的匹配一律走 vocab.js 的受控词表，不许各写各的。
 
-import { colorHit, styleHit, categoryOf } from "./vocab.js";
 
 /** 默认四件套：上装 + 下装 + 鞋 + 外套。连衣裙占用「上装」槽位。 */
-export const DEFAULT_SLOTS = ["top", "bottom", "shoes", "outer"];
+const DEFAULT_SLOTS = ["top", "bottom", "shoes", "outer"];
 
 /**
  * 结果页那四格的固定定义 —— 顺序就是 UI 顺序。
  * accepts 表示这一格能放哪些品类：连衣裙和上衣抢同一个上身格。
  */
-export const SLOT_DEF = [
+const SLOT_DEF = [
   { k: "top", label: "上衣", accepts: ["top", "dress"] },
   { k: "bottom", label: "下装", accepts: ["bottom"] },
   { k: "shoes", label: "鞋", accepts: ["shoes"] },
@@ -45,8 +56,25 @@ const SLOT_MAP = {
 };
 
 /** 连身单品判定：连衣裙/连体裤自带下装，选中后不再另配 bottom。 */
-export function isOnepiece(item) {
+function isOnepiece(item) {
   return categoryOf(item) === "dress";
+}
+
+/**
+ * 从 c.style_tags 求反 → 得到「不在目标里的风格集」。
+ * 比如用户要 甜美/文艺,avoid = {简约, 通勤, 运动, 复古, 明艳, 慵懒}。
+ * 衣橱里 item.style_tags 命中 avoid 的,会在 matchScore 扣分(见下)。
+ */
+function avoidStyles(c) {
+  const want = new Set((c.style_tags || []).map(normStyle));
+  return STYLES.filter((s) => !want.has(s));
+}
+
+/** 衣橱里命中 must_colors 的:返回缺失色数组(must_colors 减掉衣橱里能匹配上的)。 */
+function missingColors(items, c) {
+  const wants = c.must_colors || [];
+  if (!wants.length) return [];
+  return wants.filter((col) => !items.some((it) => colorHit(it.color_name, [col])));
 }
 
 /**
@@ -60,7 +88,7 @@ export function isOnepiece(item) {
  * 之前 UI 自己硬编码四格，于是「连衣裙被选中但没格可放」和「今天不用外套」
  * 都表现成一句「待选」，看起来像坏了。
  */
-export function slotStates(picks, constraint) {
+function slotStates(picks, constraint) {
   const c = constraint || {};
   const cats = c.must_categories || DEFAULT_SLOTS;
   const list = picks || [];
@@ -93,7 +121,7 @@ export function slotStates(picks, constraint) {
   });
 }
 
-export function recommend(items, constraint) {
+function recommend(items, constraint) {
   const c = constraint || {};
   const cats = c.must_categories || DEFAULT_SLOTS;
   const pool = items.filter((it) => it && it.category);
@@ -143,7 +171,7 @@ export function recommend(items, constraint) {
   return picked;
 }
 
-export function itemsByIds(items, ids) {
+function itemsByIds(items, ids) {
   const map = new Map(items.map((it) => [it.id, it]));
   return ids.map((id) => map.get(id)).filter(Boolean);
 }
@@ -167,17 +195,26 @@ function luminance(hex) {
  * 单件单品与当前风格倾向的匹配度（0-100）+ 可读理由。
  * 各项加权后可解释：风格 / 颜色 / 季节 / 场合 / 正式度 / 材质 / 滑动偏好。
  */
-export function matchScore(item, constraint) {
+function matchScore(item, constraint) {
   const c = constraint || {};
   const prefs = c.prefs || {};
   const reasons = [];
   let score = 20; // 基础分：在衣橱里、可成套
 
-  // 风格标签（受控 8 风格，别名也认）
+  // 风格标签(受控 8 风格,别名也认)
   const hitStyles = styleHit(item.style_tags, c.style_tags || []);
   if (hitStyles.length) {
     score += Math.min(40, hitStyles.length * 18);
     reasons.push("风格命中：" + hitStyles.join("、"));
+  }
+
+  // 风格冲突:item.style_tags 命中 avoid_styles(目标风格的反集)→ 扣分。
+  // 这是 v2026-09-26 加的,修「黑皮衣强塞甜美」那种 bug —— 之前只加命中分,冲突照样入选。
+  const avoid = avoidStyles(c);
+  const conflicts = (item.style_tags || []).map(normStyle).filter((s) => avoid.includes(s));
+  if (conflicts.length) {
+    score -= Math.min(30, conflicts.length * 15);
+    reasons.push("风格冲突：" + conflicts.join("、") + " 不在目标里");
   }
 
   // 颜色（受控 24 色，别名也认）
@@ -244,8 +281,8 @@ export function matchScore(item, constraint) {
   return { score: Math.max(0, Math.min(100, Math.round(score))), reasons };
 }
 
-/** 整套的和谐度加成/扣减（配色关系） */
-function harmony(picks) {
+/** 整套的和谐度加成/扣减（配色关系 + 风格一致性） */
+function harmony(picks, c) {
   const bonus = [];
   const top = picks.find((p) => p.category === "top");
   const bottom = picks.find((p) => p.category === "bottom");
@@ -269,6 +306,18 @@ function harmony(picks) {
       bonus.push({ v: 4, why: "深色鞋收住上身的亮，重心稳" });
     }
   }
+  // 套装风格一致性:v2026-09-26 加的。如果目标风格已指定,过半单品都对不上就扣分。
+  // 比如 4 件里只有 1 件命中"甜美/文艺",就扣 —— 别让「1 件对 3 件跑偏」的搭配装成没事。
+  const target = (c && c.style_tags || []).map(normStyle);
+  if (target.length && picks.length >= 2) {
+    const onTag = picks.filter((p) =>
+      (p.style_tags || []).some((s) => target.includes(normStyle(s)))
+    ).length;
+    const ratio = onTag / picks.length;
+    if (ratio < 0.5) {
+      bonus.push({ v: -12, why: `仅 ${onTag}/${picks.length} 件命中目标风格，整体偏散` });
+    }
+  }
   return bonus;
 }
 
@@ -276,7 +325,7 @@ function harmony(picks) {
  * 整套分析：逐件匹配度 + 整套匹配度 + 缺槽位。
  * 返回结构稳定，前端直接渲染；后续换 LLM 理由也不影响调用方。
  */
-export function analyze(items, constraint) {
+function analyze(items, constraint) {
   const ids = recommend(items, constraint);
   const picks = itemsByIds(items, ids);
   const perItem = picks.map((it) => ({ item: it, ...matchScore(it, constraint) }));
@@ -287,9 +336,17 @@ export function analyze(items, constraint) {
   const base = perItem.length
     ? perItem.reduce((a, b) => a + b.score, 0) / perItem.length
     : 0;
-  const notes = harmony(picks);
+  const notes = harmony(picks, constraint);
   const bonus = notes.reduce((a, b) => a + b.v, 0);
   const outfitScore = Math.max(0, Math.min(100, Math.round(base + bonus - missing.length * 12)));
 
-  return { picks, perItem, outfitScore, missing, harmony: notes.map((n) => n.why), slots };
+  // v2026-09-26 加:把「衣橱里没的 must_colors」也告诉前端,用户就能看到「想要藕粉但衣橱没有」。
+  // 注意:只在衣橱里**完全找不到**匹配色时算缺失;存在但被 engine 因为分数低没被选中的不算。
+  const missing_colors = missingColors(items, constraint);
+
+  return { picks, perItem, outfitScore, missing, missing_colors, harmony: notes.map((n) => n.why), slots };
 }
+
+  // 对外暴露（原来是 export）
+  Object.assign(NS, { DEFAULT_SLOTS, SLOT_DEF, isOnepiece, slotStates, recommend, itemsByIds, matchScore, analyze });
+})(window.Outfit = window.Outfit || {});

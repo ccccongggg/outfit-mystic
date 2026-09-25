@@ -17,3 +17,7 @@ scripts/_pexels_test.jpg
 scripts/probe_*.py
 scripts/dl_test.py
 scripts/dl_items.py
+# 单次跑批的操作性产物（白底化验证 / 调试输出 / 服务起停时的管道捕获），不入库
+outputs/
+server_out.txt
+test_out.txt

@@ -54,8 +54,10 @@ globalThis.fetch = async (url) => {
 
 window.eval("globalThis.__noop = true;");
 
-// ---- 加载真实业务脚本（ESM）----
-await import(new URL("../web/app.js", import.meta.url).href);
+// ---- 加载真实业务脚本（经典脚本，按 index.html 的顺序 eval）----
+// 原来是 `await import("../web/app.js")`；改因见 scripts/_web_loader.mjs 顶部注释
+const { loadWebIntoNode } = await import("./_web_loader.mjs");
+loadWebIntoNode();
 const app = window.__outfitApp;
 check("app.js 加载并暴露测试钩子", !!app);
 if (!app) {
@@ -122,7 +124,7 @@ check("A7 init 期间发起过接口请求", fetchLog.length > 0, fetchLog.lengt
 
 // ---- A8 AI 等待时必须看得见在动 ----
 // 抠底 + VLM 打标几秒到十几秒，界面不能是一张不动的静态面板 —— 和卡死没区别
-const { startBusy, isBusy } = await import(new URL("../web/busy.js", import.meta.url).href);
+const { startBusy, isBusy } = window.Outfit;
 const busyHost = window.document.querySelector("#upload-busy");
 check("A8 有专用的忙碌指示器容器", !!busyHost && busyHost.classList.contains("busy-host"));
 

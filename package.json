@@ -7,6 +7,6 @@
     "serve": "python server/app.py",
     "cut": "python scripts/remove_bg.py",
     "tag": "python scripts/tag_image.py",
-    "test": "node scripts/test_engine.mjs && node scripts/test_shell.mjs && node scripts/test_intake.mjs && node scripts/test_layout.mjs && node scripts/test_oracle.mjs"
+    "test": "node scripts/test_engine.mjs && node scripts/test_tarot.mjs && node scripts/test_shell.mjs && node scripts/test_intake.mjs && node scripts/test_layout.mjs && node scripts/test_oracle.mjs && node scripts/test_boot.mjs"
   }
 }

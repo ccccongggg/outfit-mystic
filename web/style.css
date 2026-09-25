@@ -939,6 +939,17 @@ body {
 .style-actions .btn { width: auto; padding: 0 22px; }
 
 .match-panel, .logic-panel { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+/* 2026-09-26 加:oracle 抽到的方向 → 翻译成具体搭配方向。不要写"缺 X 色"的劝退话。 */
+.oracle-advice { margin-top: 22px; padding: 16px 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
+.oa-head { display: flex; gap: 10px; align-items: baseline; font-family: var(--serif); font-size: 16px; color: var(--ink); margin-bottom: 8px; }
+.oa-source { color: var(--accent); }
+.oa-occasion { color: var(--ink-soft); font-size: 13px; }
+.oa-story { margin: 0 0 12px; font-size: 12.5px; color: var(--ink-soft); line-height: 1.7; font-style: italic; }
+.oa-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 18px; margin: 8px 0 12px; }
+.oa-grid > div { display: flex; flex-direction: column; gap: 4px; }
+.oa-grid b { font-size: 11px; color: var(--ink-soft); letter-spacing: 0.04em; text-transform: uppercase; }
+.oa-grid span { font-size: 13px; color: var(--ink); line-height: 1.6; }
+.oa-foot { font-size: 11.5px; line-height: 1.7; margin: 0; }
 .match-head { display: flex; align-items: baseline; justify-content: space-between; }
 .match-head h2, .logic-panel h2 { margin: 0; font-family: var(--serif); font-size: 16px; }
 .mh-score { font-family: var(--serif); font-size: 26px; color: var(--accent); }

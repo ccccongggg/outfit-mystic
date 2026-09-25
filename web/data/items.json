@@ -465,16 +465,125 @@
     "cut_ok": true
   },
   {
-    "id": "w5220",
-    "image": "assets/items/w5220.png",
-    "category": "top",
-    "type": "短袖",
-    "color_name": "白色",
-    "color_hex": "#E5E5EA",
+    "category": "bag",
+    "type": "包",
+    "color_name": "黑色",
+    "color_hex": "#F3F3F3",
     "palette": [
-      "#FFFFFF"
+      "#F3F3F3"
     ],
     "fit": "合身",
+    "pattern": "纯色",
+    "material": "皮革",
+    "season": [
+      "春",
+      "秋"
+    ],
+    "style_tags": [
+      "简约",
+      "通勤"
+    ],
+    "occasions": [
+      "通勤"
+    ],
+    "formality": 2,
+    "source": "ai",
+    "manual_override": true,
+    "id": "w9001",
+    "image": "assets/items/w9001.jpg"
+  },
+  {
+    "category": "bag",
+    "type": "包",
+    "color_name": "棕色",
+    "color_hex": "#A55728",
+    "palette": [
+      "#A55728"
+    ],
+    "fit": "合身",
+    "pattern": "纯色",
+    "material": "皮革",
+    "season": [
+      "春",
+      "秋"
+    ],
+    "style_tags": [
+      "复古",
+      "通勤"
+    ],
+    "occasions": [
+      "通勤"
+    ],
+    "formality": 2,
+    "source": "ai",
+    "manual_override": true,
+    "id": "w9002",
+    "image": "assets/items/w9002.jpg"
+  },
+  {
+    "category": "outer",
+    "type": "外套",
+    "color_name": "浅蓝与米白",
+    "color_hex": "#E6E2DB",
+    "palette": [
+      "#E6E2DB"
+    ],
+    "fit": "合身",
+    "pattern": "纯色",
+    "material": "其他",
+    "season": [
+      "秋"
+    ],
+    "style_tags": [
+      "慵懒",
+      "简约"
+    ],
+    "occasions": [
+      "休闲"
+    ],
+    "formality": 2,
+    "source": "ai",
+    "manual_override": true,
+    "id": "w9003",
+    "image": "assets/items/w9003.jpg"
+  },
+  {
+    "category": "outer",
+    "type": "外套",
+    "color_name": "米白色",
+    "color_hex": "#E8E2D7",
+    "palette": [
+      "#E8E2D7"
+    ],
+    "fit": "宽松",
+    "pattern": "纯色",
+    "material": "运动面料",
+    "season": [
+      "春",
+      "秋"
+    ],
+    "style_tags": [
+      "复古",
+      "明艳"
+    ],
+    "occasions": [
+      "休闲"
+    ],
+    "formality": 2,
+    "source": "ai",
+    "manual_override": true,
+    "id": "w9004",
+    "image": "assets/items/w9004.jpg"
+  },
+  {
+    "category": "top",
+    "type": "短袖",
+    "color_name": "酒红色",
+    "color_hex": "#431A1C",
+    "palette": [
+      "#431A1C"
+    ],
+    "fit": "宽松",
     "pattern": "纯色",
     "material": "棉",
     "season": [
@@ -482,14 +591,340 @@
       "秋"
     ],
     "style_tags": [
+      "文艺",
+      "温柔"
+    ],
+    "occasions": [
+      "约会"
+    ],
+    "formality": 2,
+    "source": "ai",
+    "manual_override": true,
+    "id": "w9005",
+    "image": "assets/items/w9005.jpg"
+  },
+  {
+    "category": "shoes",
+    "type": "鞋",
+    "color_name": "棕色",
+    "color_hex": "#683329",
+    "palette": [
+      "#683329"
+    ],
+    "fit": "合身",
+    "pattern": "纯色",
+    "material": "皮革",
+    "season": [
+      "春",
+      "秋"
+    ],
+    "style_tags": [
+      "复古",
+      "通勤"
+    ],
+    "occasions": [
+      "通勤"
+    ],
+    "formality": 2,
+    "source": "ai",
+    "manual_override": true,
+    "id": "w9006",
+    "image": "assets/items/w9006.jpg"
+  },
+  {
+    "category": "shoes",
+    "type": "鞋",
+    "color_name": "白色",
+    "color_hex": "#D6D9D4",
+    "palette": [
+      "#D6D9D4"
+    ],
+    "fit": "合身",
+    "pattern": "纯色",
+    "material": "皮革",
+    "season": [
+      "春",
+      "秋"
+    ],
+    "style_tags": [
+      "文艺",
       "简约"
     ],
     "occasions": [
-      "休闲"
+      "通勤"
     ],
-    "formality": 1,
+    "formality": 2,
     "source": "ai",
-    "manual_override": false,
-    "cut_ok": true
+    "manual_override": true,
+    "id": "w9007",
+    "image": "assets/items/w9007.jpg"
+  },
+  {
+    "category": "bottom",
+    "type": "长裤",
+    "color_name": "黑色",
+    "color_hex": "#181818",
+    "palette": [
+      "#181818"
+    ],
+    "fit": "阔腿",
+    "pattern": "纯色",
+    "material": "针织",
+    "season": [
+      "春",
+      "秋"
+    ],
+    "style_tags": [
+      "慵懒",
+      "通勤"
+    ],
+    "occasions": [
+      "通勤"
+    ],
+    "formality": 2,
+    "source": "ai",
+    "manual_override": true,
+    "id": "w9009",
+    "image": "assets/items/w9009.jpg"
+  },
+  {
+    "category": "bottom",
+    "type": "长裤",
+    "color_name": "黑色",
+    "color_hex": "#171719",
+    "palette": [
+      "#171719"
+    ],
+    "fit": "宽松",
+    "pattern": "其他",
+    "material": "棉",
+    "season": [
+      "春",
+      "秋"
+    ],
+    "style_tags": [
+      "通勤",
+      "简约"
+    ],
+    "occasions": [
+      "通勤"
+    ],
+    "formality": 2,
+    "source": "ai",
+    "manual_override": true,
+    "id": "w9301",
+    "image": "assets/items/w9301.jpg"
+  },
+  {
+    "id": "w9701",
+    "image": "assets/items/prod_tee_white.jpg",
+    "category": "top",
+    "type": "吊带",
+    "color_name": "柔白",
+    "color_hex": "#F2F0EB",
+    "palette": [
+      "#F2F0EB",
+      "#E4E0D6"
+    ],
+    "fit": "合身",
+    "pattern": "纯色",
+    "season": [
+      "春",
+      "夏"
+    ],
+    "style_tags": [
+      "文艺",
+      "温柔"
+    ],
+    "formality": 2,
+    "source": "ai",
+    "manual_override": true,
+    "material": "真丝",
+    "occasions": [
+      "约会",
+      "通勤"
+    ]
+  },
+  {
+    "id": "w9702",
+    "image": "assets/items/prod_shirt_blue.jpg",
+    "category": "top",
+    "type": "短袖",
+    "color_name": "雾蓝",
+    "color_hex": "#8FA6C2",
+    "palette": [
+      "#8FA6C2",
+      "#6E86A6"
+    ],
+    "fit": "合身",
+    "pattern": "纯色",
+    "season": [
+      "春",
+      "夏"
+    ],
+    "style_tags": [
+      "文艺",
+      "简约"
+    ],
+    "formality": 3,
+    "source": "ai",
+    "manual_override": true,
+    "material": "棉",
+    "occasions": [
+      "通勤",
+      "休闲"
+    ]
+  },
+  {
+    "id": "w9703",
+    "image": "assets/items/prod_short_olive.jpg",
+    "category": "bottom",
+    "type": "半身裙",
+    "color_name": "橄榄绿",
+    "color_hex": "#78824E",
+    "palette": [
+      "#78824E",
+      "#586238"
+    ],
+    "fit": "合身",
+    "pattern": "纯色",
+    "season": [
+      "春",
+      "夏",
+      "秋"
+    ],
+    "style_tags": [
+      "文艺",
+      "复古"
+    ],
+    "formality": 2,
+    "source": "ai",
+    "manual_override": true,
+    "material": "棉",
+    "occasions": [
+      "约会",
+      "休闲"
+    ]
+  },
+  {
+    "id": "w9704",
+    "image": "assets/items/prod_jacket.jpg",
+    "category": "outer",
+    "type": "外套",
+    "color_name": "卡其",
+    "color_hex": "#B8895A",
+    "palette": [
+      "#B8895A",
+      "#8F6840"
+    ],
+    "fit": "宽松",
+    "pattern": "纯色",
+    "season": [
+      "秋",
+      "冬"
+    ],
+    "style_tags": [
+      "慵懒",
+      "通勤"
+    ],
+    "formality": 3,
+    "source": "ai",
+    "manual_override": true,
+    "material": "棉",
+    "occasions": [
+      "休闲",
+      "通勤"
+    ]
+  },
+  {
+    "id": "w9705",
+    "image": "assets/items/prod_sneaker_red.jpg",
+    "category": "shoes",
+    "type": "鞋",
+    "color_name": "正红",
+    "color_hex": "#C41E2A",
+    "palette": [
+      "#C41E2A",
+      "#B01B25"
+    ],
+    "fit": "合身",
+    "pattern": "纯色",
+    "season": [
+      "春",
+      "秋"
+    ],
+    "style_tags": [
+      "明艳",
+      "甜美"
+    ],
+    "formality": 2,
+    "source": "ai",
+    "manual_override": true,
+    "material": "皮革",
+    "occasions": [
+      "约会",
+      "聚会"
+    ]
+  },
+  {
+    "id": "w9706",
+    "image": "assets/items/prod_sneaker_white.jpg",
+    "category": "shoes",
+    "type": "鞋",
+    "color_name": "米白",
+    "color_hex": "#EDE8DC",
+    "palette": [
+      "#EDE8DC",
+      "#C9B49A"
+    ],
+    "fit": "合身",
+    "pattern": "纯色",
+    "season": [
+      "春",
+      "夏",
+      "秋"
+    ],
+    "style_tags": [
+      "运动",
+      "通勤"
+    ],
+    "formality": 2,
+    "source": "ai",
+    "manual_override": true,
+    "material": "皮革",
+    "occasions": [
+      "通勤",
+      "休闲"
+    ]
+  },
+  {
+    "id": "w9707",
+    "image": "assets/items/prod_jogger_red.jpg",
+    "category": "bottom",
+    "type": "半身裙",
+    "color_name": "砖红",
+    "color_hex": "#963237",
+    "palette": [
+      "#963237",
+      "#6E2328"
+    ],
+    "fit": "合身",
+    "pattern": "纯色",
+    "season": [
+      "春",
+      "秋"
+    ],
+    "style_tags": [
+      "复古",
+      "温柔"
+    ],
+    "formality": 2,
+    "source": "ai",
+    "manual_override": true,
+    "material": "棉",
+    "occasions": [
+      "约会",
+      "通勤"
+    ]
   }
 ]

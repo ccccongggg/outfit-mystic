@@ -1,3 +1,13 @@
+/* ------------------------------------------------------------------
+   经典脚本（原为 ES module，语义等价）
+   改因：file:// 下浏览器禁止加载 <script type="module">，双击 index.html
+        会整页无法交互。改成经典脚本 + window.Outfit 命名空间后，
+        双击打开 / 起本地服务两种方式都能完整跑。
+   依赖：由 index.html 按顺序 defer 加载，公共名挂在 window.Outfit 上。
+------------------------------------------------------------------ */
+(function (NS) {
+"use strict";
+
 // web/busy.js —— 让「AI 正在干活」这件事在界面上看得见
 //
 // 之前的问题：抠底 + VLM 打标动辄 5~15 秒（联网找白底图更久），界面上只有一行
@@ -36,7 +46,7 @@ function fmt(ms) {
  *   showBar      boolean   是否显示不确定进度条
  * @returns {object|null} 句柄，可 .title() / .progress() / .stop()
  */
-export function startBusy(host, opts = {}) {
+function startBusy(host, opts = {}) {
   stopBusy();
   if (!host) return null;
 
@@ -163,13 +173,13 @@ export function startBusy(host, opts = {}) {
 }
 
 /** 停掉当前指示器（幂等） */
-export function stopBusy() {
+function stopBusy() {
   if (cur) cur.stop();
   cur = null;
 }
 
 /** 当前是否正忙（用于防重入） */
-export function isBusy() {
+function isBusy() {
   return !!cur;
 }
 
@@ -179,7 +189,7 @@ export function isBusy() {
  * @param {HTMLElement} host
  * @ {object} opts  同 startBusy，额外支持 disable: HTMLElement[]
  */
-export async function withBusy(host, opts, fn) {
+async function withBusy(host, opts, fn) {
   if (isBusy()) return undefined; // 防重入：上一个还没跑完就不接新的
   const disable = (opts.disable || []).filter(Boolean);
   const handle = startBusy(host, opts);
@@ -207,3 +217,7 @@ export async function withBusy(host, opts, fn) {
     else stopBusy();
   }
 }
+
+  // 对外暴露（原来是 export）
+  Object.assign(NS, { startBusy, stopBusy, isBusy, withBusy });
+})(window.Outfit = window.Outfit || {});

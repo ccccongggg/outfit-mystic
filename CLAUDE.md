@@ -29,7 +29,12 @@
 ## 局部约束
 
 - **断网可跑是硬要求**:抠底、打标、选款、文案各层必须保留本地 / 缓存 / 模板兜底路径,不得让整条链路强依赖外网或单一模型。
-- **预置单品图必须是真实白底或纯色底商品图**,禁扁平矢量假图(判定:unique colors < 6000);人物上身照 / 杂乱背景在**输入端**拦截提示(见 `web/app.js` 的 `analyzeCutDifficulty`)。
+- **预置单品图必须是真实白底或纯色底商品图**,禁扁平矢量假图(判定:unique colors < 6000)。
+- **用户上传的实拍照**(挂拍/平铺/试穿……)走两轨:
+  - VLM 判定 `has_person=true` (试穿/模特上身) → 进 `data/pending.json`(待确认区),**不入衣橱**。前端 `/ingest` 响应 `state=pending_review`,UI 提示「已进待确认区」。用户后续走 `POST /api/pending/<id>/commit`(可手动改标签)或 `/skip`(丢弃)。
+  - VLM 判定 `has_person=false` → 走原 cut+tag+commit 链路,响应 `state=committed`。
+  - VLM 不可用/失败 → 兜底按 has_person=false 走 commit(原链路)。
+  - 详见 `flow/decisions.md` 2026-09-25「录入侧放宽」条目。
 - **`.env` 绝不入库、绝不写进文档**;密钥相关改动只改 `.env`,同步更新 `.env.example` 的字段名(不含值)。
 - **视觉遵循 `../DESIGN.md`**:禁 Inter / Roboto,禁紫蓝渐变;token 以 DESIGN.md 为准。
 - 这里只记录本模块非显而易见的心智模型、内部约定、禁区和模块级踩坑。

@@ -1,3 +1,17 @@
+/* ------------------------------------------------------------------
+   经典脚本（原为 ES module，语义等价）
+   改因：file:// 下浏览器禁止加载 <script type="module">，双击 index.html
+        会整页无法交互。改成经典脚本 + window.Outfit 命名空间后，
+        双击打开 / 起本地服务两种方式都能完整跑。
+   依赖：由 index.html 按顺序 defer 加载，公共名挂在 window.Outfit 上。
+------------------------------------------------------------------ */
+(function (NS) {
+"use strict";
+  // 原来是：import { ... } from "./oracle-data.js";  import { CATEGORY_NAME } from "./vocab.js";
+  const { BOARDS, EXT_SLOT, EXT_COPY, CITIES, DEFAULT_CITY, KW, IDENTITIES, ENERGY, SCRATCH, FEED, SHAPES } = NS;
+  const { CATEGORY_NAME } = NS;
+  NS.require("oracle.js", { BOARDS, EXT_SLOT, EXT_COPY, CITIES, DEFAULT_CITY, KW, IDENTITIES, ENERGY, SCRATCH, FEED, SHAPES, CATEGORY_NAME });
+
 // web/oracle.js —— 「拿主意」这一层：抽屉 → 挂衣杆四板块 → 入口 → 统一约束
 //
 // 这一层是整个项目最关键的架构点（参考稿原话）：
@@ -12,11 +26,6 @@
 // 引擎一行没改：所有入口最后都产出同一个 constraint 对象，交给 app.js 的
 // runRecommend() 去跑。
 
-import {
-  BOARDS, EXT_SLOT, EXT_COPY, CITIES, DEFAULT_CITY,
-  KW, IDENTITIES, ENERGY, SCRATCH, FEED, SHAPES,
-} from "./oracle-data.js";
-import { CATEGORY_NAME } from "./vocab.js";
 
 const NAV_KEY = "oracle.nav";
 const CITY_KEY = "oracle.city";
@@ -30,6 +39,13 @@ const S = {
   identity: null,
   nav: "drawer",
   scratchPrize: null,
+  // 卡片栈（首屏）
+  stackIndex: 0,
+  // 抽三张牌（圆盘）
+  tarot3Angle: 0,
+  tarot3Selected: 0,
+  tarot3Picks: [],
+  tarot3Done: false,
 };
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -48,6 +64,316 @@ function slotCat() {
   return ["top", "bottom", "shoes", "outer"];
 }
 
+function clamp(n, min, max) {
+  n = Number(n);
+  if (!Number.isFinite(n)) return min;
+  return Math.min(Math.max(n, min), max);
+}
+
+/**
+ * 卡片栈滑动控制器（首屏 4 个板块）。
+ * 拖拽期间实时跟随手指，松开时按「速度 + 位移」决定下一张或回弹；
+ * 切换使用 cubic-bezier(.22,.61,.36,1) 480ms 过渡；鼠标、触屏、键盘(←/→/Home/End)统一接入。
+ *
+ * opts = {
+ *   viewport, cards, dots, prev, next, count,
+ *   getIndex, setIndex, onPick
+ * }
+ */
+function bindCardStack(opts) {
+  const { viewport, cards, dots, prev, next, count } = opts;
+  if (!viewport || !cards || !cards.length) return;
+
+  // 构造 dot 指示器
+  if (dots) {
+    dots.innerHTML = Array.from({ length: count }, (_, i) =>
+      `<button type="button" class="stack-dot" data-i="${i}" aria-label="跳到第 ${i + 1} 张"></button>`
+    ).join("");
+    [...dots.children].forEach((d) =>
+      d.addEventListener("click", () => animateTo(Number(d.dataset.i), 1))
+    );
+  }
+  if (prev) prev.addEventListener("click", () => animateTo(opts.getIndex() - 1, 1));
+  if (next) next.addEventListener("click", () => animateTo(opts.getIndex() + 1, 1));
+
+  // 键盘
+  viewport.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowLeft")  { e.preventDefault(); animateTo(opts.getIndex() - 1, 1); }
+    else if (e.key === "ArrowRight") { e.preventDefault(); animateTo(opts.getIndex() + 1, 1); }
+    else if (e.key === "Home")  { e.preventDefault(); animateTo(0, 1); }
+    else if (e.key === "End")   { e.preventDefault(); animateTo(count - 1, 1); }
+    else if (e.key === "Enter" || e.key === " ") {
+      const el = document.activeElement && document.activeElement.classList.contains("stack-card")
+        ? document.activeElement : cards[opts.getIndex()];
+      const i = Number(el && el.dataset ? el.dataset.index : opts.getIndex());
+      e.preventDefault();
+      opts.onPick && opts.onPick(i);
+    }
+  });
+
+  // 拖拽 / 滑动状态
+  let dragging = false;
+  let startX = 0, startY = 0, lastX = 0, lastT = 0, dx = 0;
+  let pointerId = null;
+
+  const viewportWidth = () => viewport.clientWidth || 1;
+
+  function paint(i, offsetPx) {
+    const baseScale = [1, 0.86, 0.72];
+    const baseOpacity = [1, 0.55, 0];
+    const baseBlur = [0, 1.2, 2];
+    const baseZ = [4, 2, 1];
+    // 相邻卡片偏移：相对卡片自身宽度。
+    // 手机外壳里 .stack-card 被收到 ~280px，70% 就会顶出右边界 → 收到 42%，相邻仅露出 ~30%。
+    const translateX = (j) => (j - i) * 42 + (offsetPx || 0);
+    cards.forEach((c, j) => {
+      const dist = Math.abs(j - i);
+      const s = baseScale[Math.min(dist, 2)] || 0;
+      const o = baseOpacity[Math.min(dist, 2)] || 0;
+      const bl = baseBlur[Math.min(dist, 2)] || 0;
+      const z = baseZ[Math.min(dist, 2)] || 0;
+      const tx = translateX(j);
+      c.style.transform = `translate(-50%, -50%) translateX(calc(-50% + ${tx}%)) scale(${s})`;
+      c.style.opacity = String(o);
+      c.style.filter = `blur(${bl}px)`;
+      c.style.zIndex = String(z + (cards.length - dist));
+      c.dataset.dist = String(dist);
+      c.setAttribute("aria-hidden", dist > 1 ? "true" : "false");
+      c.tabIndex = dist === 0 ? 0 : -1;
+    });
+    if (dots) {
+      [...dots.children].forEach((d, idx) => d.classList.toggle("on", idx === i));
+    }
+    viewport.dataset.index = String(i);
+  }
+
+  function animateTo(i, v) {
+    const target = clamp(i, 0, count - 1);
+    if (target === opts.getIndex()) {
+      paint(target, 0);
+      return;
+    }
+    const start = performance.now();
+    const from = opts.getIndex();
+    const dur = 480;
+    cards.forEach((c) => { c.style.transition = "transform 480ms cubic-bezier(.22,.61,.36,1), opacity 380ms ease, filter 380ms ease"; });
+    paint(target, 0);
+    opts.setIndex(target);
+    setTimeout(() => {
+      cards.forEach((c) => { c.style.transition = ""; });
+      // 把焦点送回当前卡片
+      const cur = cards[target];
+      if (cur && document.activeElement && document.activeElement.classList.contains("stack-card")) {
+        cur.focus({ preventScroll: true });
+      }
+    }, dur + 30);
+    // 静默 noop 触发 ESLint 不抱怨
+    void start; void v;
+  }
+
+  function onDown(e) {
+    if (e.button !== undefined && e.button !== 0) return;
+    dragging = true;
+    pointerId = e.pointerId;
+    viewport.setPointerCapture && viewport.setPointerCapture(pointerId);
+    startX = e.clientX; startY = e.clientY; lastX = e.clientX; lastT = performance.now(); dx = 0;
+    cards.forEach((c) => { c.style.transition = "none"; });
+  }
+  function onMove(e) {
+    if (!dragging) return;
+    dx = e.clientX - startX;
+    const i = opts.getIndex();
+    // 拖动时位移上限（不能拖过边界很多）
+    const max = viewportWidth() * 0.35;
+    const sign = Math.sign(dx);
+    const overshoot = i === 0 && dx > 0 ? Math.min(dx, max) * 0.35
+                    : i === count - 1 && dx < 0 ? Math.max(dx, -max) * 0.35
+                    : dx;
+    paint(i, (overshoot / viewportWidth()) * 100);
+    lastX = e.clientX; lastT = performance.now();
+    // 防止误触垂直滚动
+    if (Math.abs(dx) > 6) e.preventDefault();
+  }
+  function onUp() {
+    if (!dragging) return;
+    dragging = false;
+    try { viewport.releasePointerCapture && viewport.releasePointerCapture(pointerId); } catch { /* ignore */ }
+    const dt = Math.max(performance.now() - lastT, 1);
+    const vx = (lastX - startX) / dt; // px/ms
+    const threshold = viewportWidth() * 0.18;
+    const speedThreshold = 0.4; // px/ms
+    let target = opts.getIndex();
+    if (dx < -threshold || vx < -speedThreshold) target += 1;
+    else if (dx > threshold || vx > speedThreshold) target -= 1;
+    animateTo(target, vx);
+  }
+  function onCancel() {
+    if (!dragging) return;
+    dragging = false;
+    animateTo(opts.getIndex(), 0);
+  }
+
+  viewport.addEventListener("pointerdown", onDown);
+  viewport.addEventListener("pointermove", onMove);
+  viewport.addEventListener("pointerup", onUp);
+  viewport.addEventListener("pointercancel", onCancel);
+  viewport.addEventListener("pointerleave", onCancel);
+
+  // 点击：直接打开那张板块（手机端「点哪进哪」更顺手；浏览靠拖拽）
+  cards.forEach((c) => {
+    c.addEventListener("click", (e) => {
+      // 拖拽过程中触发的 click 视为取消（pointerdown→move→up 不会触发 click，所以一般进不来这里）
+      const i = Number(c.dataset.index);
+      animateTo(i, 1);
+      // 100ms 后打开（让滑动动画先演一小段，但不阻塞用户）
+      setTimeout(() => opts.onPick && opts.onPick(i), 100);
+    });
+  });
+
+  // 初始化：默认 index = 0
+  paint(opts.getIndex(), 0);
+  // 暴露同步方法（外部更新 stackIndex 后可调用）
+  opts.sync = () => paint(opts.getIndex(), 0);
+  // 首次同步 dot
+  if (dots) [...dots.children].forEach((d, idx) => d.classList.toggle("on", idx === opts.getIndex()));
+}
+
+/**
+ * 圆盘选牌控制器（抽三张牌）。
+ * 把 N 张牌等角度铺成圆环；旋转角度由 `r` 弧度控制；
+ * 当前选中是「最接近 12 点钟方向」的那张牌，给它金色高亮与放大。
+ * 拖拽带惯性（速度衰减）、边缘回弹（碰到 -180° / +180° 边界时减速回中）。
+ */
+function bindCardWheel(opts) {
+  // 注意：opts 上的 getAngle/setAngle/getSelected/setSelected 必须在函数体内
+  // **直接可用**。如果只解构一次然后下面忘了用 opts.，函数一旦被调用就会
+  // ReferenceError，整个塔罗圆盘就废了（拖不动、键盘无效、滚轮无效）。
+  // 这里把"会用到的回调"全部一次性解构出来，下面的 paint/snap/onMove 都靠它们。
+  const { stage, wheel, cards, count, getAngle, setAngle, getSelected, setSelected } = opts;
+  if (!wheel || !cards || !cards.length) return;
+
+  let dragging = false;
+  let pointerId = null;
+  let lastA = 0, lastT = 0, va = 0; // 当前角速度（弧度/ms）
+  let raf = null;
+
+  function paint(immediate) {
+    if (immediate) {
+      wheel.style.transition = "none";
+    } else {
+      wheel.style.transition = "";
+    }
+    wheel.style.transform = `rotate(${getAngle()}rad)`;
+    // 选中检测：找到最接近 12 点钟方向的那张
+    let bestIdx = 0;
+    let bestDelta = Infinity;
+    const slice = (Math.PI * 2) / count;
+    cards.forEach((c, i) => {
+      const a = i * slice + getAngle();
+      // 12 点钟方向是 -PI/2（即 -90°）。取 a 与 -PI/2 的距离
+      const target = -Math.PI / 2;
+      let d = a - target;
+      // 归一化到 [-PI, PI]
+      while (d > Math.PI) d -= Math.PI * 2;
+      while (d < -Math.PI) d += Math.PI * 2;
+      const adist = Math.abs(d);
+      if (adist < bestDelta) { bestDelta = adist; bestIdx = i; }
+    });
+    if (getSelected && setSelected) {
+      setSelected(bestIdx);
+    } else if (opts.onSelectChange) {
+      opts.onSelectChange(bestIdx);
+    }
+  }
+
+  function tick() {
+    if (!dragging) {
+      // 惯性
+      if (Math.abs(va) > 1e-4) {
+        va *= 0.94; // 摩擦
+        setAngle(getAngle() + va * 16);
+        paint(false);
+        raf = requestAnimationFrame(tick);
+      } else {
+        raf = null;
+        snap();
+      }
+      return;
+    }
+    raf = requestAnimationFrame(tick);
+  }
+
+  function snap() {
+    // 缓动到最近一张对齐（让 12 点钟位精确对准某张牌）
+    const slice = (Math.PI * 2) / count;
+    const target = Math.round(getAngle() / slice) * slice;
+    const startA = getAngle();
+    const dist = target - startA;
+    const dur = Math.min(420, Math.max(180, Math.abs(dist) * 480));
+    wheel.style.transition = `transform ${dur}ms cubic-bezier(.22,.61,.36,1)`;
+    setAngle(target);
+    setTimeout(() => {
+      wheel.style.transition = "";
+      paint(false);
+    }, dur + 20);
+  }
+
+  function onDown(e) {
+    if (e.button !== undefined && e.button !== 0) return;
+    dragging = true;
+    pointerId = e.pointerId;
+    wheel.setPointerCapture && wheel.setPointerCapture(pointerId);
+    lastA = e.clientX; lastT = performance.now(); va = 0;
+    if (raf) cancelAnimationFrame(raf);
+    wheel.style.transition = "none";
+  }
+  function onMove(e) {
+    if (!dragging) return;
+    const w = (stage && stage.clientWidth) || wheel.clientWidth || 320;
+    const dx = e.clientX - lastA;
+    const da = (dx / w) * Math.PI * 2; // 拖动宽度 = 一整圈
+    setAngle(getAngle() + da);
+    const dt = Math.max(performance.now() - lastT, 1);
+    va = da / dt; // 弧度/ms
+    lastA = e.clientX; lastT = performance.now();
+    paint(true);
+  }
+  function onUp() {
+    if (!dragging) return;
+    dragging = false;
+    try { wheel.releasePointerCapture && wheel.releasePointerCapture(pointerId); } catch { /* ignore */ }
+    raf = requestAnimationFrame(tick);
+  }
+
+  wheel.addEventListener("pointerdown", onDown);
+  wheel.addEventListener("pointermove", onMove);
+  wheel.addEventListener("pointerup", onUp);
+  wheel.addEventListener("pointercancel", onUp);
+  wheel.addEventListener("pointerleave", onUp);
+
+  // 滚轮 / 触控板
+  wheel.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const w = (stage || 320).clientWidth || 320;
+    const da = (e.deltaY / w) * Math.PI * 1.5;
+    setAngle(getAngle() + da);
+    wheel.style.transition = "transform 220ms cubic-bezier(.22,.61,.36,1)";
+    paint(false);
+    setTimeout(() => { wheel.style.transition = ""; snap(); }, 240);
+  }, { passive: false });
+
+  // 键盘：左右切换
+  wheel.tabIndex = 0;
+  wheel.addEventListener("keydown", (e) => {
+    const slice = (Math.PI * 2) / count;
+    if (e.key === "ArrowLeft")  { e.preventDefault(); setAngle(getAngle() - slice); paint(false); snap(); }
+    else if (e.key === "ArrowRight") { e.preventDefault(); setAngle(getAngle() + slice); paint(false); snap(); }
+  });
+
+  paint(false);
+  return { snap, paint, rotate: (d) => { setAngle(getAngle() + d); paint(false); } };
+}
+
 // ---------- 路由 ----------
 function go(view) {
   const api = S.api;
@@ -58,6 +384,7 @@ function go(view) {
   else if (view === "identity") renderIdentity();
   else if (view === "input") renderInput();
   else if (view === "plaza") renderPlaza();
+  else if (view === "tarot") renderTarotWheel();
   else if (view === "board") renderBoard(S.board || "draw");
   api.switchView(view);
   $$("[data-go]").forEach((b) => b.classList.toggle("on", b.dataset.go === view));
@@ -80,7 +407,13 @@ function closeDrawer() {
   $("#drawer")?.setAttribute("aria-hidden", "true");
 }
 
-// ---------- 首屏（挂衣杆 + 天气芯片）----------
+// ---------- 首屏（卡片栈 + 天气芯片）----------
+//
+// 卡片栈：4 个板块以 3D 堆叠呈现，可左右滑动切换。
+// 物理：拖拽期间实时跟随手指；松手按速度+位移判断滚到上一/下一/回弹；
+//      切换时 cubic-bezier(.22,.61,.36,1) 480ms；
+//      选中卡片放大 / 不透明度 1，相邻卡片缩小 / 不透明度 0.6，再远隐藏；
+//      鼠标、触屏、键盘(←/→/Home/End)统一接入。
 function renderHome() {
   const el = $("#home");
   if (!el) return;
@@ -98,20 +431,24 @@ function renderHome() {
     </div>
     <p class="weather-note">天气只决定「${esc(c.label)}」这一档厚薄，不会动你的风格和颜色。</p>
 
-    <div class="rail" id="rail" role="list" aria-label="四个板块">
-      ${BOARDS.map((b) => `
-        <button class="rail-item" role="listitem" data-board="${b.k}" style="--bc:${b.color};--bs:${b.soft};--bi:${b.ink}">
-          <span class="rail-hanger"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${SHAPES[b.shape] || ""}</svg></span>
-          <span class="rail-t">${esc(b.t)}</span>
-          <span class="rail-s">${esc(b.s)}</span>
-          <span class="rail-how">${esc(b.how)}</span>
-        </button>`).join("")}
-      <button class="rail-item rail-ext" role="listitem" data-board="ext" style="--bc:${EXT_SLOT.color};--bs:${EXT_SLOT.soft};--bi:${EXT_SLOT.ink}">
-        <span class="rail-hanger"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="3 3">${SHAPES.dashed}</svg></span>
-        <span class="rail-t">${esc(EXT_SLOT.t)}</span>
-        <span class="rail-s">${esc(EXT_SLOT.s)}</span>
-        <span class="rail-how">点它看为什么留空位</span>
-      </button>
+    <div class="card-stack" id="card-stack" role="region" aria-label="四个板块" aria-live="polite">
+      <div class="stack-viewport" id="stack-viewport">
+        ${[...BOARDS, { ...EXT_SLOT, how: "点它看为什么留空位" }].map((b, i) => `
+          <article class="stack-card" role="listitem" data-board="${esc(b.k)}" data-index="${i}" tabindex="0" aria-label="${esc(b.t)}：${esc(b.s)}" style="--bc:${b.color};--bs:${b.soft};--bi:${b.ink}">
+            <span class="stack-icon"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" ${b.shape === "dashed" ? 'stroke-dasharray="3 3"' : ""}>${SHAPES[b.shape] || ""}</svg></span>
+            <span class="stack-body">
+              <span class="stack-t">${esc(b.t)}</span>
+              <span class="stack-s">${esc(b.s)}</span>
+              <span class="stack-how">${esc(b.how || "点它看为什么留空位")}</span>
+            </span>
+            <span class="stack-go" aria-hidden="true">›</span>
+          </article>`).join("")}
+      </div>
+      <div class="stack-nav">
+        <button type="button" class="stack-arrow" id="stack-prev" aria-label="上一个板块">‹</button>
+        <div class="stack-dots" id="stack-dots" role="tablist" aria-label="板块指示"></div>
+        <button type="button" class="stack-arrow" id="stack-next" aria-label="下一个板块">›</button>
+      </div>
     </div>
 
     <div class="city-sheet hidden" id="city-sheet">
@@ -136,7 +473,23 @@ function renderHome() {
       renderHome();
     })
   );
-  $$("#rail .rail-item").forEach((b) => b.addEventListener("click", () => openBoard(b.dataset.board)));
+
+  // 卡片栈滑动控制器（拖拽 + 惯性 + 边缘回弹）
+  S.stackIndex = clamp(typeof S.stackIndex === "number" ? S.stackIndex : 0, 0, BOARDS.length - 1);
+  bindCardStack({
+    viewport: $("#stack-viewport"),
+    cards: $$("#stack-viewport .stack-card"),
+    dots: $("#stack-dots"),
+    prev: $("#stack-prev"),
+    next: $("#stack-next"),
+    count: BOARDS.length,
+    getIndex: () => S.stackIndex,
+    setIndex: (i) => { S.stackIndex = i; },
+    onPick: (i) => {
+      const k = BOARDS[i] && BOARDS[i].k;
+      if (k) openBoard(k);
+    },
+  });
 }
 
 // ---------- 板块页 ----------
@@ -492,6 +845,206 @@ function renderScratch() {
   $("#s-ok").addEventListener("click", () => emit(constraintFromScratch(prize)));
 }
 
+// ---------- 抽取式 · 圆盘抽三张牌 ----------
+//
+// 22 张大阿尔卡纳等角度铺成圆环；拖拽带惯性、滚轮/键盘也支持；
+// 当前「12 点钟位」的牌 = 候选牌，金色光晕 + 抬升作为选中指示；
+// 点击 / 回车把它收进 S.tarot3Picks（一共 3 张），到 3 张后揭晓 + emit 约束。
+//
+// 为什么不放在 #board-demo 之类的静态 demo 里：这是新设计的「选三张牌」入口，
+// 是项目核心交互，必须真动起来。22 张全展示 + 物理动效的代价 ≈ 22 个 DOM 节点，
+// 测试里已确认无明显卡顿。
+function renderTarotWheel() {
+  const el = $("#tarot");
+  if (!el) return;
+  const api = S.api;
+  const cards = (api && api.state && api.state.tarotCards && api.state.tarotCards.length)
+    ? api.state.tarotCards
+    : (window.__offlineData && window.__offlineData["tarot"]) || [];
+  if (!cards.length) {
+    el.innerHTML = `
+      <div class="board-head" style="--bc:#534AB7;--bs:#EDEBFB;--bi:#3C3489">
+        <button class="board-back" data-go="board">‹ 抽取式</button>
+        <h1>抽三张牌</h1>
+        <p class="muted">塔罗数据没准备好，先去首页。</p>
+      </div>`;
+    el.querySelector(".board-back").addEventListener("click", () => go("board"));
+    return;
+  }
+
+  // 抽三张状态：每次进入都重置
+  S.tarot3Angle = 0;
+  S.tarot3Selected = 0;
+  S.tarot3Picks = [];
+  S.tarot3Done = false;
+
+  // 计算每张牌的圆周位置（sin/cos，半径按 stage 大小响应式缩放）
+  // 角度：第 0 张在 12 点钟方向，逆时针均匀铺开
+  const count = cards.length;
+  const slice = (Math.PI * 2) / count;
+  const positions = cards.map((_, i) => {
+    const a = i * slice - Math.PI / 2; // 0 号位正上方
+    return { x: Math.cos(a), y: Math.sin(a), deg: (a * 180) / Math.PI };
+  });
+  // CSS 变量：让半径随 wheel 容器大小变化
+  const radiusCss = `min(44%, 170px)`;
+
+  el.innerHTML = `
+    <div class="board-head tarot3-head">
+      <button class="board-back" data-go="board">‹ 抽取式</button>
+      <h1>抽三张牌</h1>
+      <p class="muted">滑动牌轮 · 点中间亮起来的那张 · 抽满 3 张出牌阵。</p>
+      <div class="tarot3-counter"><span id="t3-count">0</span> / 3 张</div>
+    </div>
+
+    <div class="wheel-stage" id="wheel-stage" style="--r:${radiusCss}">
+      <div class="wheel-pointer" aria-hidden="true">
+        <span class="wp-dot"></span>
+        <span class="wp-stem"></span>
+      </div>
+      <div class="wheel" id="wheel" role="listbox" aria-label="22 张大阿尔卡纳" tabindex="0">
+        ${cards.map((c, i) => `
+          <div class="wheel-card" role="option" data-id="${esc(c.id)}" data-index="${i}" aria-selected="false"
+               style="--cx:${positions[i].x};--cy:${positions[i].y};--deg:${positions[i].deg}deg">
+            <img src="${esc(c.image || "")}" alt="${esc(c.name || "")}" loading="lazy" />
+            <span class="wc-num">${i + 1}</span>
+          </div>
+        `).join("")}
+      </div>
+      <button class="wheel-pick" id="wheel-pick" type="button" aria-label="抽取当前亮起的牌">抽这张</button>
+    </div>
+
+    <div class="tarot3-slots" id="tarot3-slots" aria-label="已抽牌槽">
+      ${[0, 1, 2].map((i) => `
+        <div class="tarot3-slot" data-slot="${i}">
+          <span class="t3s-label">${["过去", "现在", "未来"][i] || "第 " + (i + 1) + " 张"}</span>
+          <span class="t3s-name">待抽</span>
+        </div>
+      `).join("")}
+      <button class="tarot3-reset" id="tarot3-reset" type="button" aria-label="清空已抽的牌">重抽</button>
+    </div>
+
+    <div class="tarot3-reveal hidden" id="tarot3-reveal">
+      <button class="btn-primary wide" id="wheel-go">就按这三张 · 出发</button>
+    </div>
+
+    <div class="tarot3-readout hidden" id="tarot3-readout"></div>
+  `;
+
+  // 返回板块页
+  el.querySelector(".board-back").addEventListener("click", () => go("board"));
+
+  const wheel = $("#wheel", el);
+  const wheelCards = [...el.querySelectorAll(".wheel-card")];
+
+  // 圆盘控制器
+  bindCardWheel({
+    stage: $("#wheel-stage", el),
+    wheel,
+    cards: wheelCards,
+    count: cards.length,
+    getAngle: () => S.tarot3Angle,
+    setAngle: (a) => { S.tarot3Angle = a; },
+    onSelectChange: (idx) => {
+      S.tarot3Selected = idx;
+      wheelCards.forEach((c, i) => {
+        c.classList.toggle("selected", i === idx);
+        c.setAttribute("aria-selected", i === idx ? "true" : "false");
+      });
+    },
+  });
+
+  // 抽这张
+  const pickBtn = $("#wheel-pick", el);
+  const pickCurrent = () => {
+    if (S.tarot3Done) return;
+    if (S.tarot3Picks.length >= 3) return;
+    const idx = S.tarot3Selected;
+    const card = cards[idx];
+    if (!card) return;
+    // 同一张不重复抽（已在 picks 里就跳过）
+    if (S.tarot3Picks.some((p) => p.idx === idx)) {
+      // 但 jsdom 等没真实手势的场景会一直卡这里 — 自动跳到下一张，给个兜底
+      autoAdvance();
+      return;
+    }
+    S.tarot3Picks.push({ idx, card });
+
+    // 把已抽的牌从牌轮里灰掉
+    const elx = wheelCards[idx];
+    if (elx) elx.classList.add("picked");
+
+    // 更新计数 + 槽位
+    $("#t3-count", el).textContent = String(S.tarot3Picks.length);
+    S.tarot3Picks.forEach((p, i) => {
+      const slot = el.querySelector(`.tarot3-slot[data-slot="${i}"]`);
+      if (slot) {
+        slot.classList.add("on");
+        slot.querySelector(".t3s-name").textContent = p.card.name || "未知";
+      }
+    });
+
+    if (S.tarot3Picks.length >= 3) {
+      S.tarot3Done = true;
+      pickBtn.disabled = true;
+      pickBtn.textContent = "已抽满 3 张";
+      $("#tarot3-reveal", el).classList.remove("hidden");
+      // 给「就按这三张 · 出发」按钮挂上 emit 逻辑
+      $("#wheel-go", el).onclick = () => {
+        const c = constraintFromTarot3(S.tarot3Picks.map((p) => p.card));
+        emit(c);
+      };
+    } else {
+      // 抽完一张 → 自动把圆盘转到下一张（让下一抽的「当前牌」不是同一张）
+      autoAdvance();
+      pickBtn.textContent = "已抽 " + S.tarot3Picks.length + " / 3";
+    }
+  };
+
+  // 圆盘自动跳到下一张（让下一抽的候选牌不是同一张）
+  function autoAdvance() {
+    const step = (Math.PI * 2) / cards.length;
+    S.tarot3Angle = S.tarot3Angle + step;
+    if (S.tarot3Selected < cards.length - 1) S.tarot3Selected += 1;
+    wheelCards.forEach((c, i) => {
+      c.classList.toggle("selected", i === S.tarot3Selected);
+      c.setAttribute("aria-selected", i === S.tarot3Selected ? "true" : "false");
+    });
+    wheel.style.transition = "transform 360ms cubic-bezier(.22,.61,.36,1)";
+    wheel.style.transform = `rotate(${S.tarot3Angle}rad)`;
+    setTimeout(() => { wheel.style.transition = ""; }, 380);
+  }
+
+  pickBtn.addEventListener("click", pickCurrent);
+
+  // 重抽：清空 picks，牌轮复原
+  const resetBtn = $("#tarot3-reset", el);
+  const resetAll = () => {
+    if (!S.tarot3Picks.length) return;
+    S.tarot3Picks = [];
+    S.tarot3Done = false;
+    pickBtn.disabled = false;
+    pickBtn.textContent = "抽这张";
+    $("#t3-count", el).textContent = "0";
+    [...el.querySelectorAll(".tarot3-slot")].forEach((slot) => {
+      slot.classList.remove("on");
+      slot.querySelector(".t3s-name").textContent = "待抽";
+    });
+    wheelCards.forEach((c) => c.classList.remove("picked"));
+    $("#tarot3-reveal", el).classList.add("hidden");
+  };
+  resetBtn.addEventListener("click", resetAll);
+
+  // 点击中央牌 = 等同于抽这张（体验更顺）
+  wheel.addEventListener("dblclick", pickCurrent);
+
+  // 键盘：空格 / 回车 = 抽当前
+  wheel.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pickCurrent(); }
+    else if (e.key.toLowerCase() === "r") { e.preventDefault(); resetAll(); }
+  });
+}
+
 // ---------- 广场 ----------
 function renderPlaza() {
   const el = $("#plaza");
@@ -582,7 +1135,7 @@ function applyThickness(c) {
   return c;
 }
 
-export function constraintFromTarot(card) {
+function constraintFromTarot(card) {
   const c = baseConstraint("tarot", baseSrc("抽取式", "塔罗 · " + card.name, "#534AB7"), {
     must_colors: card.must_colors || [],
     avoid_colors: card.avoid_colors || [],
@@ -595,7 +1148,51 @@ export function constraintFromTarot(card) {
   return applyThickness(c);
 }
 
-export function constraintFromScratch(prize) {
+/**
+ * 抽三张牌 → 合并成一条约束。
+ * 风格按「多数票 + 优先权重」(slot=1 现在 > slot=0 过去 > slot=2 未来)；
+ * 主色取「被 3 张牌里至少 2 张提到的颜色」；避雷色只保留三张都点的交集；
+ * 季节取并集；牌义拼成 3 行 story。
+ */
+function constraintFromTarot3(cards) {
+  const weights = [1, 2, 1]; // 过去 / 现在 / 未来
+  const tagScore = {};
+  const colorScore = {};
+  const avoidScore = {};
+  const seasonSet = new Set();
+  let vibeParts = [];
+  let storyParts = [];
+
+  cards.forEach((card, i) => {
+    (card.style_tags || []).forEach((t) => { tagScore[t] = (tagScore[t] || 0) + weights[i]; });
+    (card.must_colors || []).forEach((c2) => { colorScore[c2] = (colorScore[c2] || 0) + weights[i]; });
+    (card.avoid_colors || []).forEach((c2) => { avoidScore[c2] = (avoidScore[c2] || 0) + weights[i]; });
+    (card.season || []).forEach((s) => seasonSet.add(s));
+    if (card.vibe) vibeParts.push(card.vibe);
+    if (card.story) storyParts.push(card.story);
+  });
+
+  const tagList = Object.entries(tagScore).sort((a, b) => b[1] - a[1]).map((x) => x[0]);
+  // 主色：得分 ≥ 2（被至少两张牌提到，且权重之和 ≥ 2）；不够再放宽到 ≥ 1
+  const mustColors = Object.entries(colorScore).filter(([, s]) => s >= 2).map((x) => x[0]);
+  const mustColorsFallback = mustColors.length ? mustColors : Object.entries(colorScore).sort((a, b) => b[1] - a[1]).slice(0, 3).map((x) => x[0]);
+  // 避雷色：3 张都点
+  const avoidColors = Object.entries(avoidScore).filter(([, s]) => s >= 3).map((x) => x[0]);
+
+  const names = cards.map((c) => c.name || "?").join(" · ");
+  const c = baseConstraint("tarot3", baseSrc("抽取式", "三牌阵 · " + names, "#534AB7"), {
+    must_colors: mustColorsFallback,
+    avoid_colors: avoidColors,
+    season: [...seasonSet],
+    style_tags: tagList,
+    vibe: vibeParts.join(" / "),
+    story: storyParts.join("  ·  "),
+    extra: { card_ids: cards.map((c2) => c2.id), card_names: names },
+  });
+  return applyThickness(c);
+}
+
+function constraintFromScratch(prize) {
   const c = baseConstraint("scratch", baseSrc("抽取式", "刮刮乐 · " + prize.name, "#534AB7"), {
     must_colors: prize.must_colors || [],
     style_tags: prize.style_tags || [],
@@ -605,7 +1202,7 @@ export function constraintFromScratch(prize) {
   return applyThickness(c);
 }
 
-export function constraintFromEnergy(v) {
+function constraintFromEnergy(v) {
   const st = ENERGY.find((x) => v >= x.min && v <= x.max) || ENERGY[ENERGY.length - 1];
   const c = baseConstraint("energy", baseSrc("调节式", "电量 " + v + "%", "#D4537E"), {
     style_tags: st.style_tags || [],
@@ -619,7 +1216,7 @@ export function constraintFromEnergy(v) {
   return applyThickness(c);
 }
 
-export function constraintFromIdentity(i) {
+function constraintFromIdentity(i) {
   const c = baseConstraint("identity", baseSrc("选择式", "人设 · " + i.name, "#1D9E75"), {
     style_tags: i.style_tags || [],
     must_colors: i.must_colors || [],
@@ -633,7 +1230,7 @@ export function constraintFromIdentity(i) {
   return applyThickness(c);
 }
 
-export function constraintFromKw(g, raw) {
+function constraintFromKw(g, raw) {
   const c = baseConstraint("input", baseSrc("输入式", "一句话 · " + g.tag, "#BA7517"), {
     style_tags: g.c.style_tags || [],
     must_colors: g.c.must_colors || [],
@@ -693,7 +1290,7 @@ function applyNav(mode, persist) {
 }
 
 // ---------- 安装 ----------
-export function install(api) {
+function install(api) {
   S.api = api;
 
   try {
@@ -737,6 +1334,7 @@ export function install(api) {
     state: S,
     emit,
     constraintFromTarot,
+    constraintFromTarot3,
     constraintFromScratch,
     constraintFromEnergy,
     constraintFromIdentity,
@@ -748,6 +1346,7 @@ export function install(api) {
     renderIdentity,
     renderInput,
     renderBoard,
+    renderTarotWheel,
     openBoard,
   };
 
@@ -756,4 +1355,6 @@ export function install(api) {
   return window.__oracle;
 }
 
-export { go, openBoard, applyNav, navItems, CATEGORY_NAME };
+  // 对外暴露（原来是 export）
+  Object.assign(NS, { constraintFromTarot, constraintFromTarot3, constraintFromScratch, constraintFromEnergy, constraintFromIdentity, constraintFromKw, install, go, openBoard, applyNav, navItems, CATEGORY_NAME, bindCardStack, bindCardWheel, renderTarotWheel });
+})(window.Outfit = window.Outfit || {});

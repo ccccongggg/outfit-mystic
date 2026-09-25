@@ -3,14 +3,18 @@
 
 POST /ingest
   req: multipart file（字段名 file）
-  res: { "item": {...}, "white_image": "...", "raw_image": "..." }
+  res: { "item": {...}, "white_image": "...", "raw_image": "...", "state": "committed" }
+       | { "state": "pending_review", "pending_id": "...", "reason": "..." }
   err: 500 + { "stage": "cut|tag", "message": "..." }
 
 其它接口:
-  GET  /            → web/index.html
-  GET  /api/items   → 读 data/items.json
-  POST /api/reason  → { story, items[], vibe } → { reason }
-  POST /api/items/manual → 手动补标后写回 items.json
+  GET  /                        → web/index.html
+  GET  /api/items               → 读 data/items.json
+  POST /api/reason              → { story, items[], vibe } → { reason }
+  POST /api/items/manual        → 手动补标后写回 items.json
+  GET  /api/pending             → 读 data/pending.json（试穿照/不确定图）
+  POST /api/pending/<id>/commit → pending → items.json（人工确认）
+  POST /api/pending/<id>/skip   → pending → 丢弃
 """
 from __future__ import annotations
 
@@ -18,8 +22,11 @@ import json
 import mimetypes
 import os
 import re
+import ssl
 import sys
 import time
+import urllib.error
+import urllib.request
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -29,6 +36,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from remove_bg import remove_bg_to  # noqa: E402
+import build_offline_data  # noqa: E402  （写完 items.json 顺手重建离线快照）
 from tag_image import _load_env as tag_load_env  # noqa: E402
 from tag_image import _md5_file, _sanitize, _dominant_color, _call_vlm  # noqa: E402
 from write_reason import write_reason  # noqa: E402
@@ -41,6 +49,7 @@ CUTS = ROOT / "cache" / "cuts"
 TAGGED = ROOT / "cache" / "tagged"
 CACHE_FIND = ROOT / "cache" / "find"
 ITEMS_JSON = DATA / "items.json"
+PENDING_JSON = DATA / "pending.json"
 
 PORT = int(os.environ.get("PORT", "8787"))
 
@@ -58,6 +67,27 @@ def _load_items() -> list:
 def _save_items(items: list) -> None:
     ITEMS_JSON.parent.mkdir(parents=True, exist_ok=True)
     ITEMS_JSON.write_text(json.dumps(items, ensure_ascii=False, indent=2), encoding="utf-8")
+    # 顺手刷新 web/data/offline.js：file:// 双击打开时浏览器不许 fetch，
+    # 衣橱数据只能靠这份 <script> 快照。放在同一个写入口，两者就不会走岔。
+    try:
+        build_offline_data.build(quiet=True)
+    except Exception:
+        pass  # 快照只是兜底，失败绝不能影响入柜
+
+
+def _load_pending() -> list:
+    if not PENDING_JSON.exists():
+        return []
+    try:
+        data = json.loads(PENDING_JSON.read_text(encoding="utf-8"))
+        return data if isinstance(data, list) else []
+    except json.JSONDecodeError:
+        return []
+
+
+def _save_pending(pending: list) -> None:
+    PENDING_JSON.parent.mkdir(parents=True, exist_ok=True)
+    PENDING_JSON.write_text(json.dumps(pending, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def _new_id() -> str:
@@ -199,6 +229,88 @@ def _cut_and_tag(raw_path: Path) -> dict:
     }
 
 
+SCENE_PROMPT = (
+    "你是图像场景判断员。看这张图，只返回 JSON，不要 Markdown 围栏，不要解释。\n"
+    "{\n"
+    '  "has_person": true|false,\n'
+    '  "scene": "model_wearing|hanger_layflat|isolated_product|other",\n'
+    '  "confidence": 0.0-1.0\n'
+    "}\n"
+    "判别规则：\n"
+    "- 有真人上半身/试穿 → has_person=true, scene=model_wearing\n"
+    "- 只有单品，挂拍或平铺 → has_person=false, scene=hanger_layflat\n"
+    "- 只有单品，干净白底/纯色底商品图 → has_person=false, scene=isolated_product\n"
+    "- 其他看不清的 → has_person=false, scene=other, confidence 调低"
+)
+
+
+def _detect_has_person(image_path: Path) -> dict:
+    """轻量级 VLM 场景探测：判断是否「试穿照 / 模特上身照」。
+
+    返回 {has_person: bool, scene: str, confidence: float, error?: str}。
+    VLM 失败或不可用时返回 has_person=False（保守放行，让原 cut+tag 链路兜底）。
+    """
+    import base64 as _b64
+
+    tag_load_env()
+    base = os.environ.get("VLM_BASE_URL", "").rstrip("/")
+    key = os.environ.get("VLM_API_KEY", "")
+    model = os.environ.get("VLM_MODEL", "qwen-vl-max")
+    if not base or not key or key.startswith("sk-xxxx"):
+        return {"has_person": False, "scene": "unknown", "confidence": 0.0, "error": "vlm_unavailable"}
+
+    try:
+        data_url = "data:image/png;base64," + _b64.b64encode(image_path.read_bytes()).decode("ascii")
+        payload = {
+            "model": model,
+            "messages": [{
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": SCENE_PROMPT},
+                    {"type": "image_url", "image_url": {"url": data_url}},
+                ],
+            }],
+            "temperature": 0.0,
+        }
+        ctx = ssl.create_default_context()
+        req = urllib.request.Request(
+            base + "/chat/completions",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=30, context=ctx) as resp:
+            body = json.loads(resp.read().decode("utf-8"))
+        content = body["choices"][0]["message"]["content"]
+        parsed = _parse_json_loose(content) or {}
+        return {
+            "has_person": bool(parsed.get("has_person", False)),
+            "scene": str(parsed.get("scene", "unknown")),
+            "confidence": float(parsed.get("confidence", 0.0)),
+        }
+    except Exception as exc:  # noqa: BLE001
+        return {"has_person": False, "scene": "unknown", "confidence": 0.0, "error": f"{type(exc).__name__}: {exc}"}
+
+
+def _parse_json_loose(text: str) -> dict | None:
+    """从 VLM 输出里抠 JSON。"""
+    text = text.strip()
+    text = re.sub(r"^```(?:json)?\s*", "", text)
+    text = re.sub(r"\s*```$", "", text)
+    try:
+        obj = json.loads(text)
+        return obj if isinstance(obj, dict) else None
+    except json.JSONDecodeError:
+        m = re.search(r"\{[\s\S]*\}", text)
+        if not m:
+            return None
+        try:
+            obj = json.loads(m.group(0))
+            return obj if isinstance(obj, dict) else None
+        except json.JSONDecodeError:
+            return None
+
+
 def _prune_uploads(hours: int = 24) -> None:
     """清掉超期未入柜的待处理原图（用户中途取消会留下 pending 文件）。"""
     if not UPLOADS.exists():
@@ -300,15 +412,73 @@ def commit(pending: str, found_path: str = "", tags_override: dict | None = None
 
 
 def ingest(file_bytes: bytes, filename: str) -> dict:
-    """一步到位：抠底 → 打标 → 入柜（原有主链路，保持不变）。"""
+    """一步到位：抠底 → 场景探测 → (试穿照)写 pending | (单品)直接入柜。
+
+    决策：
+    - VLM 不可用 → 保守按 has_person=False 走 commit（原链路）
+    - VLM 判 has_person=True → 写 data/pending.json，state=pending_review
+    - VLM 判 has_person=False → 直接 commit，state=committed
+    """
     try:
         pre = prepare(file_bytes, filename)
     except ValueError as exc:
         return {"error": "cut", "message": str(exc)}
-    res = commit(pre["pending"])
+
+    pending_id = pre["pending"]
+    raw_path = _find_raw(pending_id)
+    if raw_path is None:
+        return {"error": "commit", "message": "待入柜记录已过期，请重新上传"}
+
+    # 场景探测：用 cut 后图（更小、更聚焦）
+    display_img = None
+    white_jpg = CUTS / f"{pending_id}_white.jpg"
+    cut_png = CUTS / f"{pending_id}_cut.png"
+    if white_jpg.exists():
+        display_img = white_jpg
+    elif cut_png.exists():
+        display_img = cut_png
+    else:
+        display_img = raw_path
+
+    scene = _detect_has_person(display_img) if display_img else {"has_person": False, "scene": "unknown"}
+
+    # 试穿照 → 进 pending
+    if scene.get("has_person"):
+        pending_entry = {
+            "id": pending_id,
+            "added_at": time.time(),
+            "raw_image": pre["raw_image"],
+            "white_image": pre["white_image"],
+            "cut_image": str(display_img).replace("\\", "/") if display_img else None,
+            "tags": pre["tags"],
+            "cut_ok": pre["cut_ok"],
+            "tag_ok": pre["tag_ok"],
+            "scene": scene,
+            "filename": filename,
+            "reason": "VLM 判定为试穿照/模特上身照，需要人工确认或换拍干净背景图",
+        }
+        pending = _load_pending()
+        # 去重（同一张图已存在则跳过）
+        if not any(p.get("id") == pending_id for p in pending):
+            pending.append(pending_entry)
+            _save_pending(pending)
+        return {
+            "state": "pending_review",
+            "pending_id": pending_id,
+            "scene": scene,
+            "reason": pending_entry["reason"],
+            "raw_image": pre["raw_image"],
+            "white_image": pre["white_image"],
+            "tags": pre["tags"],
+            "cut_ok": pre["cut_ok"],
+            "tag_ok": pre["tag_ok"],
+        }
+
+    # 单品图 → 直接 commit
+    res = commit(pending_id)
     if "error" in res:
-        res["error"] = "cut"
-    return res
+        return res
+    return {**res, "state": "committed"}
 
 
 def find_image(tags: dict) -> dict:
@@ -404,6 +574,29 @@ class Handler(BaseHTTPRequestHandler):
             })
             return
 
+        # 试穿照/待确认区
+        if path == "/api/pending":
+            self._send_json(200, {"pending": _load_pending()})
+            return
+
+        # 静态：uploads 与 cache/cuts（让前端能预览待确认项的原图/抠底图）
+        if path.startswith("/uploads/") or path.startswith("/cache/cuts/"):
+            rel = path.lstrip("/")
+            for root, prefix in ((UPLOADS, "uploads/"), (CUTS, "cache/cuts/")):
+                if not rel.startswith(prefix):
+                    continue
+                sub = rel[len(prefix):]
+                target = (root / sub).resolve()
+                try:
+                    inside_root = str(target).startswith(str(root.resolve()))
+                except OSError:
+                    inside_root = False
+                if inside_root and target.is_file():
+                    self._send_file(target)
+                    return
+            self._send_json(404, {"message": "not found"})
+            return
+
         if path == "/" or path == "/index.html":
             self._send_file(WEB / "index.html")
             return
@@ -491,6 +684,53 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json(500, {"stage": result["error"], "message": result["message"]})
                 return
             self._send_json(200, result)
+            return
+
+        # --- 待确认区管理：把 pending 项强制 commit / skip ---
+        if path.startswith("/api/pending/") and (path.endswith("/commit") or path.endswith("/skip")):
+            try:
+                data = json.loads(body.decode("utf-8") or "{}")
+            except json.JSONDecodeError:
+                data = {}
+            parts = path[len("/api/pending/"):].rstrip("/").split("/")
+            if len(parts) != 2:
+                self._send_json(400, {"message": "path 应为 /api/pending/<id>/commit 或 /skip"})
+                return
+            pid, action = parts
+            pending_list = _load_pending()
+            entry = next((p for p in pending_list if p.get("id") == pid), None)
+            if not entry:
+                self._send_json(404, {"message": f"pending {pid} not found"})
+                return
+
+            if action == "skip":
+                pending_list = [p for p in pending_list if p.get("id") != pid]
+                _save_pending(pending_list)
+                self._send_json(200, {"skipped": pid})
+                return
+
+            # commit：把 pending 项的 raw_image 拿出来走 commit(pending=stem)
+            raw_image_str = entry.get("raw_image", "")
+            raw_path = (ROOT / raw_image_str).resolve() if raw_image_str else None
+            if not raw_path or not raw_path.exists():
+                candidates = list(UPLOADS.glob(f"{pid}*")) if UPLOADS.exists() else []
+                if not candidates:
+                    self._send_json(410, {"message": "原始上传已过期，请重新上传"})
+                    return
+                raw_path = candidates[0]
+            tags_override = data.get("tags") if isinstance(data.get("tags"), dict) else None
+            try:
+                stem = raw_path.stem
+                result = commit(stem, found_path="", tags_override=tags_override)
+            except Exception as exc:
+                self._send_json(500, {"stage": "commit", "message": str(exc)})
+                return
+            if "error" in result:
+                self._send_json(500, {"stage": result["error"], "message": result["message"]})
+                return
+            pending_list = [p for p in pending_list if p.get("id") != pid]
+            _save_pending(pending_list)
+            self._send_json(200, {"committed": pid, "item": result.get("item")})
             return
 
         if path == "/api/reason":

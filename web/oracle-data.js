@@ -1,3 +1,13 @@
+/* ------------------------------------------------------------------
+   经典脚本（原为 ES module，语义等价）
+   改因：file:// 下浏览器禁止加载 <script type="module">，双击 index.html
+        会整页无法交互。改成经典脚本 + window.Outfit 命名空间后，
+        双击打开 / 起本地服务两种方式都能完整跑。
+   依赖：由 index.html 按顺序 defer 加载，公共名挂在 window.Outfit 上。
+------------------------------------------------------------------ */
+(function (NS) {
+"use strict";
+
 // web/oracle-data.js —— 「拿主意」这一层要用的全部静态内容
 //
 // 内容口径全部对齐参考稿（电子衣柜 Demo · 逻辑与内容清单）：
@@ -12,7 +22,7 @@
 // 改文案、加内容只动这个文件，不用碰逻辑。
 
 // ---------- 二级 · 四个板块 ----------
-export const BOARDS = [
+const BOARDS = [
   {
     k: "draw",
     t: "抽取式",
@@ -73,7 +83,7 @@ export const BOARDS = [
 ];
 
 /** 挂衣杆末端那个虚线空位：不是占位，是「结构可插拔」的证明。 */
-export const EXT_SLOT = {
+const EXT_SLOT = {
   k: "ext",
   t: "＋ 再加一个",
   s: "板块可插拔的证明",
@@ -84,7 +94,7 @@ export const EXT_SLOT = {
 };
 
 /** 点扩展位要讲的三件事（参考稿原文口径）。 */
-export const EXT_COPY = [
+const EXT_COPY = [
   "加一个板块只需要三样东西",
   "① 一个交互范式：翻牌 / 拖条 / 选卡 / 打字，选一种",
   "② 一组受控词表：复用全站那套 8 风格 / 24 色 / 7 品类",
@@ -93,7 +103,7 @@ export const EXT_COPY = [
 ];
 
 // ---------- 天气芯片（只改厚薄，不改风格、不改颜色）----------
-export const CITIES = [
+const CITIES = [
   { city: "西安", temp: "18℃", w: "阴", label: "薄外套", season: ["春", "秋"], needOuter: true },
   { city: "北京", temp: "9℃", w: "晴", label: "加一件", season: ["秋", "冬"], needOuter: true },
   { city: "上海", temp: "21℃", w: "多云", label: "单层就够", season: ["春", "秋"], needOuter: false },
@@ -102,10 +112,10 @@ export const CITIES = [
   { city: "哈尔滨", temp: "2℃", w: "风大", label: "羽绒", season: ["冬"], needOuter: true },
 ];
 
-export const DEFAULT_CITY = "西安";
+const DEFAULT_CITY = "西安";
 
 // ---------- 输入式 · 8 组关键词对照表（打桩）----------
-export const KW = [
+const KW = [
   {
     words: ["累", "困", "乏", "没劲", "疲惫", "熬夜", "不想动"],
     tag: "电量 · 低",
@@ -165,7 +175,7 @@ export const KW = [
 ];
 
 // ---------- 选择式 · 4 张人设卡 ----------
-export const IDENTITIES = [
+const IDENTITIES = [
   {
     id: "heroine", symbol: "◆", name: "女主角", line: "今天你是镜头中心",
     style_tags: ["明艳", "甜美"], must_colors: ["正红", "奶油白"], avoid_colors: ["炭灰", "银灰"],
@@ -189,7 +199,7 @@ export const IDENTITIES = [
 ];
 
 // ---------- 调节式 · 5 档电量 ----------
-export const ENERGY = [
+const ENERGY = [
   { min: 0, max: 20, label: "只剩一格电", say: "别为难自己，穿最松的那件", style_tags: ["慵懒"], prefs: { energy: 15, brightness: 78, formality: 1 } },
   { min: 20, max: 45, label: "电量偏低", say: "穿松一点、颜色少一点", style_tags: ["简约"], must_colors: ["米白", "纯白"], prefs: { energy: 32, brightness: 70, formality: 2 } },
   { min: 45, max: 70, label: "半格电", say: "稳稳当当就行", style_tags: ["通勤"], prefs: { energy: 57, brightness: 58, formality: 3 } },
@@ -198,7 +208,7 @@ export const ENERGY = [
 ];
 
 // ---------- 抽取式 · 刮刮乐 6 个奖面 ----------
-export const SCRATCH = [
+const SCRATCH = [
   { name: "今天可以偷懒", style_tags: ["慵懒"], must_colors: ["米白", "奶油白"], say: "刮到「偷懒」：松一点，颜色少一点" },
   { name: "去见想见的人", style_tags: ["甜美", "文艺"], must_colors: ["藕粉"], say: "刮到「想见的人」：柔色系，别用力过猛" },
   { name: "今天要出片", style_tags: ["文艺", "复古"], must_colors: ["焦糖", "燕麦"], say: "刮到「出片」：要有轮廓，镜头里才立得住" },
@@ -208,7 +218,7 @@ export const SCRATCH = [
 ];
 
 // ---------- 广场动态流 ----------
-export const FEED = [
+const FEED = [
   { id: "f1", who: "小满", board: "抽取式", src: "塔罗 · 星星", text: "抽到星星，穿了一身米白去图书馆，坐一天都不闷。", ids: ["w0001", "w0006", "w0009"], likes: 12 },
   { id: "f2", who: "阿柚", board: "选择式", src: "人设 · 反派", text: "选了反派，一身黑去开会，居然被夸好看。", ids: ["w0002", "w0007", "w0010"], likes: 31 },
   { id: "f3", who: "KK", board: "调节式", src: "电量 28%", text: "电量只剩 28%，穿了最松的那件针织，舒服。", ids: ["w0001", "w0006", "w0012"], likes: 8 },
@@ -217,10 +227,14 @@ export const FEED = [
 ];
 
 /** 每个板块挂在杆上的衣服图形（抽绳袋 / 腰带 / 外套 / 吊牌 / 虚线框）。 */
-export const SHAPES = {
+const SHAPES = {
   bag: '<path d="M14 18h20l2 20a4 4 0 0 1-4 5H16a4 4 0 0 1-4-5z"/><path d="M18 18a6 6 0 0 1 12 0"/><path d="M24 18v25"/>',
   belt: '<path d="M8 20h30a3 3 0 0 1 0 8H8a3 3 0 0 1 0-8z"/><rect x="20" y="18" width="8" height="12" rx="2"/><path d="M26 24h6"/>',
   coat: '<path d="M17 12l7 5 7-5 8 5-3 7-3-2v17H15V22l-3 2-3-7z"/><path d="M24 17v15"/>',
   tag: '<path d="M26 8h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H26L14 38a2 2 0 0 1-3-1V11a2 2 0 0 1 1-1z"/><circle cx="33" cy="15" r="2.5"/>',
   dashed: '<rect x="12" y="12" width="24" height="24" rx="4"/><path d="M24 18v12M18 24h12"/>',
 };
+
+  // 对外暴露（原来是 export）
+  Object.assign(NS, { BOARDS, EXT_SLOT, EXT_COPY, CITIES, DEFAULT_CITY, KW, IDENTITIES, ENERGY, SCRATCH, FEED, SHAPES });
+})(window.Outfit = window.Outfit || {});

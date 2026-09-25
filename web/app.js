@@ -1,9 +1,24 @@
+/* ------------------------------------------------------------------
+   经典脚本（原为 ES module，语义等价）
+   改因：file:// 下浏览器禁止加载 <script type="module">，双击 index.html
+        会整页无法交互。改成经典脚本 + window.Outfit 命名空间后，
+        双击打开 / 起本地服务两种方式都能完整跑。
+   依赖：由 index.html 按顺序 defer 加载，公共名挂在 window.Outfit 上。
+------------------------------------------------------------------ */
+(function (NS) {
+"use strict";
+  // 原来是：import { analyze } from "./engine.js";
+  //          import { install as installOracle } from "./oracle.js";
+  //          import { normalizeItems, styleHit, colorHit } from "./vocab.js";
+  //          import { startBusy, withBusy, isBusy } from "./busy.js";
+  const { analyze } = NS;
+  const { install: installOracle } = NS;
+  const { normalizeItems, styleHit, colorHit, normStyle } = NS;
+  const { startBusy, withBusy, isBusy } = NS;
+  NS.require("app.js", { analyze, installOracle, normalizeItems, styleHit, colorHit, normStyle, startBusy, withBusy, isBusy });
+
 // web/app.js —— 三页合一：衣橱 / 入口 / 结果
 // 引擎：analyze = 选款 + 逐件匹配度 + 整套分数；recommend / itemsByIds 仍可从 engine.js 单独引入
-import { analyze } from "./engine.js";
-import { install as installOracle } from "./oracle.js";
-import { normalizeItems, styleHit, colorHit } from "./vocab.js";
-import { startBusy, withBusy, isBusy } from "./busy.js";
 
 const state = {
   items: [],
@@ -53,7 +68,7 @@ function imgSrc(path) {
   return p;
 }
 
-export function switchView(name) {
+function switchView(name) {
   $$(".view").forEach((v) => v.classList.toggle("active", v.id === name));
   $$(".nav-btn").forEach((b) => b.classList.toggle("active", b.dataset.view === name));
   document.documentElement.dataset.view = name;
@@ -80,6 +95,16 @@ async function fetchJSON(url, options) {
     throw new Error(msg);
   }
   return res.json();
+}
+
+/* 离线数据快照兜底（web/data/offline.js，由 scripts/build_offline_data.py 从 data/*.json 生成）
+   为什么需要它：浏览器在 file:// 下拒绝一切 fetch（"URL scheme must be http or https"），
+   双击 index.html 时 data/items.json 之类一个都读不到，衣橱 / 塔罗 / 示例图会全空。
+   读取顺序统一为：接口 → fetch 相对路径 → 这份 <script> 载入的快照。
+   起服务时永远走接口，快照只在断网或双击打开时顶上。 */
+function offlineData(name) {
+  const pack = typeof window !== "undefined" ? window.__offlineData : null;
+  return pack && pack[name] !== undefined && pack[name] !== null ? pack[name] : null;
 }
 
 /** JSON POST 小助手 */
@@ -181,7 +206,9 @@ async function loadItems() {
       const res = await fetch("data/items.json");
       state.items = normalizeItems(await res.json());
     } catch {
-      state.items = [];
+      // 双击打开（file://）时 fetch 会被浏览器拒掉 —— 用离线快照，别让衣橱空着
+      const off = offlineData("items");
+      state.items = off ? normalizeItems(off) : [];
     }
     try {
       const local = JSON.parse(localStorage.getItem("outfit-mystic-local-items") || "[]");
@@ -633,6 +660,17 @@ async function handleUpload(file) {
       let result;
       try {
         result = await fetchJSON("/ingest", { method: "POST", body: form });
+        // 试穿照/不确定图 → 进 pending_review，不直接入柜
+        if (result.state === "pending_review") {
+          setStep("cut", result.cut_ok ? "done" : "on");
+          setStep("tag", "");
+          setStep("done", "");
+          const why = result.scene?.scene === "model_wearing" ? "检测到试穿/模特上身" : "不确定场景";
+          setStatusMsg(`已进待确认区：${why}（信心 ${(result.scene?.confidence ?? 0).toFixed(2)}）。后续从「我的衣柜」→「待确认」处理。`);
+          await loadItems();
+          setTimeout(() => showStatus(false), 3500);
+          return;
+        }
         setStep("cut", result.item?.cut_ok ? "done" : "on");
         setStep("tag", "on");
         setStatusMsg(result.tag_ok ? "打标完成，正在入柜…" : "VLM 不可用，准备手动标签…");
@@ -764,10 +802,15 @@ async function loadSamples() {
     }
   }
   if (!state.samples.length) {
+    let j = null;
     try {
       const res = await fetch("data/samples.json");
-      const j = await res.json();
-      state.samples = (j.samples || []).map((s) => ({
+      j = await res.json();
+    } catch {
+      j = offlineData("samples"); // file:// 下 fetch 被拒 → 用离线快照
+    }
+    try {
+      state.samples = ((j && j.samples) || []).map((s) => ({
         id: s.id,
         title: s.title,
         desc: s.desc,
@@ -805,17 +848,15 @@ const SLOT_SAMPLES_FALLBACK = {
 
 async function loadSlotSamples() {
   state.slotSamples = null;
+  let j = null;
   try {
     const res = await fetch("data/slot-samples.json");
-    const j = await res.json();
-    if (j && j.slots) {
-      state.slotSamples = j.slots;
-      return;
-    }
+    j = await res.json();
   } catch {
-    /* 读不到就用内置兜底 */
+    j = offlineData("slot-samples"); // file:// 下 fetch 被拒 → 用离线快照
+    /* 快照也没有就用内置兜底（SLOT_SAMPLES_FALLBACK） */
   }
-  state.slotSamples = null;
+  if (j && j.slots) state.slotSamples = j.slots;
 }
 
 /**
@@ -1205,7 +1246,8 @@ async function loadTarot() {
     const res = await fetch("data/tarot.json");
     state.tarotCards = await res.json();
   } catch {
-    state.tarotCards = [];
+    // file:// 下 fetch 被拒 → 用离线快照，4 张牌照样能抽
+    state.tarotCards = offlineData("tarot") || [];
   }
 }
 
@@ -1217,23 +1259,25 @@ function drawTarot() {
   const card = state.tarotCards[Math.floor(Math.random() * state.tarotCards.length)];
   state.constraint = constraintFromTarot(card);
 
-  // 仪式感：翻牌
-  $("#tarot-deck").classList.add("hidden");
+  // 仪式感：翻牌（仅当静态元素存在时；新设计由 oracle.js 的圆盘接管）
+  $("#tarot-deck")?.classList.add("hidden");
   const flip = $("#tarot-flip");
-  flip.classList.remove("hidden");
-  const img = $("#tarot-img");
-  img.src = imgSrc(card.image);
-  img.alt = card.name;
-  $("#tarot-name").textContent = `${card.name} · ${card.name_en || ""}`;
+  if (flip) {
+    flip.classList.remove("hidden");
+    const img = $("#tarot-img");
+    if (img) { img.src = imgSrc(card.image); img.alt = card.name; }
+    const nameEl = $("#tarot-name");
+    if (nameEl) nameEl.textContent = `${card.name} · ${card.name_en || ""}`;
+  }
 
   // 调试区可见 constraint（验收 A4）
   $("#constraint-debug").textContent = JSON.stringify(state.constraint, null, 2);
 
   // 预填结果页
   const rimg = $("#result-tarot-img");
-  rimg.src = imgSrc(card.image);
-  rimg.classList.remove("hidden");
-  $(".story-card-placeholder").classList.add("hidden");
+  if (rimg) { rimg.src = imgSrc(card.image); rimg.classList.remove("hidden"); }
+  const ph = $(".story-card-placeholder");
+  if (ph) ph.classList.add("hidden");
   $("#result-story").textContent = state.constraint.story;
   $("#result-reason").textContent = "点「生成今日穿搭」，规则会从衣橱里选一套。";
   $("#result-meta").textContent = "";
@@ -1242,8 +1286,8 @@ function drawTarot() {
 
 function resetTarot() {
   state.constraint = null;
-  $("#tarot-deck").classList.remove("hidden");
-  $("#tarot-flip").classList.add("hidden");
+  $("#tarot-deck")?.classList.remove("hidden");
+  $("#tarot-flip")?.classList.add("hidden");
   $("#constraint-debug").textContent = "";
 }
 
@@ -1319,6 +1363,68 @@ function renderMatchPanel(a) {
 
 function catName(cat) {
   return { top: "上装", bottom: "下装", shoes: "鞋履", outer: "外套", bag: "包" }[cat] || cat;
+}
+
+/**
+ * 结果页下方「今天更适合」面板 —— 把 oracle 抽到的方向翻译成具体搭配建议。
+ * 不写「缺 X 色」之类的劝退话,而是把「今天运势想要的感觉」落到面料/颜色/单品质感上。
+ */
+const STYLE_HINT = {
+  甜美: { fabric: "缎面 / 雪纺 / 软针织", palette: "奶白 / 浅粉 / 藕粉 / 玫粉", mood: "轻盈、柔软、有点光泽感" },
+  文艺: { fabric: "棉麻 / 针织 / 羊毛", palette: "米白 / 卡其 / 燕麦 / 雾蓝", mood: "安静、素雅、有书卷气" },
+  通勤: { fabric: "衬衫料 / 西装料 / 针织", palette: "藏蓝 / 米白 / 驼色 / 炭灰", mood: "利落、不抢戏、压得住" },
+  简约: { fabric: "纯棉 / 针织 / 卫衣布", palette: "黑白灰 / 米白 / 燕麦", mood: "少而干净、版型优先" },
+  复古: { fabric: "灯芯绒 / 棉 / 针织", palette: "焦糖 / 砖红 / 墨绿 / 驼色", mood: "有腔调、稍微亮一点" },
+  运动: { fabric: "运动面料 / 卫衣布 / 针织", palette: "亮黄 / 橄榄绿 / 纯白", mood: "轻快、能动、有活力" },
+  明艳: { fabric: "缎面 / 丝绸 / 雪纺", palette: "正红 / 玫粉 / 亮黄", mood: "大胆、上镜、有存在感" },
+  慵懒: { fabric: "针织 / 棉 / 麻", palette: "米色 / 驼色 / 雾灰", mood: "松软、放松、不过度修饰" },
+};
+
+const SOURCE_LABELS_RENDER = {
+  tarot: "塔罗指引",
+  energy: "电量提示",
+  identity: "人设选择",
+  scratch: "刮刮乐",
+  input: "今天一句话",
+};
+
+function renderOracleAdvice(c) {
+  const panel = $("#oracle-advice");
+  if (!panel) return;
+  if (!c) {
+    panel.classList.add("hidden");
+    panel.innerHTML = "";
+    return;
+  }
+
+  const sourceLabel = SOURCE_LABELS_RENDER[c.source] || "今天";
+  const styles = (c.style_tags || []).map(normStyle);
+  const primary = styles[0] || "通用";
+  const hint = STYLE_HINT[primary] || STYLE_HINT.简约;
+  const userColors = (c.must_colors || []).slice(0, 2);
+  const occasion = c.occasion || (c.occasions || [])[0] || "日常";
+  const story = (c.story || "").trim();
+
+  // 「想要的颜色」:只在用户指定了 must_color 才显示;不指定时说「色随型定」。
+  const colorLine = userColors.length
+    ? `色彩倾向：<b>${esc(userColors.join(" / "))}</b>`
+    : `色彩倾向：<b>色随型定</b>（按主风格的色板走）`;
+
+  panel.classList.remove("hidden");
+  panel.innerHTML = `
+    <div class="oa-head">
+      <span class="oa-source">「${esc(sourceLabel)}」</span>
+      <span class="oa-occasion">${esc(occasion)}</span>
+    </div>
+    ${story ? `<p class="oa-story">${esc(story)}</p>` : ""}
+    <div class="oa-grid">
+      <div><b>风格</b><span>${esc(primary)} · ${esc(hint.mood)}</span></div>
+      <div><b>面料</b><span>${esc(hint.fabric)}</span></div>
+      <div>${colorLine}</div>
+      <div><b>参考色调</b><span>${esc(hint.palette)}</span></div>
+    </div>
+    <p class="oa-foot muted">下方这 4 件是衣橱里最贴近这个方向的真实单品 —— 衣橱里没有的颜色，我们没强塞，按 <b>风格相近 + 颜色相近</b> 挑了最合适的几件。</p>
+  `;
 }
 
 /** 搭配逻辑：把「为什么是这三件」拆成可核对的几条 */
@@ -1537,6 +1643,9 @@ function renderResult(a, reason) {
   $("#result-reason").textContent = reason;
   $("#result-meta").textContent = meta.join("\n");
 
+  // 今天更适合面板(根据 oracle + 用户指定给具体搭配方向,不写"缺 X 色"那个红色提示)
+  renderOracleAdvice(state.constraint);
+
   // 匹配度 + 搭配逻辑
   renderMatchPanel(a);
   renderLogic(a, reason);
@@ -1598,7 +1707,7 @@ async function runRecommend() {
  * 换一套（参考稿第 6 节）：把当前这套里随机一件记进「排除名单」再重算一次，
  * 保证换出来的不一样。
  */
-export async function reroll() {
+async function reroll() {
   const c = state.constraint;
   if (!c) return runRecommend();
   const a = analyze(state.items, c);
@@ -1755,12 +1864,16 @@ function bind() {
     renderStyleControls();
   });
 
+  // 老版单卡抽牌已下线（由 oracle.js 的 renderTarotWheel() 提供圆盘三牌体验）；
+  // 这里保留挂载点判断，避免在静态元素已移除的页面上报 null.addEventListener。
   const deck = $("#tarot-deck");
-  deck.addEventListener("click", drawTarot);
-  deck.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" || e.key === " ") drawTarot();
-  });
-  $("#btn-tarot").addEventListener("click", () => {
+  if (deck) {
+    deck.addEventListener("click", drawTarot);
+    deck.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") drawTarot();
+    });
+  }
+  $("#btn-tarot")?.addEventListener("click", () => {
     resetTarot();
     requestAnimationFrame(drawTarot);
   });
@@ -1817,3 +1930,7 @@ async function init() {
 }
 
 init();
+
+  // 对外暴露（原来是 export）
+  Object.assign(NS, { switchView, reroll });
+})(window.Outfit = window.Outfit || {});

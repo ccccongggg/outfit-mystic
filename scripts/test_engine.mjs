@@ -2,8 +2,11 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { recommend, analyze, slotStates } from "../web/engine.js";
+import { loadEngine } from "./_web_loader.mjs";
 
+// web/*.js 现在是经典脚本 + window.Outfit 命名空间（file:// 载不了 ES module），
+// 所以不再 import，而是按真实顺序 eval 一遍再取公共名 —— 顺便把加载顺序也测了。
+const { recommend, analyze, slotStates } = loadEngine();
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, "..");
 const items = JSON.parse(fs.readFileSync(path.join(ROOT, "web", "data", "items.json"), "utf-8"));

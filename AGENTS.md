@@ -20,16 +20,24 @@
 - **源码**:
   - 前端:`web/`(`index.html`、`app.js`、`engine.js`、样式)
   - 后端:`server/app.py`
-  - 脚本:`scripts/`(`remove_bg.py` 抠底、`tag_image.py` 打标、`write_reason.py` 文案、`smoke_dod.py` 冒烟)
+  - 脚本:`scripts/`(`remove_bg.py` 抠底、`tag_image.py` 打标、`write_reason.py` 文案、`smoke_dod.py` 冒烟、`build_offline_data.py` 生成离线数据快照)
 - **资源**:`web/assets/items/` 预置单品图、`web/assets/tarot/` 塔罗图与 `tarot.json`、`cache/tagged/` 打标缓存、`uploads/` 上传图
-- **测试 / 验收**:`python scripts/smoke_dod.py`(需先起服务)
-- **构建 / 运行**:`python server/app.py` → `http://127.0.0.1:8787`
+- **测试 / 验收**(改动前端或引擎后**全跑一遍**,六套共 168 项):
+  - `node scripts/test_boot.mjs` —— 整页启动 + 真点击 + file:// 离线兜底(**改 `index.html` 脚本装载必跑**)
+  - `node scripts/test_engine.mjs` / `test_intake.mjs` / `test_oracle.mjs` / `test_shell.mjs` / `test_layout.mjs`
+  - `python scripts/smoke_dod.py`(需先起服务)
+- **构建 / 运行**:`python server/app.py` → `http://127.0.0.1:8787`(改完后端/前端**必须重启服务**,否则 8787 上还是旧进程的代码)
 - **关键配置**:`.env`(真实密钥,**不入库**)、`.env.example`(样例)、`package.json`
 
 ## 局部约束
 
 - **断网可跑是硬要求**:抠底、打标、选款、文案各层必须保留本地 / 缓存 / 模板兜底路径,不得让整条链路强依赖外网或单一模型。
-- **预置单品图必须是真实白底或纯色底商品图**,禁扁平矢量假图(判定:unique colors < 6000);人物上身照 / 杂乱背景在**输入端**拦截提示(见 `web/app.js` 的 `analyzeCutDifficulty`)。
+- **预置单品图必须是真实白底或纯色底商品图**,禁扁平矢量假图(判定:unique colors < 6000)。
+- **用户上传的实拍照**(挂拍/平铺/试穿……)走两轨:
+  - VLM 判定 `has_person=true` (试穿/模特上身) → 进 `data/pending.json`(待确认区),**不入衣橱**。前端 `/ingest` 响应 `state=pending_review`,UI 提示「已进待确认区」。用户后续走 `POST /api/pending/<id>/commit`(可手动改标签)或 `/skip`(丢弃)。
+  - VLM 判定 `has_person=false` → 走原 cut+tag+commit 链路,响应 `state=committed`。
+  - VLM 不可用/失败 → 兜底按 has_person=false 走 commit(原链路)。
+  - 详见 `flow/decisions.md` 2026-09-25「录入侧放宽」条目。
 - **`.env` 绝不入库、绝不写进文档**;密钥相关改动只改 `.env`,同步更新 `.env.example` 的字段名(不含值)。
 - **视觉遵循 `../DESIGN.md`**:禁 Inter / Roboto,禁紫蓝渐变;token 以 DESIGN.md 为准。
 - 这里只记录本模块非显而易见的心智模型、内部约定、禁区和模块级踩坑。
@@ -46,3 +54,10 @@
   - 文案 `write_reason.py`:LLM → 模板兜底
 - **已知缺口**(见 `../flow/plan.md`):塔罗仅 4 条(目标 22);`smoke_dod.py` 未实跑且 A5 此前用内联近似替代真调引擎;视觉尚未换皮。
 - **引擎**:`web/engine.js` 为极简规则——色名**粗匹配**、**无色距**;禁止色 / 必须色 / 风格重合打分。若要引入真实色距需先在根级 `../flow/decisions.md` 记决策。
+- **前端不用 ES module,`index.html` 里不许再出现 `type="module"`**(2026-09-25 定,见根级 `../flow/decisions.md` 与 `../flow/踩坑记录.md`):
+  - 原因:Chrome/Edge 在 `file://` 下按 CORS 规则取模块脚本,origin 为 `null` → 被拒。`app.js` 整份不执行,而经典脚本的 `shell.js` 照常跑,于是"手机外壳画得出来、点什么都没反应"。项目要求双击 `web/index.html` 就能演示,所以从根上去掉 ESM。
+  - 现状:`web/{safe-storage,vocab,oracle-data,busy,engine,oracle,app}.js` 都是经典脚本,各自裹 IIFE + `"use strict"`,公共名挂 `window.Outfit`;新增公共名在文件末尾 `Object.assign(NS, {...})`。
+  - **`index.html` 的 script 顺序即依赖顺序**:`safe-storage → vocab → oracle-data → busy → engine → oracle → data/offline.js → app → shell`。顺序错了不会静默哑掉,`NS.require()` 会当场抛错指名(定义在 `vocab.js`)。
+  - **`web/data/offline.js` 是生成物,不许手改**。真相源仍是 `data/*.json`;`server/app.py` 的 `_save_items()` 写完 items.json 会自动重建它。手动改过 `samples/slot-samples/tarot.json` 后跑 `python scripts/build_offline_data.py`。
+  - 为什么需要它:`file://` 下不只模块脚本被拦,**`fetch` / `XHR` 也一律被拒**("URL scheme must be http or https"),`localStorage` 在某些浏览器还会抛 `SecurityError`。所以数据要有一份 `<script>` 快照(`web/data/offline.js`),存储要走 `window.SafeStore`(`web/safe-storage.js`)。读取顺序统一为「接口 → fetch 相对路径 → 快照」。
+  - 守这些的测试是 `scripts/test_boot.mjs`(静态断言装载方式 + 把 fetch 变成一律失败来模拟 file:// + 真窗口真点击)。

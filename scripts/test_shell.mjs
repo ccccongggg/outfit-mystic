@@ -20,8 +20,9 @@ const WEB = path.join(ROOT, "web");
 
 const html = fs
   .readFileSync(path.join(WEB, "index.html"), "utf-8")
-  // jsdom 不执行 ES module，移除 app.js（业务逻辑不在本测试范围）
-  .replace(/<script type="module"[^>]*><\/script>/, "");
+  // jsdom 这里是 runScripts:"outside-only"，页面里的 <script> 本来就不会执行；
+  // 仍然先摘掉，保证「本测试只跑外壳、不跑业务」这件事是显式的
+  .replace(/<script\b[^>]*><\/script>/g, "");
 
 const shellJs = fs.readFileSync(path.join(WEB, "shell.js"), "utf-8");
 

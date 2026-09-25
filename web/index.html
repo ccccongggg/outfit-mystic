@@ -306,28 +306,7 @@
 
     <!-- ========== 抽取式 · 塔罗 ========== -->
     <section id="tarot" class="view">
-      <div class="board-head" style="--bc:#534AB7;--bs:#EDEBFB;--bi:#3C3489">
-        <button class="board-back" data-go="board">‹ 抽取式</button>
-        <h1>抽一张牌</h1>
-        <p class="muted">随机一张大阿尔卡纳，翻牌出牌义。</p>
-      </div>
-      <div class="tarot-stage" id="tarot-stage">
-        <div class="tarot-deck" id="tarot-deck" role="button" tabindex="0" aria-label="抽一张塔罗牌">
-          <div class="tarot-back">
-            <div class="tarot-ornament">✦</div>
-            <div class="tarot-back-text">DRAW</div>
-          </div>
-        </div>
-        <div class="tarot-flip hidden" id="tarot-flip">
-          <img id="tarot-img" alt="塔罗牌面" />
-          <div class="tarot-card-name" id="tarot-name"></div>
-        </div>
-      </div>
-      <div class="entry-actions">
-        <button class="btn primary" id="btn-tarot">抽取一张牌</button>
-        <button class="btn primary hidden" id="btn-tarot-ok">就这张牌</button>
-      </div>
-      <div class="constraint-debug" id="constraint-debug"></div>
+      <!-- 内容由 web/oracle.js 的 renderTarotWheel() 动态生成（圆盘抽三张牌） -->
     </section>
 
     <!-- ========== 抽取式 · 刮刮乐 / 调节式 · 能量条 / 选择式 · 人设 ========== -->
@@ -412,6 +391,10 @@
         </aside>
       </div>
 
+      <!-- 今天更适合：根据 oracle 入口 + 用户指定的风格/色，给具体搭配方向
+           不写"缺 X 色",而是把"今天的运势想要的方向"翻译得更具体。 -->
+      <div class="oracle-advice hidden" id="oracle-advice"></div>
+
       <!-- 匹配度 + 每件单品的搭配逻辑 -->
       <div class="match-panel" id="match-panel"></div>
       <div class="logic-panel" id="logic-panel"></div>
@@ -422,7 +405,23 @@
     <span>规则负责选款 · AI 只打标 + 写文案 · 断网主线可跑</span>
   </footer>
 
-  <script type="module" src="app.js"></script>
+  <!-- 全部用经典脚本（不是 ES module）。
+       原因：Chrome/Edge 在 file:// 下禁止加载 <script type="module">（CORS，origin 为 null），
+       双击 index.html 时 app.js 不会执行 —— 页面能看、点了没反应。
+       经典脚本没有这个限制，双击打开和起本地服务（python server/app.py）都能完整交互。
+       顺序即依赖：safe-storage 安全存储 → vocab 词表 → oracle-data 板块数据 → busy 等待指示
+                  → engine 引擎 → oracle 拿主意 → offline.js 离线数据 → app 主程序
+                  → shell 手机外壳（最后，装外壳） -->
+  <script src="safe-storage.js" defer></script>
+  <script src="vocab.js" defer></script>
+  <script src="oracle-data.js" defer></script>
+  <script src="busy.js" defer></script>
+  <script src="engine.js" defer></script>
+  <script src="oracle.js" defer></script>
+  <!-- 离线数据快照（自动生成）：file:// 下浏览器不许 fetch，data/*.json 读不到，
+       这份 <script> 里的副本让双击打开也有完整衣橱 / 塔罗。起服务时优先走接口。 -->
+  <script src="data/offline.js" defer></script>
+  <script src="app.js" defer></script>
   <script src="shell.js" defer></script>
 </body>
 </html>

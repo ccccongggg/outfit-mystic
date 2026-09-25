@@ -131,6 +131,103 @@
 .phone-mode .view::-webkit-scrollbar { width: 0; }
 .phone-mode .footer { display: none; }
 
+/* ============================================================
+   屏内移动端重排（关键）
+   外壳是 transform:scale() 等比缩放 —— 浏览器媒体查询看到的仍是桌面窗口宽度
+   （1400px 之类），所以 style.css 里的 max-width:900/560 断点永远不会命中，
+   屏内实际跑的是桌面多列布局（3 列单品、3 列入口、2 列结果），塞进 368px 就被挤爆。
+   因此这里**按 .phone-mode 类**重排，而不是靠视口宽度。
+   屏内可用宽度：390 − 机身内缩 22 − view 内边距 28 ≈ 340px
+   ============================================================ */
+
+/* 硬保险：屏内不出现横向滚动；栅格子项允许收缩（防中文长词撑破容器） */
+.phone-mode .view { overflow-x: hidden; padding: 14px 14px 28px; }
+.phone-mode .intake, .phone-mode .intake-main,
+.phone-mode .item-grid, .phone-mode .entry-grid, .phone-mode .result-layout,
+.phone-mode .manual-grid, .phone-mode .sample-row, .phone-mode .look-row,
+.phone-mode .preview-body, .phone-mode .found-grid, .phone-mode .collage,
+.phone-mode .profile-grid, .phone-mode .slider-row { min-width: 0; }
+.phone-mode .item-grid > *, .phone-mode .entry-grid > *, .phone-mode .result-layout > *,
+.phone-mode .sample-row > *, .phone-mode .manual-grid > * { min-width: 0; }
+
+/* 标题降级 */
+.phone-mode .section-head h1 { font-size: 22px; letter-spacing: 0.08em; }
+.phone-mode .section-head { margin-bottom: 12px; }
+.phone-mode .muted, .phone-mode .section-head p { font-size: 12px; }
+
+/* ---- 衣橱：三列 → 两列，卡片内距收紧 ---- */
+.phone-mode .item-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+.phone-mode .item-card { border-radius: 12px; }
+.phone-mode .item-meta { padding: 9px 10px 11px; }
+.phone-mode .item-title { font-size: 13.5px; margin-bottom: 5px; line-height: 1.35; }
+.phone-mode .item-tags { gap: 4px; }
+.phone-mode .item-grid .tag { font-size: 10.5px; padding: 1px 7px; }
+.phone-mode .item-grid .tag.swatch::before { width: 7px; height: 7px; margin-right: 4px; }
+.phone-mode .item-profile { font-size: 11px; }
+.phone-mode .profile-grid { grid-template-columns: 1fr; gap: 0; }
+
+/* ---- 衣橱：录入区 ---- */
+.phone-mode .rules-card { padding: 14px; }
+.phone-mode .rules-list { gap: 5px; }
+.phone-mode .rules-list li { font-size: 12px; padding-left: 16px; line-height: 1.45; }
+.phone-mode .dropzone { min-height: 168px; padding: 16px 12px; }
+.phone-mode .dropzone-title { font-size: 16px; }
+.phone-mode .preview-body { grid-template-columns: 1fr; gap: 12px; }
+.phone-mode .preview-body img { max-width: 200px; margin: 0 auto; }
+.phone-mode .status-panel { padding: 14px 16px; }
+.phone-mode .manual-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+.phone-mode .sample-row { grid-template-columns: 1fr 1fr; gap: 10px; }
+.phone-mode .sample-card img { height: 96px; }
+.phone-mode .sc-body { padding: 8px 10px 10px; }
+.phone-mode .mode-row { gap: 8px; }
+.phone-mode .seg-btn { padding: 6px 11px; font-size: 12px; }
+
+/* ---- 风格页 ---- */
+.phone-mode .look-row { grid-template-columns: 1fr; gap: 10px; }
+.phone-mode .look-thumbs img { height: 92px; }
+.phone-mode .style-block { padding: 14px 0; }
+.phone-mode .chip-row { gap: 6px; }
+.phone-mode .chip { padding: 5px 12px; font-size: 12px; }
+.phone-mode .slider-row { grid-template-columns: 44px 1fr 58px; gap: 8px; }
+.phone-mode .sliders { max-width: none; }
+
+/* ---- 入口页：三列挤压 + 右侧被裁 → 单列 ---- */
+.phone-mode .entry-grid { grid-template-columns: 1fr; gap: 12px; }
+.phone-mode .entry-card,
+.phone-mode .entry-card.featured { grid-column: auto; grid-row: auto; padding: 18px; }
+.phone-mode .entry-card h2 { font-size: 18px; }
+.phone-mode .entry-card p { font-size: 12.5px; margin-bottom: 12px; }
+.phone-mode .tarot-stage { min-height: 168px; margin-bottom: 12px; }
+.phone-mode .tarot-deck { width: 104px; height: 158px; }
+.phone-mode .tarot-flip { width: 112px; }
+.phone-mode .constraint-debug { max-height: 108px; font-size: 10.5px; }
+
+/* ---- 结果页：双列 → 单列，拼贴压缩 ---- */
+.phone-mode .result-layout { grid-template-columns: 1fr; gap: 14px; }
+.phone-mode .collage { min-height: 0; padding: 12px; gap: 10px; grid-template-rows: auto auto; }
+.phone-mode .slot { min-height: 96px; border-radius: 10px; }
+.phone-mode .slot-img { padding: 8px; }
+.phone-mode .slot-label { top: 7px; left: 9px; font-size: 10px; }
+.phone-mode .slot-empty { font-size: 11px; letter-spacing: 0.14em; }
+.phone-mode .story-panel { padding: 16px; gap: 11px; }
+.phone-mode .story-card-art { width: 84px; height: 124px; }
+.phone-mode .story-text { font-size: 14px; }
+.phone-mode .reason-text { font-size: 13px; padding: 10px 12px; }
+.phone-mode .match-summary { font-size: 11.5px; }
+.phone-mode .match-item { gap: 10px; padding: 9px; }
+.phone-mode .match-item > img { width: 46px; height: 46px; }
+.phone-mode .mi-head { font-size: 12.5px; }
+.phone-mode .mi-reasons { font-size: 11px; }
+.phone-mode .logic-list { font-size: 12px; padding-left: 18px; line-height: 1.8; }
+
+/* ---- 候选弹窗（铺满屏内）---- */
+.phone-mode .found-modal { padding: 10px; }
+.phone-mode .found-card { width: 100%; max-height: 92vh; padding: 14px; border-radius: 14px; }
+.phone-mode .found-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+.phone-mode .found-item img { height: 96px; }
+.phone-mode .found-actions { flex-direction: column; }
+.phone-mode .found-actions .btn { width: 100%; }
+
 /* 底部 Tab + Home 条 */
 .phone-tabbar {
   flex: none; position: relative; height: 64px; display: flex; align-items: flex-start; padding-top: 8px;

@@ -1,0 +1,87 @@
+<!doctype html>
+<!-- 临时布局自检页：同域 iframe 里加载真应用（手机模式），量真实几何后写进 <pre id="out">，
+     由 scripts/check_layout_browser.py 用 chrome --dump-dom 取回。用完即删。 -->
+<html lang="zh">
+<head><meta charset="utf-8"><title>layoutcheck</title>
+<style>html,body{margin:0;background:#222}iframe{border:0;width:900px;height:1120px;display:block}</style>
+</head>
+<body>
+<iframe id="fr" src="index.html?mode=phone"></iframe>
+<pre id="out">RUNNING</pre>
+<script>
+const OUT = document.getElementById("out");
+const fr = document.getElementById("fr");
+
+function measure() {
+  const d = fr.contentDocument;
+  const w = fr.contentWindow;
+  const res = { checks: [], info: {} };
+  const add = (name, pass, detail) => res.checks.push({ name, pass, detail });
+
+  if (!d || !d.documentElement || !d.documentElement.classList.contains("phone-mode")) {
+    return { fatal: "iframe 未进入 phone-mode（外壳未挂载？）" };
+  }
+
+  const screen = d.querySelector(".phone-screen");
+  res.info.screen = screen ? Math.round(screen.getBoundingClientRect().width) + "x" + Math.round(screen.getBoundingClientRect().height) : "?";
+
+  const tracks = (sel) => {
+    const el = d.querySelector(sel);
+    if (!el) return -1;
+    const t = w.getComputedStyle(el).gridTemplateColumns || "";
+    return t.split(/\s+/).filter(Boolean).length;
+  };
+  const want = { ".item-grid": 2, ".entry-grid": 1, ".result-layout": 1, ".preview-body": 1, ".manual-grid": 2 };
+  for (const [sel, n] of Object.entries(want)) {
+    const got = tracks(sel);
+    add(`${sel} 列数 = ${n}`, got === n, `实测 ${got}`);
+  }
+
+  // 核心：不得有元素越出「本页」右边界（原问题就是内容被裁）。
+  // 注意：非当前页的 view 本来就被 translateX 推到屏外的下一屏，
+  // 所以判据是 view 自身右边界，而不是手机屏幕右边界。
+  const views = [...d.querySelectorAll("section.view")];
+  res.info.views = views.length;
+  for (const v of views) {
+    const id = v.id || v.className;
+    const overflowX = v.scrollWidth - v.clientWidth;
+    add(`view#${id} 无横向溢出`, overflowX <= 1, `scrollWidth-clientWidth=${overflowX}`);
+
+    const vr = v.getBoundingClientRect();
+    let worst = null;
+    for (const el of v.querySelectorAll("*")) {
+      const r = el.getBoundingClientRect();
+      if (r.width === 0 && r.height === 0) continue;
+      const over = r.right - vr.right;
+      if (over > 1 && (!worst || over > worst.over)) {
+        worst = { over: Math.round(over), tag: el.tagName.toLowerCase(), cls: (el.className || "").toString().slice(0, 40) };
+      }
+    }
+    add(`view#${id} 内容未越出本页`, !worst, worst ? `最超出 ${worst.over}px @ ${worst.tag}.${worst.cls}` : "ok");
+  }
+
+  // 单品卡片宽度（两列时应约 150–175px，三列时约 105px 会被挤爆）
+  const card = d.querySelector(".item-card");
+  if (card) {
+    const cw = Math.round(card.getBoundingClientRect().width);
+    add("单品卡片宽度 ≥ 140px", cw >= 140, cw + "px");
+  }
+  return res;
+}
+
+let tries = 0;
+function run() {
+  tries++;
+  try {
+    const r = measure();
+    OUT.textContent = "RESULT_JSON:" + JSON.stringify(r);
+  } catch (e) {
+    if (tries < 12) { setTimeout(run, 600); return; }
+    OUT.textContent = "RESULT_JSON:" + JSON.stringify({ fatal: String(e) });
+  }
+}
+fr.addEventListener("load", () => setTimeout(run, 1500));
+setTimeout(run, 3000);
+</script>
+</body>
+</html>

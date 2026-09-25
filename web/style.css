@@ -345,6 +345,76 @@ body {
 }
 .status-msg { font-size: 12px; color: var(--ink-soft); white-space: pre-wrap; }
 
+/* ---------- AI 忙碌指示器 ----------
+   抠底 + VLM 打标动辄几秒到十几秒，以前界面是一张不动的静态面板，
+   和卡死没有区别。这里补上「会转的圈 + 走了多少秒 + 轮播提示」三件套。 */
+.busy-host:empty { display: none; }
+.busy {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+}
+.busy-spin {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  border-radius: 50%;
+  border: 2px solid rgba(139, 111, 168, 0.22);
+  border-top-color: var(--accent);
+  animation: busy-spin 0.8s linear infinite;
+}
+@keyframes busy-spin { to { transform: rotate(360deg); } }
+.busy-body { flex: 1; min-width: 0; }
+.busy-title { font-size: 13px; font-weight: 600; color: var(--ink); }
+.busy-hint { font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
+.busy-hint.busy-slow { color: var(--warn); }
+.busy-timer {
+  flex: 0 0 auto;
+  font-size: 11px;
+  color: var(--linen);
+  font-variant-numeric: tabular-nums;
+}
+.busy-bar {
+  position: relative;
+  margin-top: 8px;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(139, 111, 168, 0.15);
+  overflow: hidden;
+}
+.busy-bar > i {
+  display: block;
+  height: 100%;
+  width: 34%;
+  border-radius: 2px;
+  background: var(--accent);
+  animation: busy-slide 1.3s ease-in-out infinite;
+}
+.busy.busy-fixed .busy-bar > i { animation: none; transition: width 0.3s ease; }
+@keyframes busy-slide {
+  from { transform: translateX(-110%); }
+  to { transform: translateX(330%); }
+}
+
+/* 关掉动画偏好：不转，但计时和提示照常，信息量不减 */
+.busy-still .busy-spin { animation: none; }
+.busy-still .busy-bar > i { animation: none; width: 100%; opacity: 0.35; }
+
+/* 等用户挑图时不是 AI 在跑 —— 停圈、停表，别装作还在算 */
+.busy-wait .busy-spin { animation: none; opacity: 0.45; }
+.busy-wait .busy-bar > i { animation: none; width: 100%; opacity: 0.25; }
+.busy-wait .busy-timer { opacity: 0.5; }
+
+/* 忙的时候别让人再点第二下 */
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.dropzone.disabled { pointer-events: none; opacity: 0.6; }
+.busy-lock { pointer-events: none; opacity: 0.6; }
+
 .manual-panel {
   border: 1px solid var(--line);
   border-radius: var(--radius);

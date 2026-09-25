@@ -160,6 +160,10 @@
             <div class="status-msg"></div>
           </div>
 
+          <!-- AI 在算的时候必须有东西在动：会转的圈 + 走了多少秒 + 现在在干嘛。
+               放在状态面板外面，这样「检查图片」这种还没进状态面板的阶段也能用。 -->
+          <div id="upload-busy" class="busy-host"></div>
+
           <div id="upload-error" class="upload-error hidden"></div>
         </div>
       </div>
@@ -377,6 +381,7 @@
             <img id="result-tarot-img" alt="塔罗牌面" class="hidden" />
             <div class="story-card-placeholder">尚未抽牌</div>
           </div>
+          <div id="result-busy" class="busy-host"></div>
           <div class="story-text" id="result-story">抽一张牌，开始今天的仪式。</div>
           <div class="reason-text" id="result-reason">理由将在这里出现。</div>
           <div class="result-meta" id="result-meta"></div>

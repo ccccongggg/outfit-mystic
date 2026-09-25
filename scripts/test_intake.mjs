@@ -120,5 +120,62 @@ check("A6 absUrl 拼服务端相对路径", app.absUrl("/api/findimg/last/cand_0
 // ---- A7 初始化没有异常 ----
 check("A7 init 期间发起过接口请求", fetchLog.length > 0, fetchLog.length + " 次");
 
+// ---- A8 AI 等待时必须看得见在动 ----
+// 抠底 + VLM 打标几秒到十几秒，界面不能是一张不动的静态面板 —— 和卡死没区别
+const { startBusy, isBusy } = await import(new URL("../web/busy.js", import.meta.url).href);
+const busyHost = window.document.querySelector("#upload-busy");
+check("A8 有专用的忙碌指示器容器", !!busyHost && busyHost.classList.contains("busy-host"));
+
+const bh = startBusy(busyHost, { title: "AI 正在分析…", hints: ["先抠底…", "再打标…"] });
+check(
+  "A8 指示器三件套：转圈 + 计时 + 提示",
+  !!busyHost.querySelector(".busy-spin") &&
+    !!busyHost.querySelector(".busy-timer") &&
+    busyHost.querySelector(".busy-title").textContent === "AI 正在分析…"
+);
+const t1 = busyHost.querySelector(".busy-timer").textContent;
+await new Promise((r) => setTimeout(r, 160));
+const t2 = busyHost.querySelector(".busy-timer").textContent;
+check("A8 计时在往前走（证明没卡死）", t1 !== t2, `${t1} → ${t2}`);
+
+bh.pause("等你挑一张");
+check(
+  "A8 等用户时停表停圈（不装作 AI 还在跑）",
+  busyHost.querySelector(".busy").classList.contains("busy-wait") &&
+    busyHost.querySelector(".busy-title").textContent === "等你挑一张"
+);
+bh.resume("AI 继续…");
+check("A8 恢复后退出等待态", !busyHost.querySelector(".busy").classList.contains("busy-wait"));
+bh.stop();
+check("A8 结束后清干净", busyHost.innerHTML === "" && !isBusy());
+
+// 真实链路：/ingest 慢的时候，指示器要在、重复提交要被挡住
+const origFetch = globalThis.fetch;
+globalThis.fetch = async (url) => {
+  if (String(url).includes("/ingest")) {
+    await new Promise((r) => setTimeout(r, 260));
+    return {
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      json: async () => ({ item: { id: "w9999", cut_ok: true, category: "top" }, tag_ok: true }),
+    };
+  }
+  return origFetch(url);
+};
+const file = new window.File([new Uint8Array([1, 2, 3])], "a.jpg", { type: "image/jpeg" });
+const pUpload = app.handleUpload(file);
+await new Promise((r) => setTimeout(r, 60));
+check(
+  "A8 上传期间指示器在跑",
+  !!busyHost.querySelector(".busy"),
+  busyHost.querySelector(".busy-title")?.textContent || "无指示器"
+);
+check("A8 上传期间挡住重复提交", window.document.querySelector("#btn-confirm").disabled === true);
+await pUpload;
+check("A8 上传结束后指示器收掉", busyHost.innerHTML === "");
+check("A8 按钮恢复可用", window.document.querySelector("#btn-confirm").disabled === false);
+globalThis.fetch = origFetch;
+
 console.log(`\n${ok}/${total} 通过`);
 process.exit(ok === total ? 0 : 1);

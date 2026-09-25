@@ -3,6 +3,7 @@
 import { analyze } from "./engine.js";
 import { install as installOracle } from "./oracle.js";
 import { normalizeItems } from "./vocab.js";
+import { startBusy, withBusy, isBusy } from "./busy.js";
 
 const state = {
   items: [],
@@ -397,6 +398,7 @@ function hidePreview() {
 
 /** 选图后先预览 + 规范检查，确认后才入柜 */
 async function stageFile(file) {
+  if (isBusy()) return; // 上一张还在处理，别把它的指示器抢走
   showUploadError("");
   hidePreview();
   showStatus(false);
@@ -406,14 +408,26 @@ async function stageFile(file) {
     return;
   }
 
-  const check = await validateFile(file);
+  // 读图 + 预判抠底难度要过一遍像素，大图能到几百毫秒。
+  // 这一段以前是完全静默的，看起来就像点了没反应。
+  const b = startBusy($("#upload-busy"), {
+    title: "正在检查这张图…",
+    hints: ["看格式和分辨率够不够…", "预判一下背景好不好抠…"],
+    showBar: false,
+  });
+  let check;
+  let cut;
+  try {
+    check = await validateFile(file);
+    if (check.ok) cut = await analyzeCutDifficulty(file);
+  } finally {
+    if (b) b.stop();
+  }
+
   if (!check.ok) {
     showUploadError("不符合录入规范：\n" + check.issues.join("\n"));
     return;
   }
-
-  // 录入端预检：识别「难以干净抠底」的图片（人物上身照 / 杂乱背景等）
-  const cut = await analyzeCutDifficulty(file);
 
   state.pendingFile = file;
   const panel = $("#preview-panel");
@@ -498,7 +512,7 @@ function openFoundModal(found) {
 }
 
 /** 一步：打标 → 联网搜图 → 人工挑 → 入柜。返回 {result} 或 {cancelled:true} */
-async function runWebSearchPath(prepared) {
+async function runWebSearchPath(prepared, b) {
   setStep("cut", "done");
   setStep("tag", "done");
 
@@ -508,6 +522,8 @@ async function runWebSearchPath(prepared) {
     return { failed: true, message: "这张图没识别出足够标签，无法联网搜同款" };
   }
 
+  // 这一步是「全网检索 + AI 复核」，两个慢活叠在一起，必须让人看见在动
+  b?.title("AI 正在全网找白底同款图…").hint("搜到候选后还要一张张复核，稍等");
   setStatusMsg("正在全网找白底同款图…");
 
   let found = null;
@@ -520,11 +536,15 @@ async function runWebSearchPath(prepared) {
     return { failed: true, message: (found && found.message) || "没找到候选" };
   }
 
+  // 接下来是人在挑，不是 AI 在算 —— 停表停圈，别装作还在跑
+  b?.pause("等你挑一张 · 这些是全网找到的白底图");
   const choice = await openFoundModal(found);
   if (choice === null) {
     showStatus(false);
     return { cancelled: true };
   }
+  b?.resume("正在入柜…");
+  b?.hint(choice ? "用你选中的白底图写入衣橱…" : "用你这张的抠图结果写入衣橱…");
 
   setStatusMsg(choice ? "用选中的白底图入柜…" : "用你这张的抠图结果入柜…");
   const body = { pending: prepared.pending };
@@ -540,74 +560,102 @@ async function runWebSearchPath(prepared) {
 }
 
 async function handleUpload(file) {
-  if (!file) return;
+  if (!file || isBusy()) return;
 
   showStatus(true);
   setStep("cut", "on");
   setStep("tag", "");
   setStep("done", "");
-  setStatusMsg("正在抠底…");
   showUploadError("");
 
-  const mode = state.ingestMode;
+  const dropzone = $("#dropzone");
+  dropzone.classList.add("disabled");
 
-  // 联网找白底图 / 自动：先打标拿结构化标签 → 全网搜同款 → 人挑 → 入柜
-  if ((mode === "web" || mode === "auto") && state.useServer) {
-    let prepared = null;
-    try {
+  await withBusy(
+    $("#upload-busy"),
+    {
+      title: "AI 正在处理这件衣服…",
+      hints: [
+        "先去掉背景，把衣服单独抠出来…",
+        "再看版型：宽松还是合身…",
+        "接着判断主色和材质…",
+        "最后把标签写进衣橱…",
+      ],
+      disable: [$("#btn-confirm"), $("#btn-pick"), $("#btn-camera")],
+    },
+    async (b) => {
+      const mode = state.ingestMode;
+
+      // 联网找白底图 / 自动：先打标拿结构化标签 → 全网搜同款 → 人挑 → 入柜
+      if ((mode === "web" || mode === "auto") && state.useServer) {
+        b.title("AI 正在看你这件衣服…").hint("先读出品类、颜色和版型，才好去全网找同款");
+        setStatusMsg("正在识别这件衣服…");
+
+        let prepared = null;
+        try {
+          const form = new FormData();
+          form.append("file", file);
+          prepared = await fetchJSON("/api/prepare", { method: "POST", body: form });
+        } catch (err) {
+          prepared = null; // 后台版本旧或不可达 → 走原来的抠图路径
+        }
+
+        if (prepared && prepared.pending) {
+          const r = await runWebSearchPath(prepared, b);
+          if (r.result) {
+            await finishIngest(r.result, false);
+            return;
+          }
+          if (r.cancelled) return;
+          // 搜图没找到：直接把刚打完标的那张入柜（等价于抠底路径），不重复传文件
+          b.title("正在入柜…").hint("联网没找到可信的白底图，改用你这张的抠图结果");
+          setStatusMsg(`联网没找到可信的白底图（${r.message}）· 改用你这张的抠图结果…`);
+          try {
+            const res = await postJSON("/api/commit", { pending: prepared.pending });
+            await finishIngest(res, false);
+            return;
+          } catch {
+            /* commit 失败 → 落到下面的 /ingest 原路径 */
+          }
+        }
+        b.hint("联网搜图不可用，回落 AI 抠图…");
+        setStatusMsg("联网搜图不可用，回落 AI 抠图…");
+      }
+
+      b.title("AI 正在抠底…").hint("把背景去掉，只留下这件衣服");
+      setStatusMsg("正在抠底…");
+
       const form = new FormData();
       form.append("file", file);
-      prepared = await fetchJSON("/api/prepare", { method: "POST", body: form });
-    } catch (err) {
-      prepared = null; // 后台版本旧或不可达 → 走原来的抠图路径
-    }
 
-    if (prepared && prepared.pending) {
-      const r = await runWebSearchPath(prepared);
-      if (r.result) {
-        await finishIngest(r.result, false);
-        return;
-      }
-      if (r.cancelled) return;
-      // 搜图没找到：直接把刚打完标的那张入柜（等价于抠底路径），不重复传文件
-      setStatusMsg(`联网没找到可信的白底图（${r.message}）· 改用你这张的抠图结果…`);
+      let result;
       try {
-        const res = await postJSON("/api/commit", { pending: prepared.pending });
-        await finishIngest(res, false);
-        return;
-      } catch {
-        /* commit 失败 → 落到下面的 /ingest 原路径 */
+        result = await fetchJSON("/ingest", { method: "POST", body: form });
+        setStep("cut", result.item?.cut_ok ? "done" : "on");
+        setStep("tag", "on");
+        setStatusMsg(result.tag_ok ? "打标完成，正在入柜…" : "VLM 不可用，准备手动标签…");
+      } catch (err) {
+        // 后台不可达 → 本地入柜，保证列表有反馈
+        setStep("cut", "");
+        b.title("后台连不上，改本地入柜…").hint("不调模型，直接入柜，标签由你手动补");
+        setStatusMsg(`后台不可用（${err.message}）\n正在本地入柜…`);
+        try {
+          result = await localIngest(file);
+          setStep("cut", "");
+          setStep("tag", "on");
+        } catch (e2) {
+          setStatusMsg(`入柜失败：${e2.message}`);
+          showStatus(false);
+          showUploadError(`确认入柜失败：${err.message}\n请先启动后台：在 outfit-mystic 目录执行 python server/app.py`);
+          return;
+        }
       }
+
+      await finishIngest(result, result.local);
     }
-    setStatusMsg("联网搜图不可用，回落 AI 抠图…");
-  }
+  );
 
-  const form = new FormData();
-  form.append("file", file);
-
-  let result;
-  try {
-    result = await fetchJSON("/ingest", { method: "POST", body: form });
-    setStep("cut", result.item?.cut_ok ? "done" : "on");
-    setStep("tag", "on");
-    setStatusMsg(result.tag_ok ? "打标完成，正在入柜…" : "VLM 不可用，准备手动标签…");
-  } catch (err) {
-    // 后台不可达 → 本地入柜，保证列表有反馈
-    setStep("cut", "");
-    setStatusMsg(`后台不可用（${err.message}）\n正在本地入柜…`);
-    try {
-      result = await localIngest(file);
-      setStep("cut", "");
-      setStep("tag", "on");
-    } catch (e2) {
-      setStatusMsg(`入柜失败：${e2.message}`);
-      showStatus(false);
-      showUploadError(`确认入柜失败：${err.message}\n请先启动后台：在 outfit-mystic 目录执行 python server/app.py`);
-      return;
-    }
-  }
-
-  await finishIngest(result, result.local);
+  dropzone.classList.remove("disabled");
 }
 
 /** 入柜收尾：刷新列表 → 更新步骤条 → 需要时开手动补标 */
@@ -636,7 +684,10 @@ async function finishIngest(result, local) {
 
   // 让用户立刻看到新单品
   const grid = $("#item-grid");
-  grid?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  // scrollIntoView 在 jsdom / 老 WebView 里可能不存在，别让它把入柜成功的结果一起带走
+  if (grid && typeof grid.scrollIntoView === "function") {
+    grid.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
 
   setTimeout(() => showStatus(false), 2400);
 }
@@ -762,31 +813,47 @@ async function ingestSample(id) {
   showUploadError("");
 
   if (state.useServer) {
+    if (isBusy()) return;
     showStatus(true);
     setStep("cut", "on");
     setStep("tag", "");
     setStep("done", "");
     setStatusMsg("示例图正在抠底…");
-    try {
-      const r = await fetchJSON("/api/ingest_sample", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id }),
-      });
-      setStep("cut", r.item?.cut_ok ? "done" : "on");
-      setStep("tag", "on");
-      await loadItems();
-      setStep("tag", r.tag_ok ? "done" : "");
-      setStep("done", "done");
-      setStatusMsg(
-        `已入柜 ✓ ${r.item?.color_name || ""}${r.item?.type || ""}（${r.tag_ok ? "AI 打标" : "预置标签"}）`
-      );
-    } catch (err) {
-      showStatus(false);
-      showUploadError(`示例入柜失败：${err.message}`);
-      return;
-    }
-    setTimeout(() => showStatus(false), 2200);
+
+    const row = $("#sample-row");
+    row?.classList.add("busy-lock");
+
+    await withBusy(
+      $("#upload-busy"),
+      {
+        title: "AI 正在处理这张示例图…",
+        hints: ["先去掉背景…", "再识别品类、颜色和版型…", "写入衣橱…"],
+      },
+      async () => {
+        try {
+          const r = await fetchJSON("/api/ingest_sample", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id }),
+          });
+          setStep("cut", r.item?.cut_ok ? "done" : "on");
+          setStep("tag", "on");
+          await loadItems();
+          setStep("tag", r.tag_ok ? "done" : "");
+          setStep("done", "done");
+          setStatusMsg(
+            `已入柜 ✓ ${r.item?.color_name || ""}${r.item?.type || ""}（${r.tag_ok ? "AI 打标" : "预置标签"}）`
+          );
+        } catch (err) {
+          showStatus(false);
+          showUploadError(`示例入柜失败：${err.message}`);
+          return;
+        }
+        setTimeout(() => showStatus(false), 2200);
+      }
+    );
+
+    row?.classList.remove("busy-lock");
     return;
   }
 
@@ -1300,15 +1367,35 @@ async function runRecommend() {
     switchView("home");
     return;
   }
-  // 一次性算完：选款 + 逐件匹配度 + 整套分数
+  if (isBusy()) return;
+
+  // 规则选款是同步的、很快；慢的是后面那句 AI 文案
   const a = analyze(state.items, state.constraint);
-  const reason = await writeReason(
-    state.constraint.story || "今天适合温柔地对待自己",
-    a.picks,
-    state.constraint.vibe || ""
-  );
-  renderResult(a, reason);
+
+  // 先切到结果页再等，否则用户点了按钮原地没反应，还以为没点上
   switchView("result");
+  $("#match-summary")?.classList.add("hidden");
+  $("#result-reason").textContent = "AI 正在写今天这句理由…";
+
+  const reason = await withBusy(
+    $("#result-busy"),
+    {
+      title: "AI 正在写今天这句理由…",
+      hints: ["把牌义和这套衣服对上…", "挑一个能说出口的说法…"],
+      disable: [$("#btn-run"), $("#btn-reroll")],
+      busyText: "AI 正在写…",
+      // 没接后台时理由是本地模板拼的，瞬间就完事 —— 那就别假装等过
+      minVisible: state.useServer ? 420 : 0,
+    },
+    () =>
+      writeReason(
+        state.constraint.story || "今天适合温柔地对待自己",
+        a.picks,
+        state.constraint.vibe || ""
+      )
+  );
+
+  renderResult(a, reason);
 }
 
 /**

@@ -177,5 +177,74 @@ check("A8 上传结束后指示器收掉", busyHost.innerHTML === "");
 check("A8 按钮恢复可用", window.document.querySelector("#btn-confirm").disabled === false);
 globalThis.fetch = origFetch;
 
+// ---- A9 结果页四格：不能留下「说不清为什么是空的」那一格 ----
+// 截图那个 bug：连衣裙被选中却没格可放（上衣写「待选」），
+// 天气判定不用外套也写「待选」——用户分不清「没选到」和「坏了」。
+const wardrobe = JSON.parse(fs.readFileSync(path.join(ROOT, "web", "data", "items.json"), "utf-8"));
+app.state.items = wardrobe;
+
+const slotOf = (k) => window.document.querySelector(`.slot-${k}`);
+const labelOf = (k) => slotOf(k).querySelector(".slot-label").textContent;
+const imgOf = (k) => slotOf(k).querySelector(".slot-img");
+const emptyOf = (k) => slotOf(k).querySelector(".slot-empty");
+const noteOf = (k) => slotOf(k).querySelector(".slot-note");
+const sampleOf = (k) => slotOf(k).querySelector(".slot-sample");
+
+// ① 天气说不用外套（上海 21℃ · 单层就够）
+app.state.constraint = {
+  source: "tarot", src: { board: "抽取式", label: "塔罗 · 星星", color: "#534AB7" },
+  style_tags: ["温柔", "简约"], must_colors: ["奶油白"], avoid_colors: ["黑"],
+  season: ["春", "秋"], must_categories: ["top", "bottom", "shoes"],
+  weather: "多云", thickness: "单层就够", story: "", vibe: "",
+};
+app.renderResult(app.analyze(wardrobe, app.state.constraint), "星星说今天适合柔和地出门");
+
+check("A9 连衣裙画进上衣格（不再是空的）", !imgOf("top").classList.contains("hidden"), imgOf("top").getAttribute("alt"));
+check("A9 上衣格标题改成「连衣裙」", labelOf("top") === "连衣裙", labelOf("top"));
+check(
+  "A9 下装说明是「连衣裙自带」而不是「待选」",
+  emptyOf("bottom").textContent.includes("连衣裙自带下装") && !noteOf("bottom").classList.contains("hidden"),
+  emptyOf("bottom").textContent
+);
+check("A9 鞋格有真图", !imgOf("shoes").classList.contains("hidden"));
+check(
+  "A9 不用外套 → 写清原因而不是「待选」",
+  emptyOf("outer").textContent.includes("今天不用外套") && noteOf("outer").textContent.includes("单层就够"),
+  `${emptyOf("outer").textContent} / ${noteOf("outer").textContent}`
+);
+check("A9 不用外套的格子标成 off", slotOf("outer").classList.contains("slot-off"));
+check(
+  "A9 meta 把「今天不用」和「缺件」分开说",
+  !window.document.querySelector("#result-meta").textContent.includes("缺 1 件槽位"),
+  window.document.querySelector("#result-meta").textContent.split("\n")[1] || ""
+);
+
+// ② 衣橱里真挑不出外套：给一张示例卡，不许只留「待选」
+app.state.constraint = {
+  source: "tarot", src: { board: "抽取式", label: "塔罗 · 月亮", color: "#534AB7" },
+  style_tags: ["通勤"], season: ["春", "秋"], avoid_colors: ["卡其", "黑"],
+  must_categories: ["top", "bottom", "shoes", "outer"], story: "", vibe: "",
+};
+app.renderResult(app.analyze(wardrobe, app.state.constraint), "月亮说今天走安静路线");
+
+check("A9 挑不出时格子标成 blank", slotOf("outer").classList.contains("slot-blank"));
+check("A9 挑不出时给示例卡", !sampleOf("outer").classList.contains("hidden"));
+check("A9 示例卡写明是「示例」", sampleOf("outer").querySelector(".sample-badge").textContent === "示例");
+check(
+  "A9 示例卡有具体单品名（不是占位装饰）",
+  !!sampleOf("outer").querySelector(".sample-name").textContent.trim(),
+  sampleOf("outer").querySelector(".sample-name").textContent
+);
+check(
+  "A9 meta 说明该格是示例",
+  window.document.querySelector("#result-meta").textContent.includes("该格显示的是示例"),
+  window.document.querySelector("#result-meta").textContent.split("\n").find((l) => l.includes("衣橱里缺")) || ""
+);
+check(
+  "A9 示例不踩避雷色（约束避开卡其，示例就不能是卡其）",
+  !sampleOf("outer").querySelector(".sample-name").textContent.includes("卡其"),
+  sampleOf("outer").querySelector(".sample-name").textContent
+);
+
 console.log(`\n${ok}/${total} 通过`);
 process.exit(ok === total ? 0 : 1);

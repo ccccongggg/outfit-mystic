@@ -671,6 +671,51 @@ body {
   letter-spacing: 0.2em;
   font-size: 13px;
 }
+/* 空格的说明行：讲清楚「为什么这一格是空的」，不许只留一句「待选」让人猜 */
+.slot-note {
+  position: absolute;
+  left: 12px; right: 12px; bottom: 10px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  text-align: center;
+}
+/* 今天不需要这一格（天气判定）：淡出，但不藏起来 */
+.slot-off {
+  background: #fbfaf7;
+  border-style: dotted;
+}
+.slot-off .slot-empty { color: #aaa59b; letter-spacing: 0.12em; }
+/* 衣橱里挑不出：给示例卡 */
+.slot-blank {
+  background: #f7f6f2;
+  border-color: #d8d3c6;
+}
+.slot-sample {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 12px 14px 38px;
+  text-align: center;
+}
+.sample-badge {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--ink-soft);
+  background: var(--paper-2);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+.sample-swatch {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(43, 36, 48, 0.12);
+  margin: 2px 0;
+}
+.sample-name { font-size: 12px; font-weight: 600; }
+.sample-why { font-size: 11px; color: var(--ink-soft); line-height: 1.5; }
+.sample-tip { font-size: 10px; color: var(--linen); }
 @keyframes rise {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: none; }

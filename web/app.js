@@ -2,7 +2,7 @@
 // 引擎：analyze = 选款 + 逐件匹配度 + 整套分数；recommend / itemsByIds 仍可从 engine.js 单独引入
 import { analyze } from "./engine.js";
 import { install as installOracle } from "./oracle.js";
-import { normalizeItems } from "./vocab.js";
+import { normalizeItems, styleHit, colorHit } from "./vocab.js";
 import { startBusy, withBusy, isBusy } from "./busy.js";
 
 const state = {
@@ -14,6 +14,8 @@ const state = {
   pendingManualId: null,
   useServer: true,
   pendingFile: null,
+  // 结果页四格的示例卡（data/slot-samples.json；断网用内置兜底）
+  slotSamples: null,
   // 入柜方式：cut=本地抠底（默认） / web=联网找白底图 / auto=先联网，失败回落抠图
   ingestMode: "cut",
   // 风格选择（三种方式共用一份结果）
@@ -779,6 +781,73 @@ async function loadSamples() {
   renderSampleRow();
 }
 
+// ===== 结果页四格的示例卡 =====
+// 衣橱里挑不出某一格时，那一格不能只写「待选」——用户分不清「没选到」和「坏了」。
+// 给一张示例卡说明这一格应该长什么样，并明确标注「示例」，不许冒充血柜里的东西。
+const SLOT_SAMPLES_FALLBACK = {
+  top: [
+    { type: "米白针织开衫", color_name: "米白", color_hex: "#EDE6DA", style_tags: ["温柔", "简约"], why: "上身软一点，什么下装都压得住" },
+    { type: "纯白衬衫", color_name: "纯白", color_hex: "#F5F4F1", style_tags: ["通勤", "简约"], why: "最稳的一件，配裙子配裤子都不挑" },
+  ],
+  bottom: [
+    { type: "直筒长裤", color_name: "雾灰", color_hex: "#A8B0B8", style_tags: ["简约", "通勤"], why: "直筒显腿直，颜色跟鞋接近就不出错" },
+    { type: "A 字半身裙", color_name: "燕麦", color_hex: "#D8CBB6", style_tags: ["温柔", "文艺"], why: "A 字版型收腰，上身宽松也能压住" },
+  ],
+  shoes: [
+    { type: "乐福鞋", color_name: "米白", color_hex: "#EDE8DC", style_tags: ["通勤", "简约"], why: "白鞋收尾，整套亮一个度" },
+    { type: "小白鞋", color_name: "纯白", color_hex: "#F5F4F1", style_tags: ["简约", "运动"], why: "什么风格都能配，走路也舒服" },
+  ],
+  outer: [
+    { type: "卡其风衣", color_name: "卡其", color_hex: "#B8895A", style_tags: ["通勤", "复古"], why: "穿脱都在线，秋天最好用的一件" },
+    { type: "短款夹克", color_name: "炭灰", color_hex: "#4A4A4E", style_tags: ["简约", "运动"], why: "短款落在腰线上，比例直接好看一档" },
+  ],
+};
+
+async function loadSlotSamples() {
+  state.slotSamples = null;
+  try {
+    const res = await fetch("data/slot-samples.json");
+    const j = await res.json();
+    if (j && j.slots) {
+      state.slotSamples = j.slots;
+      return;
+    }
+  } catch {
+    /* 读不到就用内置兜底 */
+  }
+  state.slotSamples = null;
+}
+
+/**
+ * 挑一件示例：
+ *   ① 先剔掉踩避雷色的（约束说别穿卡其，示例就不能是卡其）
+ *   ② 剩下的按「风格对得上 / 主色对得上」排个序
+ *   ③ 都对不上就轮着来，别每次都是同一张
+ */
+function pickSample(cat) {
+  const src = (state.slotSamples && state.slotSamples[cat]) || SLOT_SAMPLES_FALLBACK[cat] || [];
+  if (!src.length) return null;
+  const c = state.constraint || {};
+  const avoid = c.avoid_colors || [];
+  const want = c.style_tags || [];
+  const must = c.must_colors || [];
+
+  let pool = avoid.length ? src.filter((s) => !colorHit(s.color_name, avoid)) : src.slice();
+  if (!pool.length) pool = src.slice();
+
+  const scored = pool
+    .map((s) => {
+      let n = styleHit(s.style_tags, want).length * 2;
+      if (must.length && colorHit(s.color_name, must)) n += 3;
+      return { s, n };
+    })
+    .sort((a, b) => b.n - a.n);
+
+  if (scored.length && scored[0].n > 0) return scored[0].s;
+  state.sampleTick = (state.sampleTick || 0) + 1;
+  return pool[state.sampleTick % pool.length];
+}
+
 function renderSampleRow() {
   const row = $("#sample-row");
   if (!row) return;
@@ -1243,7 +1312,7 @@ function renderMatchPanel(a) {
     <div class="match-note">${
       a.missing.length
         ? `衣橱里缺 ${a.missing.map(catName).join(" / ")}，整套不完整（已扣分）`
-        : "三件套齐全 · 全部来自你衣橱里的真实单品"
+        : `${a.picks.length} 件齐全 · 全部来自你衣橱里的真实单品`
     }${a.harmony.length ? " ｜ " + a.harmony.join("；") : ""}</div>
     <div class="match-list">${bars || '<div class="muted">没有可匹配的单品</div>'}</div>`;
 }
@@ -1256,17 +1325,15 @@ function catName(cat) {
 function renderLogic(a, reason) {
   const panel = $("#logic-panel");
   if (!panel) return;
-  const SLOT_LABEL = { top: "上装", bottom: "下装", shoes: "鞋", outer: "外套", dress: "连衣裙" };
-  const catOf = (p) => p.category_std || p.category;
-  const bySlot = (c) => a.picks.find((p) => catOf(p) === c);
-  const onepiece = a.picks.some((p) => catOf(p) === "dress");
-  const slotLine = ["top", "bottom", "shoes", "outer"]
-    .map((c) => {
-      if (onepiece && c === "bottom") return null;
-      const p = bySlot(c);
-      return `${SLOT_LABEL[c]} ${p ? `${p.color_name}·${p.type}` : "—"}`;
+  // 槽位口径跟结果页四格一致（连衣裙算上衣格、连身自带算 skip），不再各自判断一遍
+  const slotLine = (a.slots || [])
+    .filter((s) => s.state === "on" || s.state === "skip")
+    .map((s) => {
+      if (s.state === "skip") return `${s.label} 连衣裙自带`;
+      const p = s.item;
+      const name = s.why && s.why.code === "onepiece" ? "连衣裙" : s.label;
+      return `${name} ${p ? `${p.color_name || ""}·${p.type || ""}` : "—"}`;
     })
-    .filter(Boolean)
     .join(" ／ ");
   const lines = [];
   lines.push(
@@ -1285,40 +1352,110 @@ function renderLogic(a, reason) {
   panel.innerHTML = `<h2>搭配逻辑</h2><ol class="logic-list">${lines.join("")}</ol>`;
 }
 
+const SLOT_SEL = {
+  top: ".slot-top",
+  bottom: ".slot-bottom",
+  shoes: ".slot-shoes",
+  outer: ".slot-outer",
+};
+
+/**
+ * 一格一格画。四种状态必须分开表达 —— 之前全写「待选」，
+ * 于是「连衣裙被选中但没格可放」和「今天本来就不穿外套」长得一模一样。
+ */
+function drawSlot(s) {
+  const root = $(SLOT_SEL[s.k]);
+  if (!root) return;
+  const labelEl = root.querySelector(".slot-label");
+  const img = root.querySelector(".slot-img");
+  const empty = root.querySelector(".slot-empty");
+  const note = root.querySelector(".slot-note");
+  const sample = root.querySelector(".slot-sample");
+
+  // 老 HTML 缓存可能没有 note/sample 节点，一律可选链，别因为少个节点整页报错
+  root.classList.remove("slot-off", "slot-blank");
+  img?.classList.add("hidden");
+  empty?.classList.add("hidden");
+  note?.classList.add("hidden");
+  if (note) note.textContent = "";
+  sample?.classList.add("hidden");
+  if (sample) sample.innerHTML = "";
+
+  const one = s.why && s.why.code === "onepiece";
+
+  // ① 有真单品：连衣裙占上衣格时，标题也要跟着改成「连衣裙」，
+  //    否则用户看到「上衣」下面摆着一条整裙，会以为放错了。
+  if (s.state === "on" && s.item) {
+    if (labelEl) labelEl.textContent = one ? "连衣裙" : s.label;
+    if (img) {
+      img.src = imgSrc(s.item.image);
+      img.alt = s.item.type || s.label;
+      img.classList.remove("hidden");
+    }
+    return;
+  }
+  if (labelEl) labelEl.textContent = s.label;
+
+  // ② 连身单品自带下装：不是缺件，是不需要
+  if (s.state === "skip") {
+    if (empty) {
+      empty.textContent = "连衣裙自带下装";
+      empty.classList.remove("hidden");
+    }
+    if (note) {
+      note.textContent = "上身那件一件到底，不用再配下装";
+      note.classList.remove("hidden");
+    }
+    return;
+  }
+
+  // ③ 今天不需要（天气说的）：说明原因，别让人以为没跑到
+  if (s.state === "off") {
+    root.classList.add("slot-off");
+    if (empty) {
+      empty.textContent = `今天不用${s.label}`;
+      empty.classList.remove("hidden");
+    }
+    const w = s.why || {};
+    const wt = [w.weather, w.thickness].filter(Boolean).join(" · ");
+    if (note) {
+      note.textContent = wt ? `${wt} —— 天气判定不用，非要加也行` : "今天不需要这一格";
+      note.classList.remove("hidden");
+    }
+    return;
+  }
+
+  // ④ 衣橱里挑不出：给一张示例卡，撑住版面也说明该长什么样
+  root.classList.add("slot-blank");
+  const ex = pickSample(s.k);
+  if (ex && sample) {
+    sample.innerHTML = `
+      <div class="sample-badge">示例</div>
+      <div class="sample-swatch" style="background:${esc(ex.color_hex || "#E5E5EA")}"></div>
+      <div class="sample-name">${esc(ex.color_name || "")} · ${esc(ex.type || "")}</div>
+      <div class="sample-why">${esc(ex.why || "")}</div>
+      <div class="sample-tip">你衣橱里还没有这类，先照这个感觉来</div>`;
+    sample.classList.remove("hidden");
+  } else if (empty) {
+    empty.textContent = `${s.label}还没选出来`;
+    empty.classList.remove("hidden");
+  }
+  if (note) {
+    note.textContent = "衣橱里暂时挑不出这一类，可以上传补充";
+    note.classList.remove("hidden");
+  }
+}
+
 function renderResult(a, reason) {
   const picked = a.picks;
   const pickedIds = picked.map((p) => p.id);
-  const byCat = {};
-  for (const it of picked) byCat[it.category_std || it.category] = it;
 
-  // 参考稿口径：上装 + 下装 + 鞋 + 外套，固定出 4 件
-  const slots = [
-    ["top", ".slot-top"],
-    ["bottom", ".slot-bottom"],
-    ["shoes", ".slot-shoes"],
-    ["outer", ".slot-outer"],
-  ];
-  const onepiece = picked.some((p) => (p.category_std || p.category) === "dress");
-
-  let filled = 0;
-  for (const [cat, sel] of slots) {
-    const root = $(sel);
-    if (!root) continue;
-    const img = root.querySelector(".slot-img");
-    const empty = root.querySelector(".slot-empty");
-    const it = byCat[cat];
-    if (it) {
-      img.src = imgSrc(it.image);
-      img.alt = it.type || cat;
-      img.classList.remove("hidden");
-      empty.classList.add("hidden");
-      filled += 1;
-    } else {
-      img.classList.add("hidden");
-      empty.classList.remove("hidden");
-      empty.textContent = onepiece && cat === "bottom" ? "连衣裙自带下装" : "待选";
-    }
-  }
+  // 四格状态由引擎给（on / skip / off / empty），UI 只负责表达，不自己判断
+  const slots = a.slots || [];
+  for (const s of slots) drawSlot(s);
+  const offLabels = slots.filter((s) => s.state === "off").map((s) => s.label);
+  const skipLabels = slots.filter((s) => s.state === "skip").map((s) => s.label);
+  const emptyLabels = slots.filter((s) => s.state === "empty").map((s) => s.label);
 
   // 来源徽章：这一套是从哪个入口来的
   const badge = $("#result-source");
@@ -1332,10 +1469,12 @@ function renderResult(a, reason) {
     }
   }
 
-  const missing = slots.length - filled;
   const meta = [];
   meta.push(`选中 ${picked.length} 件 · 全部来自衣橱真实 id`);
-  if (missing > 0) meta.push(`缺 ${missing} 件槽位，允许成套不完整`);
+  // 「今天不用」和「衣橱里没有」是两码事，分开说，别混成一句「缺 N 件」
+  if (offLabels.length) meta.push(`今天不用：${offLabels.join("、")}（天气判定，不是缺件）`);
+  if (skipLabels.length) meta.push(`${skipLabels.join("、")}：连衣裙自带，不用另配`);
+  if (emptyLabels.length) meta.push(`衣橱里缺：${emptyLabels.join("、")}（该格显示的是示例）`);
   meta.push(picked.map((i) => `${i.color_name || ""}${i.type || ""}(${i.id})`).join(" · "));
 
   $("#result-reason").textContent = reason;
@@ -1593,12 +1732,16 @@ function bind() {
 // 测试钩子：jsdom 冒烟测试（scripts/test_intake.mjs）需要直接拿到这些内部函数。
 // 只读引用，不改变任何业务行为。
 if (typeof window !== "undefined") {
-  window.__outfitApp = { state, setIngestMode, openFoundModal, esc, hostOf, absUrl, handleUpload, finishIngest };
+  window.__outfitApp = {
+    state, setIngestMode, openFoundModal, esc, hostOf, absUrl, handleUpload, finishIngest,
+    // 结果页四格：jsdom 里真跑一遍，验证「连衣裙进上衣格 / 今天不用外套 / 示例卡」的渲染
+    analyze, renderResult, drawSlot, pickSample,
+  };
 }
 
 async function init() {
   bind();
-  await Promise.all([loadItems(), loadTarot()]);
+  await Promise.all([loadItems(), loadTarot(), loadSlotSamples()]);
   await loadSamples();      // 无素材时的内置示例图
   renderStyleControls();    // 风格选择的三种方式
 

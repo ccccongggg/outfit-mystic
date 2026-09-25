@@ -5,7 +5,8 @@
 //   recommend(items, constraint) -> string[]       逐槽位取最高分单品 id
 //   itemsByIds(items, ids)       -> object[]       按 id 取回单品
 //   matchScore(item, constraint) -> {score, reasons}   单件与风格的匹配度
-//   analyze(items, constraint)   -> {picks, perItem, outfitScore, missing}  整套匹配分析
+//   slotStates(picks, constraint) -> object[]          结果页四格的状态（on/skip/off/empty）
+//   analyze(items, constraint)   -> {picks, perItem, outfitScore, missing, slots}  整套匹配分析
 //
 // constraint 可扩展字段（缺省都按「不限制」处理，便于后续接入更多入口）：
 //   must_colors / avoid_colors / style_tags / season / occasions
@@ -21,6 +22,17 @@ import { colorHit, styleHit, categoryOf } from "./vocab.js";
 /** 默认四件套：上装 + 下装 + 鞋 + 外套。连衣裙占用「上装」槽位。 */
 export const DEFAULT_SLOTS = ["top", "bottom", "shoes", "outer"];
 
+/**
+ * 结果页那四格的固定定义 —— 顺序就是 UI 顺序。
+ * accepts 表示这一格能放哪些品类：连衣裙和上衣抢同一个上身格。
+ */
+export const SLOT_DEF = [
+  { k: "top", label: "上衣", accepts: ["top", "dress"] },
+  { k: "bottom", label: "下装", accepts: ["bottom"] },
+  { k: "shoes", label: "鞋", accepts: ["shoes"] },
+  { k: "outer", label: "外套", accepts: ["outer"] },
+];
+
 /** 槽位 → 允许的单品品类。连衣裙和上衣抢同一个上身槽。 */
 const SLOT_MAP = {
   top: ["top", "dress"],
@@ -35,6 +47,50 @@ const SLOT_MAP = {
 /** 连身单品判定：连衣裙/连体裤自带下装，选中后不再另配 bottom。 */
 export function isOnepiece(item) {
   return categoryOf(item) === "dress";
+}
+
+/**
+ * 四格的最终状态 —— 结果页只认这个，别再自己写死「四格都画、空的就写待选」。
+ *
+ *   on      这一格有真单品（连衣裙落在上衣格）
+ *   skip    连身单品自带下装，本来就不用配
+ *   off     今天不需要这一格（天气判定不用外套）—— 不是缺件，是刻意不要
+ *   empty   需要、但衣橱里挑不出来 —— 只有这种才该提示补货 / 给示例
+ *
+ * 之前 UI 自己硬编码四格，于是「连衣裙被选中但没格可放」和「今天不用外套」
+ * 都表现成一句「待选」，看起来像坏了。
+ */
+export function slotStates(picks, constraint) {
+  const c = constraint || {};
+  const cats = c.must_categories || DEFAULT_SLOTS;
+  const list = picks || [];
+  const onepiece = list.some(isOnepiece);
+  return SLOT_DEF.map((d) => {
+    const item = list.find((p) => d.accepts.includes(categoryOf(p))) || null;
+    if (item) {
+      return {
+        k: d.k,
+        label: d.label,
+        state: "on",
+        item,
+        // 上衣格被连衣裙占住时单独标出来，UI 才能把标题改成「连衣裙」
+        why: isOnepiece(item) ? { code: "onepiece" } : null,
+      };
+    }
+    if (onepiece && d.k === "bottom") {
+      return { k: d.k, label: d.label, state: "skip", item: null, why: { code: "onepiece" } };
+    }
+    if (!cats.includes(d.k)) {
+      return {
+        k: d.k,
+        label: d.label,
+        state: "off",
+        item: null,
+        why: { code: "not_required", weather: c.weather || null, thickness: c.thickness || null },
+      };
+    }
+    return { k: d.k, label: d.label, state: "empty", item: null, why: { code: "no_candidate" } };
+  });
 }
 
 export function recommend(items, constraint) {
@@ -224,12 +280,9 @@ export function analyze(items, constraint) {
   const ids = recommend(items, constraint);
   const picks = itemsByIds(items, ids);
   const perItem = picks.map((it) => ({ item: it, ...matchScore(it, constraint) }));
-  const cats = constraint.must_categories || DEFAULT_SLOTS;
-  // 连身单品自带下装 → bottom 不算缺失（否则会被当缺件扣分）
-  const onepiece = picks.some(isOnepiece);
-  const missing = cats.filter(
-    (c) => !picks.some((p) => p.category === c) && !(onepiece && c === "bottom")
-  );
+  // 四格状态是唯一口径：连衣裙自带下装算 skip，天气判定的 off 不算缺件
+  const slots = slotStates(picks, constraint);
+  const missing = slots.filter((s) => s.state === "empty").map((s) => s.k);
 
   const base = perItem.length
     ? perItem.reduce((a, b) => a + b.score, 0) / perItem.length
@@ -238,5 +291,5 @@ export function analyze(items, constraint) {
   const bonus = notes.reduce((a, b) => a + b.v, 0);
   const outfitScore = Math.max(0, Math.min(100, Math.round(base + bonus - missing.length * 12)));
 
-  return { picks, perItem, outfitScore, missing, harmony: notes.map((n) => n.why) };
+  return { picks, perItem, outfitScore, missing, harmony: notes.map((n) => n.why), slots };
 }

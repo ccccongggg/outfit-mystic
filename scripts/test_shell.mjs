@@ -54,6 +54,15 @@ check("业务 main 已搬进屏内", !!main && !!main.closest(".phone-viewport")
 const topbar = document.querySelector(".topbar");
 check("顶栏已搬进屏内（导航交给底部 Tab）", !!topbar && !!topbar.closest(".phone-screen"));
 
+// 业务侧的固定定位弹窗必须脱离 main.shell：main 是被 transform 拉成 400% 宽的横向轨道，
+// 有 transform 的祖先会成为 position:fixed 的包含块，弹窗会按 4 倍屏宽铺开。
+const modal = document.querySelector("#found-modal");
+check(
+  "候选弹窗已脱离 main 轨道（搬到 viewport 下）",
+  !!modal && !!modal.closest(".phone-viewport") && !modal.closest("main.shell"),
+  modal ? "父级 ." + modal.parentElement.className : "未找到弹窗"
+);
+
 const tabs = [...document.querySelectorAll(".phone-tab")];
 check("底部 Tab 数量 = 导航项数", tabs.length === document.querySelectorAll(".nav-btn").length, `${tabs.length} 个`);
 check("Tab 文案正确", tabs.map((t) => t.textContent.trim()).join("/") === "衣橱/风格/入口/结果", tabs.map((t) => t.textContent.trim()).join("/"));
@@ -79,6 +88,11 @@ check("退出后移除 phone-mode", !root.classList.contains("phone-mode"));
 check("退出后 main 回到 body", main.parentElement === document.body);
 check("退出后外壳已卸载", !document.querySelector(".phone-stage"));
 check("退出后出现浮动入口", !!document.querySelector(".phone-toggle.float"));
+check(
+  "退出后候选弹窗放回业务 DOM（不随外壳被删）",
+  !!modal && !!modal.closest("main.shell") && document.body.contains(modal),
+  modal ? "父级 ." + modal.parentElement.className : "丢失"
+);
 
-console.log(`\n${ok}/15 通过`);
-process.exit(ok === 15 ? 0 : 1);
+console.log(`\n${ok}/17 通过`);
+process.exit(ok === 17 ? 0 : 1);

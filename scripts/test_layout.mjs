@@ -81,6 +81,21 @@ for (const [sel, want] of expected) {
   check(`覆盖 ${sel}`, !!m && body.includes("grid-template-columns: " + want), body.includes("grid-template-columns") ? body.match(/grid-template-columns:[^;]*/)[0] : "无该声明");
 }
 
+// 3.5) 候选弹窗：必须改成 absolute 铺满屏内，且不能再用 vh 单位
+// （外壳是 scale 缩放的，100vh 永远等于桌面视口高度，卡片会按 4 倍屏宽错位）
+{
+  const flat = css.replace(/\s+/g, " ");
+  const m = css.match(/\.phone-mode \.found-modal\s*\{([^}]*)\}/);
+  const body = m ? m[1].replace(/\s+/g, " ") : "";
+  check("弹窗改为 absolute 定位", /position: absolute/.test(body), body.match(/position:[^;]*/)?.[0] || "无 position");
+  check("弹窗铺满屏内 inset:0", /inset: 0/.test(body), body.match(/inset:[^;]*/)?.[0] || "无 inset");
+  const card = css.match(/\.phone-mode \.found-card\s*\{([^}]*)\}/);
+  const cardBody = card ? card[1].replace(/\s+/g, " ") : "";
+  check("弹窗卡片不再用 vh 高度", !!card && !/vh/.test(cardBody), cardBody.match(/max-height:[^;]*/)?.[0] || "无 max-height");
+  check("弹窗网格收成两列", /\.phone-mode \.found-grid \{[^}]*grid-template-columns: 1fr 1fr/.test(flat));
+  check("弹窗缩略图高度已收紧", /\.phone-mode \.found-item img \{[^}]*height: 96px/.test(flat));
+}
+
 // 4) 横向溢出保险
 check("屏内禁横向滚动", /\.phone-mode \.view \{[^}]*overflow-x: hidden/.test(css.replace(/\s+/g, " ")));
 const minW = (css.match(/min-width: 0/g) || []).length;
@@ -98,6 +113,19 @@ check(
   /@media \(max-width: 560px\)/.test(styleCss) && !/\.phone-mode/.test(styleCss),
   "外壳缩放时该断点不会命中，故必须按类重排"
 );
+
+// 7) 外壳搬迁逻辑：候选弹窗必须被搬出 main 轨道，并在退出时还原（位置错了按钮会丢）
+check(
+  "shell.js 把候选弹窗搬出 main 轨道",
+  /(getElementById|querySelector)\(["']#?found-modal["']\)/.test(shellJs) && /viewport\.appendChild\(modal\)/.test(shellJs)
+);
+// 引用必须在搬迁前抓：phone/screen/viewport 当时还是游离节点，
+// 一旦把 main 搬走，document.getElementById 就再也查不到了
+check(
+  "弹窗引用在 main 搬迁之前获取",
+  /querySelector\(["']#found-modal["']\)[\s\S]{0,400}?viewport\.appendChild\(main\)/.test(shellJs)
+);
+check("shell.js 退出时把候选弹窗放回原父节点", /modalHome\.appendChild\(modal\)/.test(shellJs));
 
 console.log(`\n${ok}/${total} 通过`);
 process.exit(ok === total ? 0 : 1);

@@ -463,5 +463,33 @@
     "source": "ai",
     "manual_override": false,
     "cut_ok": true
+  },
+  {
+    "id": "w5220",
+    "image": "assets/items/w5220.png",
+    "category": "top",
+    "type": "短袖",
+    "color_name": "白色",
+    "color_hex": "#E5E5EA",
+    "palette": [
+      "#FFFFFF"
+    ],
+    "fit": "合身",
+    "pattern": "纯色",
+    "material": "棉",
+    "season": [
+      "春",
+      "秋"
+    ],
+    "style_tags": [
+      "简约"
+    ],
+    "occasions": [
+      "休闲"
+    ],
+    "formality": 1,
+    "source": "ai",
+    "manual_override": false,
+    "cut_ok": true
   }
 ]

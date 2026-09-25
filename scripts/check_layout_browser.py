@@ -59,10 +59,10 @@ def main() -> int:
                 str(chrome), "--headless=new", "--disable-gpu", "--no-sandbox",
                 "--hide-scrollbars", "--window-size=900,1120",
                 "--user-data-dir=" + str(profile),
-                "--disable-application-cache", "--disk-cache-size=1",
+                "--no-first-run", "--no-default-browser-check",
                 "--virtual-time-budget=15000", "--dump-dom", a.url,
             ],
-            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=180,
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=90,
         )
         dom = proc.stdout or ""
     finally:

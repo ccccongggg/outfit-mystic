@@ -60,19 +60,22 @@
     const screen = phone.querySelector(".phone-screen");
     const viewport = el("div", "phone-viewport");
 
+    // 注意取引用的时机：phone/screen/viewport 此刻都还是游离节点，
+    // 一旦把 main 搬进 viewport，整棵业务 DOM 就脱离了 document —— 之后再
+    // document.getElementById(...) 一律返回 null。所以必须先抓引用，再搬迁。
     const topbar = document.querySelector(".topbar");
     const main = document.querySelector("main.shell") || document.querySelector(".shell");
     const footer = document.querySelector(".footer");
-    if (main) viewport.appendChild(main);
-    screen.appendChild(viewport);
-
     // 业务侧的固定定位弹窗（联网找图的候选确认）必须脱离 main.shell：
-    // main.shell 在手机模式下是被 transform 拉成 400% 宽的横向轨道，有 transform 的祖先
+    // main.shell 在手机模式下被 transform 拉成 400% 宽的横向轨道，有 transform 的祖先
     // 会成为 position:fixed 的包含块，弹窗会按 4 倍屏宽铺开 → 屏内右侧被切、内容错乱。
     // 搬到 viewport 下（position:relative）后，改成 absolute 铺满屏幕即可。
-    const modal = document.getElementById("found-modal");
+    const modal = document.querySelector("#found-modal");
     const modalHome = modal ? modal.parentNode : null;
+
+    if (main) viewport.appendChild(main);
     if (modal) viewport.appendChild(modal);
+    screen.appendChild(viewport);
 
     // 底部 Tab（复用顶部导航的 data-view，点击等价于点原来的 nav-btn）
     const tabbar = el("div", "phone-tabbar");

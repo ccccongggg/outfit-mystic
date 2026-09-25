@@ -14,8 +14,10 @@ import argparse
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -49,15 +51,22 @@ def main() -> int:
         print("找不到 Chrome，先用 agent-browser install 装，或用 --chrome 指定路径")
         return 1
 
-    proc = subprocess.run(
-        [
-            str(chrome), "--headless=new", "--disable-gpu", "--no-sandbox",
-            "--hide-scrollbars", "--window-size=900,1120",
-            "--virtual-time-budget=15000", "--dump-dom", a.url,
-        ],
-        capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=180,
-    )
-    dom = proc.stdout or ""
+    # 必须用独立临时 profile：默认 profile 会复用磁盘缓存，导致改完 js/css 仍量到旧版本
+    profile = Path(tempfile.mkdtemp(prefix="layoutcheck-"))
+    try:
+        proc = subprocess.run(
+            [
+                str(chrome), "--headless=new", "--disable-gpu", "--no-sandbox",
+                "--hide-scrollbars", "--window-size=900,1120",
+                "--user-data-dir=" + str(profile),
+                "--disable-application-cache", "--disk-cache-size=1",
+                "--virtual-time-budget=15000", "--dump-dom", a.url,
+            ],
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=180,
+        )
+        dom = proc.stdout or ""
+    finally:
+        shutil.rmtree(profile, ignore_errors=True)
     m = re.search(r"RESULT_JSON:(\{.*?\})\s*</pre>", dom, re.S)
     if not m:
         m = re.search(r"RESULT_JSON:(\{.*)", dom, re.S)

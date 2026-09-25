@@ -406,5 +406,62 @@
     "source": "manual",
     "manual_override": true,
     "cut_ok": true
+  },
+  {
+    "id": "w9091",
+    "image": "assets/items/w9091.png",
+    "category": "top",
+    "type": "短袖",
+    "color_name": "米色",
+    "color_hex": "#CBC2B8",
+    "palette": [
+      "#F5F5F5"
+    ],
+    "fit": "合身",
+    "pattern": "印花",
+    "material": "棉",
+    "season": [
+      "春",
+      "秋"
+    ],
+    "style_tags": [
+      "简约"
+    ],
+    "occasions": [
+      "休闲"
+    ],
+    "formality": 2,
+    "source": "ai",
+    "manual_override": false,
+    "cut_ok": true
+  },
+  {
+    "id": "w4322",
+    "image": "assets/items/w4322.png",
+    "category": "outer",
+    "type": "外套",
+    "color_name": "黑色",
+    "color_hex": "#171717",
+    "palette": [
+      "#000000"
+    ],
+    "fit": "合身",
+    "pattern": "纯色",
+    "material": "皮革",
+    "season": [
+      "春",
+      "秋"
+    ],
+    "style_tags": [
+      "简约"
+    ],
+    "occasions": [
+      "休闲",
+      "通勤"
+    ],
+    "formality": 2,
+    "source": "ai",
+    "manual_override": false,
+    "cut_ok": true
   }
 ]

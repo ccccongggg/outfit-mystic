@@ -66,6 +66,45 @@ function measure() {
     const cw = Math.round(card.getBoundingClientRect().width);
     add("单品卡片宽度 ≥ 140px", cw >= 140, cw + "px");
   }
+
+  // 候选弹窗：原本 position:fixed 落在被 transform 拉宽的 main.shell 轨道里 → 按 4 倍屏宽铺开
+  const modal = d.getElementById("found-modal");
+  if (modal) {
+    const vp = d.querySelector(".phone-viewport");
+    const grid = d.getElementById("found-grid");
+    add("候选弹窗已脱离 main 轨道",
+      !!(modal.parentElement && modal.parentElement.classList.contains("phone-viewport")),
+      "父级 ." + (modal.parentElement ? modal.parentElement.className : "无"));
+
+    if (grid && !grid.children.length) {
+      grid.innerHTML = Array.from({ length: 4 }, () =>
+        '<button type="button" class="found-item">' +
+        '<img alt="" src="assets/items/prod_tee_white.jpg">' +
+        '<div class="found-meta"><span class="badge ok">已复核</span>500×500 · 白底 96%</div></button>').join("");
+    }
+    const wasHidden = modal.classList.contains("hidden");
+    modal.classList.remove("hidden");
+
+    const vpr = vp.getBoundingClientRect();
+    const mr = modal.getBoundingClientRect();
+    const cr = d.querySelector(".found-card").getBoundingClientRect();
+    add("弹窗宽度 = 屏宽", Math.abs(mr.width - vpr.width) <= 2,
+      `弹窗 ${Math.round(mr.width)} vs 屏 ${Math.round(vpr.width)}`);
+    add("弹窗贴合屏左缘", Math.abs(mr.left - vpr.left) <= 2, `偏移 ${Math.round(mr.left - vpr.left)}px`);
+    add("弹窗卡片不越出屏右缘", cr.right <= vpr.right + 1, `超出 ${Math.round(cr.right - vpr.right)}px`);
+    add("弹窗卡片宽 ≤ 屏宽", cr.width <= vpr.width + 1, `${Math.round(cr.width)}px`);
+    add("弹窗高度 = 屏高", Math.abs(mr.height - vpr.height) <= 2,
+      `${Math.round(mr.height)} vs ${Math.round(vpr.height)}`);
+
+    const img = d.querySelector(".found-item img");
+    add("候选缩略图高度 = 96px", !!img && Math.abs(img.getBoundingClientRect().height - 96) <= 1,
+      img ? Math.round(img.getBoundingClientRect().height) + "px" : "无图");
+    const acts = d.querySelector(".found-actions");
+    add("操作区在屏内", !!acts && acts.getBoundingClientRect().right <= vpr.right + 1,
+      acts ? `右缘超出 ${Math.round(acts.getBoundingClientRect().right - vpr.right)}px` : "无");
+
+    if (wasHidden) modal.classList.add("hidden");
+  }
   return res;
 }
 

@@ -66,6 +66,14 @@
     if (main) viewport.appendChild(main);
     screen.appendChild(viewport);
 
+    // 业务侧的固定定位弹窗（联网找图的候选确认）必须脱离 main.shell：
+    // main.shell 在手机模式下是被 transform 拉成 400% 宽的横向轨道，有 transform 的祖先
+    // 会成为 position:fixed 的包含块，弹窗会按 4 倍屏宽铺开 → 屏内右侧被切、内容错乱。
+    // 搬到 viewport 下（position:relative）后，改成 absolute 铺满屏幕即可。
+    const modal = document.getElementById("found-modal");
+    const modalHome = modal ? modal.parentNode : null;
+    if (modal) viewport.appendChild(modal);
+
     // 底部 Tab（复用顶部导航的 data-view，点击等价于点原来的 nav-btn）
     const tabbar = el("div", "phone-tabbar");
     const ind = el("span", "phone-tab-ind");
@@ -119,7 +127,7 @@
     stage.appendChild(hint);
     stage.appendChild(toggle);
 
-    built = { stage, slot, scaler, phone, screen, viewport, tabbar, tabs, ind, island, toast, main, topbar, footer, navBtns };
+    built = { stage, slot, scaler, phone, screen, viewport, tabbar, tabs, ind, island, toast, main, topbar, footer, navBtns, modal, modalHome };
     return built;
   }
 
@@ -290,7 +298,8 @@
 
   function disable() {
     if (built) {
-      const { stage, topbar, main, footer } = built;
+      const { stage, topbar, main, footer, modal, modalHome } = built;
+      if (modal && modalHome) modalHome.appendChild(modal); // 先放回业务 DOM，否则会随外壳一起被移除
       if (topbar) document.body.appendChild(topbar);
       if (main) document.body.appendChild(main);
       if (footer) document.body.appendChild(footer);

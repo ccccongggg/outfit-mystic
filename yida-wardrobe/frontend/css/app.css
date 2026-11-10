@@ -1,0 +1,109 @@
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Noto Sans CJK SC",sans-serif}
+:root{
+  --serif:"Songti SC","STSong","Noto Serif CJK SC","Times New Roman",serif;
+  --fast:160ms;--normal:280ms;--slow:520ms;
+  --neutral:#F7F5F1;--neutral-line:rgba(55,48,61,.11);
+}
+
+
+body{
+  background:var(--body-bg);color:var(--text);transition:background var(--slow) ease,color var(--slow) ease;
+  display:flex;align-items:center;justify-content:center;padding:24px;
+}
+.demo-shell{width:min(414px,100%);position:relative}
+.phone{
+  width:390px;height:844px;max-width:100%;margin:auto;border-radius:42px;overflow:hidden;position:relative;
+  background:var(--bg);border:1px solid color-mix(in srgb,var(--line) 76%,#fff 24%);
+  box-shadow:0 28px 90px rgba(0,0,0,.34);transition:background var(--slow),border-color var(--slow);
+}
+@media(max-width:460px){
+  body{padding:0;background:var(--bg)}
+  /* 真机铺满：优先 100dvh(动态视口，避开 iOS 地址栏)，旧浏览器回落 100vh；min-height:0 防止小屏被 760px 撑爆导致底部 tabbar 不可达 */
+  .demo-shell,.phone{width:100%;height:100vh;height:100dvh;min-height:0;border-radius:0;border:0}
+  /* 真机自带系统状态栏，假状态栏(9:41/信号/电池)既重复又占一截高度 → 隐藏；
+     导航栏补 safe-area，避免返回键/标题被刘海或灵动岛压住。
+     用 .phone 前缀抬高特异性：基础 .status/.navbar 规则在文件更靠后，同特异性会被其覆盖 */
+  .phone .status{display:none}
+  .phone .navbar{padding-top:env(safe-area-inset-top,0px)}
+}
+/* 横屏 / 矮屏(手机横过来)：固定 390×844 样机框会溢出视口，改为铺满高度 */
+@media(max-height:520px) and (orientation:landscape){
+  body{padding:0}
+  .demo-shell,.phone{width:100%;height:100vh;height:100dvh;min-height:0;border-radius:0;border:0}
+  .phone .status{display:none}
+}
+.amb{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.amb .glow{position:absolute;width:360px;height:360px;border-radius:50%;filter:blur(20px);opacity:.5;left:-150px;top:-130px;background:radial-gradient(circle,color-mix(in srgb,var(--accent2) 30%,transparent),transparent 68%);animation:drift 22s ease-in-out infinite alternate}
+.amb .glow2{position:absolute;width:330px;height:330px;border-radius:50%;filter:blur(12px);opacity:.34;right:-150px;top:250px;background:radial-gradient(circle,color-mix(in srgb,var(--accent) 24%,transparent),transparent 70%);animation:drift2 26s ease-in-out infinite alternate}
+.amb .stars{position:absolute;inset:0;opacity:.34;background-image:
+ radial-gradient(circle at 12% 12%,var(--star) 0 1px,transparent 1.4px),
+ radial-gradient(circle at 79% 16%,var(--star) 0 .8px,transparent 1.2px),
+ radial-gradient(circle at 64% 28%,var(--star) 0 .7px,transparent 1.1px),
+ radial-gradient(circle at 30% 44%,var(--star) 0 .7px,transparent 1.1px),
+ radial-gradient(circle at 88% 48%,var(--star) 0 .8px,transparent 1.2px),
+ radial-gradient(circle at 18% 72%,var(--star) 0 .7px,transparent 1.1px),
+ radial-gradient(circle at 70% 86%,var(--star) 0 .8px,transparent 1.2px);
+ animation:breathe 8.7s ease-in-out infinite}
+.orbit{position:absolute;border:1px solid color-mix(in srgb,var(--star) 25%,transparent);border-radius:50%;opacity:0;transition:opacity var(--slow)}
+:root[data-theme="space"] .orbit{opacity:.42}
+.orbit.o1{width:330px;height:150px;right:-180px;top:80px;transform:rotate(-18deg)}
+.orbit.o2{width:270px;height:120px;left:-180px;bottom:90px;transform:rotate(22deg)}
+@keyframes breathe{50%{opacity:.56}}
+@keyframes drift{to{transform:translate(28px,24px) scale(1.04)}}
+@keyframes drift2{to{transform:translate(-20px,30px) scale(1.03)}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition-duration:0ms!important}}
+.chrome,.stage,.tabbar{position:relative;z-index:2}
+.status{
+  height:34px;padding:calc(10px + env(safe-area-inset-top,0px)) 20px 0;display:flex;justify-content:space-between;align-items:center;
+  font-size:11px;font-weight:700;color:var(--text)
+}
+.status-icons{display:flex;align-items:center;gap:5px}
+.signal{width:14px;height:8px;display:flex;align-items:flex-end;gap:1px}
+.signal i{display:block;width:2px;background:currentColor;border-radius:1px}.signal i:nth-child(1){height:3px}.signal i:nth-child(2){height:5px}.signal i:nth-child(3){height:7px}.signal i:nth-child(4){height:8px}
+.battery{width:19px;height:9px;border:1.4px solid currentColor;border-radius:2px;position:relative}
+.battery:after{content:"";position:absolute;right:-3px;top:2px;width:2px;height:4px;background:currentColor;border-radius:0 1px 1px 0}
+.battery:before{content:"";position:absolute;inset:1.5px;background:currentColor;border-radius:1px}
+.navbar{
+  height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;
+  border-bottom:1px solid color-mix(in srgb,var(--line) 55%,transparent);backdrop-filter:blur(12px)
+}
+.navtitle{font-size:13px;font-weight:700;letter-spacing:.03em}
+.iconbtn,.backbtn{
+  width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:color-mix(in srgb,var(--elev) 86%,transparent);
+  color:var(--text);display:grid;place-items:center;cursor:pointer;font-size:18px
+}
+.stage{height:calc(100% - 34px - 52px - 66px);overflow-y:auto;scrollbar-width:none;padding:0 18px 26px}
+.stage::-webkit-scrollbar{display:none}
+.tabbar{
+  height:66px;display:flex;align-items:flex-start;justify-content:space-around;padding:7px 18px calc(8px + env(safe-area-inset-bottom,0px));
+  background:var(--chrome);border-top:1px solid var(--line);backdrop-filter:blur(20px)
+}
+.tabbar button{border:0;background:none;color:var(--muted);font:600 10px inherit;cursor:pointer;min-width:72px;padding:3px 8px}
+.tabbar button.on{color:var(--accent)}
+.tabico{display:block;margin:auto auto 3px;width:21px;height:21px}
+.screen{animation:pageIn .28s ease both;overflow-y:auto;scrollbar-width:none;-ms-overflow-style:none}.screen::-webkit-scrollbar{display:none}
+@keyframes pageIn{from{opacity:.3;transform:translateX(18px)}to{opacity:1;transform:none}}
+.serif{font-family:var(--serif)}
+.kicker{font-size:11px;letter-spacing:.16em;color:var(--accent);font-weight:700}
+.h1{font:700 31px/1.12 var(--serif);letter-spacing:.015em;color:var(--text);margin:0}
+.h2{font:700 24px/1.16 var(--serif);color:var(--text);margin:0}
+.h3{font-size:16px;font-weight:800;margin:0}
+.sub{font-size:12px;line-height:1.7;color:var(--muted)}
+.card{background:color-mix(in srgb,var(--elev) 94%,transparent);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow)}
+.panel{padding:15px}
+.btn{border:0;border-radius:16px;height:48px;padding:0 18px;font:700 14px inherit;cursor:pointer}
+.btn.pri{background:var(--accent);color:var(--on-accent);box-shadow:0 10px 28px color-mix(in srgb,var(--accent) 18%,transparent)}
+.btn.sec{background:var(--elev);color:var(--text);border:1px solid var(--line)}
+.btn.ghost{background:transparent;color:var(--muted)}
+.btn.full{width:100%}
+.sp8{height:8px}.sp10{height:10px}.sp12{height:12px}.sp14{height:14px}.sp16{height:16px}.sp18{height:18px}.sp20{height:20px}.sp24{height:24px}
+.row{display:flex;align-items:center;gap:10px}.between{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.chip{border:1px solid var(--line);background:var(--elev);color:var(--text);border-radius:999px;padding:7px 11px;font-size:11px;font-weight:700;white-space:nowrap}
+.chip.on{border-color:var(--accent);color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--elev))}
+.toast{
+  position:absolute;left:50%;bottom:82px;z-index:50;transform:translate(-50%,8px);opacity:0;pointer-events:none;
+  background:#171719;color:#fff;padding:10px 14px;border-radius:999px;font-size:11px;transition:.2s
+}
+.toast.on{opacity:1;transform:translate(-50%,0)}

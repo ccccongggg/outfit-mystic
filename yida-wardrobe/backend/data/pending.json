@@ -1,0 +1,149 @@
+[
+  {
+    "id": "fb3000dbee034a3ba75ee2e61db15595",
+    "added_at": 1790328364.318511,
+    "raw_image": "E:/Xian_open_Hacthon/outfit-mystic/uploads/fb3000dbee034a3ba75ee2e61db15595.jpg",
+    "white_image": "E:/Xian_open_Hacthon/outfit-mystic/cache/cuts/fb3000dbee034a3ba75ee2e61db15595_white.jpg",
+    "cut_image": "E:/Xian_open_Hacthon/outfit-mystic/cache/cuts/fb3000dbee034a3ba75ee2e61db15595_white.jpg",
+    "tags": {
+      "category": "top",
+      "type": "短袖",
+      "color_name": "白色",
+      "color_hex": "#E5E5EA",
+      "palette": [
+        "#FFFFFF"
+      ],
+      "fit": "合身",
+      "pattern": "纯色",
+      "material": "棉",
+      "season": [
+        "春",
+        "秋"
+      ],
+      "style_tags": [
+        "简约"
+      ],
+      "occasions": [
+        "休闲"
+      ],
+      "formality": 2
+    },
+    "cut_ok": false,
+    "tag_ok": true,
+    "scene": {
+      "has_person": true,
+      "scene": "model_wearing",
+      "confidence": 0.95
+    },
+    "filename": "sample_white_tee.jpg",
+    "reason": "VLM 判定为试穿照/模特上身照，需要人工确认或换拍干净背景图"
+  },
+  {
+    "id": "d3a256534ce949669f70fcf20494c977",
+    "added_at": 1790331618.271018,
+    "raw_image": "E:/Xian_open_Hacthon/outfit-mystic/uploads/d3a256534ce949669f70fcf20494c977.jpg",
+    "white_image": "E:/Xian_open_Hacthon/outfit-mystic/cache/cuts/d3a256534ce949669f70fcf20494c977_white.jpg",
+    "cut_image": "E:/Xian_open_Hacthon/outfit-mystic/cache/cuts/d3a256534ce949669f70fcf20494c977_white.jpg",
+    "tags": {
+      "category": "top",
+      "type": "短袖",
+      "color_name": "白色",
+      "color_hex": "#E5E5EA",
+      "palette": [
+        "#FFFFFF"
+      ],
+      "fit": "合身",
+      "pattern": "纯色",
+      "material": "棉",
+      "season": [
+        "春",
+        "秋"
+      ],
+      "style_tags": [
+        "简约"
+      ],
+      "occasions": [
+        "休闲"
+      ],
+      "formality": 2
+    },
+    "cut_ok": false,
+    "tag_ok": true,
+    "scene": {
+      "has_person": true,
+      "scene": "model_wearing",
+      "confidence": 0.95
+    },
+    "filename": "sample_white_tee.jpg",
+    "reason": "VLM 判定为试穿照/模特上身照，需要人工确认或换拍干净背景图"
+  },
+  {
+    "id": "2bbdbdf94de24db0ab8ae4c1d0df5fb6",
+    "added_at": 1790332292.8094587,
+    "raw_image": "E:/Xian_open_Hacthon/outfit-mystic/uploads/2bbdbdf94de24db0ab8ae4c1d0df5fb6.jpg",
+    "white_image": "E:/Xian_open_Hacthon/outfit-mystic/cache/cuts/2bbdbdf94de24db0ab8ae4c1d0df5fb6_white.jpg",
+    "cut_image": "E:/Xian_open_Hacthon/outfit-mystic/cache/cuts/2bbdbdf94de24db0ab8ae4c1d0df5fb6_white.jpg",
+    "tags": {
+      "category": null,
+      "type": null,
+      "color_name": null,
+      "color_hex": "#E5E5EA",
+      "palette": [],
+      "fit": null,
+      "pattern": null,
+      "material": null,
+      "season": [],
+      "style_tags": [],
+      "occasions": [],
+      "formality": 3
+    },
+    "cut_ok": false,
+    "tag_ok": false,
+    "scene": {
+      "has_person": true,
+      "scene": "model_wearing",
+      "confidence": 0.95
+    },
+    "filename": "sample_white_tee.jpg",
+    "reason": "VLM 判定为试穿照/模特上身照，需要人工确认或换拍干净背景图"
+  },
+  {
+    "id": "d2fd8c35faa14b229f03e91330583af5",
+    "added_at": 1790332323.8208137,
+    "raw_image": "E:/Xian_open_Hacthon/outfit-mystic/uploads/d2fd8c35faa14b229f03e91330583af5.jpg",
+    "white_image": "E:/Xian_open_Hacthon/outfit-mystic/cache/cuts/d2fd8c35faa14b229f03e91330583af5_white.jpg",
+    "cut_image": "E:/Xian_open_Hacthon/outfit-mystic/cache/cuts/d2fd8c35faa14b229f03e91330583af5_white.jpg",
+    "tags": {
+      "category": "top",
+      "type": "短袖",
+      "color_name": "白色",
+      "color_hex": "#E5E5EA",
+      "palette": [
+        "#FFFFFF"
+      ],
+      "fit": "合身",
+      "pattern": "纯色",
+      "material": "棉",
+      "season": [
+        "春",
+        "秋"
+      ],
+      "style_tags": [
+        "简约"
+      ],
+      "occasions": [
+        "休闲"
+      ],
+      "formality": 2
+    },
+    "cut_ok": false,
+    "tag_ok": true,
+    "scene": {
+      "has_person": true,
+      "scene": "model_wearing",
+      "confidence": 0.95
+    },
+    "filename": "sample_white_tee.jpg",
+    "reason": "VLM 判定为试穿照/模特上身照，需要人工确认或换拍干净背景图"
+  }
+]

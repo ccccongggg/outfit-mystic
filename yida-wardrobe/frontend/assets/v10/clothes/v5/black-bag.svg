@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 180" role="img" aria-hidden="true"><defs>
+<filter id="s" x="-30%" y="-30%" width="160%" height="180%"><feGaussianBlur stdDeviation="3"/></filter>
+<linearGradient id="lilac" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#e5d6fb"/><stop offset=".45" stop-color="#b99fdc"/><stop offset="1" stop-color="#8e75bc"/></linearGradient>
+<linearGradient id="cream" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fffefa"/><stop offset=".52" stop-color="#f5eee1"/><stop offset="1" stop-color="#d8c9ad"/></linearGradient>
+<linearGradient id="blue" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d4e6fb"/><stop offset=".52" stop-color="#91b7df"/><stop offset="1" stop-color="#5c83b3"/></linearGradient>
+<linearGradient id="denim" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#94b2d7"/><stop offset=".5" stop-color="#698bb7"/><stop offset="1" stop-color="#4d6993"/></linearGradient>
+<linearGradient id="navy" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#293b5f"/><stop offset=".5" stop-color="#151f38"/><stop offset="1" stop-color="#0b1020"/></linearGradient>
+<linearGradient id="bag" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f7ebdc"/><stop offset=".5" stop-color="#e8d3ba"/><stop offset="1" stop-color="#c7aa88"/></linearGradient>
+<linearGradient id="blackbag" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#4a4851"/><stop offset=".5" stop-color="#27272e"/><stop offset="1" stop-color="#13151b"/></linearGradient>
+<linearGradient id="gold" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#a97439"/><stop offset=".5" stop-color="#f1cf91"/><stop offset="1" stop-color="#aa763d"/></linearGradient>
+</defs><ellipse cx="80" cy="166" rx="49" ry="5" fill="#6f5c69" opacity=".13" filter="url(#s)"/><path d="M49 68V50c0-25 62-25 62 0v18" fill="none" stroke="#16171b" stroke-width="7" stroke-linecap="round"/><path d="M49 68V50c0-25 62-25 62 0v18" fill="none" stroke="#5b5147" stroke-width="2" stroke-linecap="round"/><path d="M30 73q0-9 10-9h80q10 0 10 9l6 75q1 12-11 12H35q-12 0-11-12Z" fill="url(#blackbag)" stroke="#15171b" stroke-width="1.8"/><path d="M27 94q53 28 106 0v25q-53 33-106 0Z" fill="#22232a" stroke="#4b4745"/><path d="M73 105h14v17H73Z" fill="url(#gold)" stroke="#9e713a"/><path d="M77 108h6v9h-6Z" fill="#fff2cf"/><path d="M32 143h96" stroke="#4b4848" opacity=".8"/></svg>

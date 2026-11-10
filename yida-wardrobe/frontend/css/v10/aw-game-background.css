@@ -1,0 +1,48 @@
+/* One supplied artwork sits below the content of all four games. */
+:root{--aw-game-art:url("../../assets/v10/theme/gameplay-bg.png")}
+#stage:has(.aw-game-page){background:#05070b var(--aw-game-art) center top/cover no-repeat}
+:root[data-theme="flow"] #stage:has(.aw-game-page){background-image:linear-gradient(180deg,rgba(251,247,255,.78),rgba(249,244,255,.9)),var(--aw-game-art)}
+:root[data-theme] #stage .aw-game-page{background:transparent}
+
+/* The supplied planet replaces the CSS planet. Keep only a faint moving light layer. */
+.aw-energy-page .aw-page-orb,.aw-identity-page .aw-page-orb{display:none}
+.aw-energy-page>.aw-cosmic-stage,.aw-identity-page>.aw-cosmic-stage{opacity:.18}
+.aw-tarot-page .aw-tarot-stars{opacity:.22}
+
+/* Lighter serif strokes and quieter glow match the Social Energy reference. */
+.aw-energy-page h1{font-family:"STSong","Songti SC","SimSun",serif;font-size:35px;font-weight:600;letter-spacing:.015em;color:#f2d5a5;text-shadow:0 0 9px rgba(238,178,102,.1)}
+.aw-energy-page .aw-energy-number{font-family:"Times New Roman",Georgia,serif;font-size:clamp(94px,26vw,112px);font-weight:400;line-height:.92;letter-spacing:-.055em;color:#ffe0a7;text-shadow:0 0 10px rgba(255,191,95,.21)}
+.aw-energy-page .aw-energy-body{background:linear-gradient(135deg,rgba(42,41,40,.77),rgba(16,21,27,.82) 54%,rgba(29,28,27,.8));box-shadow:inset 0 1px rgba(255,244,224,.09),0 12px 29px rgba(0,0,0,.23),0 0 10px rgba(230,170,86,.055)}
+.aw-energy-page .aw-energy-orbit{border-color:rgba(241,183,101,.34);box-shadow:0 0 8px rgba(245,178,86,.1)}
+.aw-energy-page .aw-energy-explain{font-size:13px;background:linear-gradient(120deg,rgba(47,47,48,.72),rgba(23,29,35,.78))}
+:root[data-theme="flow"] .aw-energy-page h1{color:#392f55;text-shadow:none}
+:root[data-theme="flow"] .aw-energy-page .aw-energy-number{color:#6e56bd;text-shadow:0 0 10px rgba(132,101,202,.19)}
+:root[data-theme="flow"] .aw-energy-page .aw-energy-body,:root[data-theme="flow"] .aw-energy-page .aw-energy-explain{background:rgba(255,255,255,.73)}
+
+/* Gravity pile: it fills from the floor up and settles against the page bottom. */
+.aw-yue-page{display:flex;flex-direction:column;min-height:100%;padding-bottom:0}
+.aw-yue-page .aw-yue-band-wrap{margin-top:auto;padding-top:24px;flex:none}
+.aw-yue-page .aw-yue-band{-webkit-mask-image:radial-gradient(ellipse 56% 54% at 50% 50%,#000 0 52%,rgba(0,0,0,.76) 72%,rgba(0,0,0,.32) 87%,transparent 100%);mask-image:radial-gradient(ellipse 56% 54% at 50% 50%,#000 0 52%,rgba(0,0,0,.76) 72%,rgba(0,0,0,.32) 87%,transparent 100%)}
+.aw-yue-page .aw-yue-band-tag{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);margin:0;width:max-content;max-width:calc(100% - 24px)}
+.aw-yue-enter .aw-yue-bead{animation:aw-yue-gravity .72s cubic-bezier(.2,.75,.26,1) var(--settle-delay,0ms) both}
+@keyframes aw-yue-gravity{0%{opacity:0;transform:translateY(calc(-1 * var(--fall,100px))) scale(.9)}68%{opacity:1;transform:translateY(5px) scale(1.04)}85%{transform:translateY(-2px) scale(.985)}100%{opacity:1;transform:translateY(0) scale(1)}}
+@media(prefers-reduced-motion:reduce){.aw-yue-enter .aw-yue-bead{animation:none}}
+
+/* The flying item lives under <body>, so it needs its own surface tokens. */
+.aw-yue-ghost{will-change:transform,border-radius;--yr-card:#fff;--yr-line:rgba(27,26,24,.16)}
+:root[data-theme="space"] .aw-yue-ghost{--yr-card:#242426;--yr-line:rgba(235,211,178,.32);box-shadow:0 17px 36px rgba(0,0,0,.48),0 0 18px rgba(244,192,106,.23)}
+
+/* Social Energy: proportions and type weight from the latest reference. */
+.aw-shell:has(.aw-energy-page) .aw-header-name{font:700 16px/1.2 "STSong","Songti SC",serif;letter-spacing:.04em}
+.aw-energy-page h1{font-size:36px;font-weight:600}
+.aw-energy-page>p{font-size:12.5px;line-height:1.6;color:#c7c1b9}
+.aw-energy-page .aw-energy-body{min-height:350px;padding:29px 23px 25px}
+.aw-energy-display{height:235px}
+.aw-energy-page .aw-energy-number{font-size:clamp(94px,24vw,106px);background:linear-gradient(180deg,#fff1d3 4%,#f8d597 46%,#dba766 100%);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none;filter:drop-shadow(0 0 9px rgba(255,191,95,.27))}
+.aw-energy-page .aw-energy-orbit{width:min(285px,75vw);height:82px;transform:translate(-50%,-50%) rotate(-13deg)}
+.aw-energy-page .aw-energy-scale{margin-top:24px;font-size:12px}
+.aw-energy-page .aw-energy-explain{min-height:85px;margin-top:22px;margin-bottom:21px;border-radius:26px;font-size:14px}
+.aw-energy-page .aw-gold-cta{min-height:78px;font-size:18px}
+:root[data-theme="flow"] .aw-energy-page>p{color:#716882}
+:root[data-theme="flow"] .aw-energy-page .aw-energy-number{background:none;color:#6e56bd;text-shadow:0 0 10px rgba(132,101,202,.19);filter:none}
+@media(max-height:720px){.aw-energy-page .aw-energy-body{min-height:285px;padding-top:16px}.aw-energy-display{height:180px}.aw-energy-page .aw-gold-cta{min-height:63px}.aw-energy-page .aw-energy-explain{min-height:70px}}

@@ -1,0 +1,69 @@
+{
+  "_note": "结果页的「示例卡」数据。只在衣橱里真的挑不出某一格时用（不是占位装饰）——告诉用户这一格长什么样，不是宣称你衣柜里有它。改文案只动这个文件。",
+  "slots": {
+    "top": [
+      {
+        "type": "米白针织开衫",
+        "color_name": "米白",
+        "color_hex": "#EDE6DA",
+        "style_tags": ["温柔", "简约"],
+        "why": "上身软一点，什么下装都压得住"
+      },
+      {
+        "type": "纯白衬衫",
+        "color_name": "纯白",
+        "color_hex": "#F5F4F1",
+        "style_tags": ["通勤", "简约"],
+        "why": "最稳的一件，配裙子配裤子都不挑"
+      }
+    ],
+    "bottom": [
+      {
+        "type": "直筒长裤",
+        "color_name": "雾灰",
+        "color_hex": "#A8B0B8",
+        "style_tags": ["简约", "通勤"],
+        "why": "直筒显腿直，颜色跟鞋接近就不出错"
+      },
+      {
+        "type": "A 字半身裙",
+        "color_name": "燕麦",
+        "color_hex": "#D8CBB6",
+        "style_tags": ["温柔", "文艺"],
+        "why": "A 字版型收腰，上身宽松也能压住"
+      }
+    ],
+    "shoes": [
+      {
+        "type": "乐福鞋",
+        "color_name": "米白",
+        "color_hex": "#EDE8DC",
+        "style_tags": ["通勤", "简约"],
+        "why": "白鞋收尾，整套亮一个度"
+      },
+      {
+        "type": "小白鞋",
+        "color_name": "纯白",
+        "color_hex": "#F5F4F1",
+        "style_tags": ["简约", "运动"],
+        "why": "什么风格都能配，走路也舒服"
+      }
+    ],
+    "outer": [
+      {
+        "type": "卡其风衣",
+        "color_name": "卡其",
+        "color_hex": "#B8895A",
+        "style_tags": ["通勤", "复古"],
+        "why": "穿脱都在线，秋天最好用的一件"
+      },
+      {
+        "type": "短款夹克",
+        "color_name": "炭灰",
+        "color_hex": "#4A4A4E",
+        "style_tags": ["简约", "运动"],
+        "why": "短款放在腰线上，比例直接好看一档"
+      }
+    ]
+  }
+}

@@ -1,0 +1,8 @@
+@keyframes breathe{50%{opacity:.56}
+@keyframes drift{to{transform:translate(28px,24px) scale(1.04)}
+@keyframes drift2{to{transform:translate(-20px,30px) scale(1.03)}
+@keyframes pageIn{from{opacity:.3;transform:translateX(18px)}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition-duration:0ms!important}
+/* Page / component transitions */
+.screen{animation:pageIn .24s ease both}
+@media(prefers-reduced-motion:reduce){.screen{animation:none!important}}

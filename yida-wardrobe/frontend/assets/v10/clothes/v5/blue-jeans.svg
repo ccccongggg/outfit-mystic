@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 180" role="img" aria-hidden="true"><defs>
+<filter id="s" x="-30%" y="-30%" width="160%" height="180%"><feGaussianBlur stdDeviation="3"/></filter>
+<linearGradient id="lilac" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#e5d6fb"/><stop offset=".45" stop-color="#b99fdc"/><stop offset="1" stop-color="#8e75bc"/></linearGradient>
+<linearGradient id="cream" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fffefa"/><stop offset=".52" stop-color="#f5eee1"/><stop offset="1" stop-color="#d8c9ad"/></linearGradient>
+<linearGradient id="blue" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d4e6fb"/><stop offset=".52" stop-color="#91b7df"/><stop offset="1" stop-color="#5c83b3"/></linearGradient>
+<linearGradient id="denim" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#94b2d7"/><stop offset=".5" stop-color="#698bb7"/><stop offset="1" stop-color="#4d6993"/></linearGradient>
+<linearGradient id="navy" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#293b5f"/><stop offset=".5" stop-color="#151f38"/><stop offset="1" stop-color="#0b1020"/></linearGradient>
+<linearGradient id="bag" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f7ebdc"/><stop offset=".5" stop-color="#e8d3ba"/><stop offset="1" stop-color="#c7aa88"/></linearGradient>
+<linearGradient id="blackbag" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#4a4851"/><stop offset=".5" stop-color="#27272e"/><stop offset="1" stop-color="#13151b"/></linearGradient>
+<linearGradient id="gold" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#a97439"/><stop offset=".5" stop-color="#f1cf91"/><stop offset="1" stop-color="#aa763d"/></linearGradient>
+</defs><ellipse cx="80" cy="166" rx="49" ry="5" fill="#6f5c69" opacity=".13" filter="url(#s)"/><path d="M44 25h72l-6 68-6 68H79l-4-62-5 62H44l-5-68Z" fill="url(#denim)" stroke="#4a6b97" stroke-width="1.6"/><path d="M44 25h72v14H44Z" fill="#5678a3" stroke="#45648c"/><path d="M58 39h45M80 40v58M54 43l14 14M106 43 92 57M50 66l4 91m56-91-9 91" stroke="#bbd0e4" opacity=".6" fill="none"/><path d="M45 39h17v15H45Zm53 0h17v15H98Z" fill="none" stroke="#496b92"/><circle cx="80" cy="32" r="2" fill="#d4b37f"/><path d="M43 157h29m8 0h28" stroke="#3d608d" stroke-width="3"/></svg>

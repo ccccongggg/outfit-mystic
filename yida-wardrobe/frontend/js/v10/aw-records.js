@@ -1,0 +1,12 @@
+(function(){
+ 'use strict';const AW=window.AW;
+ const kindLabel={tarot:'塔罗牌',social_energy:'社交电量',identity:'身份扮演',input:'跃然搭配'};
+ function render(){const s=AW.state,today=AW.today(),entries=Object.values(s.records||{}).sort((a,b)=>a.date.localeCompare(b.date));
+  const current=s.recordView||'future';const shown=entries.filter(x=>current==='history'?x.date<today:x.date>=today);
+  const selected=s.recordDate&&s.records[s.recordDate];
+  if(selected)return `<section class="aw-page aw-record-page"><button class="aw-record-back" data-aw-record-back>‹ 返回记录</button><div class="aw-kicker">${selected.date} · ${kindLabel[selected.game]||'穿搭'}</div><h1>${AW.escape(selected.name)}</h1><div class="aw-card aw-record-detail"><div class="aw-source">来自我的衣柜</div>${window.AW_RESULTS.board(selected)}<div class="aw-record-reason"><b>当时为什么选这套</b><p>${AW.escape(selected.reason)}</p></div></div><button class="aw-button secondary full" data-aw-go="menu">再拿一次主意</button></section>`;
+  return `<section class="aw-page aw-record-page"><div class="aw-kicker">OUTFIT JOURNAL</div><h1>穿搭记录</h1><p>「就穿这套」确认的方案会按日期保存。</p><button class="aw-record-refresh" data-aw-record-refresh>刷新记录</button><div class="aw-record-tabs"><button data-aw-record-tab="history" class="${current==='history'?'active':''}">历史</button><button data-aw-record-tab="future" class="${current==='future'?'active':''}">未来</button></div>${shown.length?`<div class="aw-record-list">${shown.map(x=>`<button class="aw-record-row aw-card" data-aw-record-open="${x.date}"><div><b>${x.date}</b><small>${kindLabel[x.game]||'穿搭'} · 来自我的衣柜</small></div><span>${AW.escape(x.name)}</span><i>›</i></button>`).join('')}</div>`:`${AW.status('empty',current==='history'?'还没有历史穿搭':'还没有未来穿搭')}<button class="aw-button secondary full" data-aw-go="menu">去选一套</button>`}</section>`}
+ async function refresh(){AW.showStatus('loading','正在读取穿搭记录');try{await AW.api.run(()=>Object.values(AW.state.records));AW.render();AW.toast('记录已更新')}catch(e){AW.showStatus('error',e.message,refresh)}}
+ function bind(root){root.querySelectorAll('[data-aw-record-tab]').forEach(el=>el.onclick=()=>{AW.state.recordView=el.dataset.awRecordTab;AW.render()});root.querySelectorAll('[data-aw-record-open]').forEach(el=>el.onclick=()=>{AW.state.recordDate=el.dataset.awRecordOpen;AW.render()});root.querySelector('[data-aw-record-back]')?.addEventListener('click',()=>{AW.state.recordDate=null;AW.render()});root.querySelector('[data-aw-record-refresh]')?.addEventListener('click',refresh)}
+ AW.modules.records={render,bind};
+})();

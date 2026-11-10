@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AI电子衣柜 Frontend Data Contract V1",
+  "$defs": {
+    "GameplaySource": {
+      "type": "object",
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "tarot",
+            "social_energy",
+            "identity",
+            "input"
+          ]
+        },
+        "payload": {
+          "type": "object"
+        }
+      }
+    },
+    "WardrobeItem": {
+      "type": "object",
+      "required": [
+        "item_id",
+        "wardrobe_id",
+        "name",
+        "image_url",
+        "category",
+        "subcategory",
+        "availability"
+      ],
+      "properties": {
+        "item_id": {
+          "type": "string"
+        },
+        "wardrobe_id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "image_url": {
+          "type": "string"
+        },
+        "category": {
+          "enum": [
+            "top",
+            "outer",
+            "bottom",
+            "dress",
+            "shoe",
+            "bag",
+            "accessory"
+          ]
+        },
+        "subcategory": {
+          "type": "string"
+        },
+        "availability": {
+          "type": "string"
+        },
+        "visible_traits": {
+          "type": "object"
+        },
+        "hidden_traits": {
+          "type": "object"
+        },
+        "stats": {
+          "type": "object"
+        }
+      }
+    },
+    "Outfit": {
+      "type": "object",
+      "required": [
+        "outfit_id",
+        "name",
+        "source"
+      ],
+      "properties": {
+        "outfit_id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "source": {
+          "enum": [
+            "wardrobe",
+            "ai_reference"
+          ]
+        },
+        "is_reference": {
+          "type": "boolean"
+        },
+        "item_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "images": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "full_image": {
+          "type": "string"
+        }
+      }
+    },
+    "RecommendationRequest": {
+      "type": "object",
+      "required": [
+        "wardrobe_id",
+        "target_date",
+        "source"
+      ],
+      "properties": {
+        "wardrobe_id": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "target_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "source": {
+          "$ref": "#/$defs/GameplaySource"
+        }
+      }
+    },
+    "RecommendationResponse": {
+      "type": "object",
+      "required": [
+        "session_id",
+        "outfits"
+      ],
+      "properties": {
+        "session_id": {
+          "type": "string"
+        },
+        "outfits": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Outfit"
+          }
+        }
+      }
+    }
+  }
+}

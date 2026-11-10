@@ -1,0 +1,21 @@
+# 依赖与缓存
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+cache/
+
+# 上传/运行产物
+backend/uploads/
+uploads/
+*.log
+
+# 密钥(绝不入库)
+.env
+.env.*
+!.env.example
+
+# 系统
+.DS_Store
+Thumbs.db

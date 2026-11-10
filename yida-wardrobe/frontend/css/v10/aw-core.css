@@ -1,0 +1,29 @@
+/* V10 模块核心样式（已适配 wardrobe-app 集成） */
+/* 变量定义在 #stage:has(.aw-page) 上，仅当 V10 页面激活时生效，避免覆盖 wardrobe-app 主题 */
+#stage:has(.aw-page){--bg:#faf7ff;--elev:rgba(255,255,255,.84);--text:#26223b;--muted:#77718b;--accent:#6e5bd6;--on-accent:#fff;--line:rgba(106,91,147,.19);--soft:#eee8fb;--gold:#c89c61;--shadow:0 14px 34px rgba(57,43,83,.1);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}
+:root[data-theme="space"] #stage:has(.aw-page){--bg:#111319;--elev:rgba(31,32,37,.9);--text:#f4eee6;--muted:#b7aeaa;--accent:#dbb77e;--on-accent:#1a1713;--line:rgba(220,184,124,.23);--soft:#25262a;--gold:#e7c48c;--shadow:0 18px 38px rgba(0,0,0,.27)}
+.aw-shell{width:min(430px,100vw);height:min(920px,100dvh);min-height:620px;margin:auto;position:relative;overflow:hidden;background:var(--bg);box-shadow:0 18px 55px rgba(0,0,0,.3);isolation:isolate}
+.aw-shell:before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(circle at 72% 13%,rgba(199,178,246,.26),transparent 31%),radial-gradient(circle at 14% 72%,rgba(210,189,237,.18),transparent 35%)}
+:root[data-theme="space"] .aw-shell:before{background:radial-gradient(circle at 70% 14%,rgba(173,120,61,.09),transparent 32%),radial-gradient(circle at 13% 72%,rgba(167,120,63,.06),transparent 35%)}
+.aw-header{height:73px;display:flex;align-items:center;justify-content:space-between;padding:21px 18px 7px;gap:12px;position:relative;z-index:5;background:color-mix(in srgb,var(--bg) 79%,transparent);backdrop-filter:blur(12px)}
+.aw-header-name{font-size:13px;font-weight:750;letter-spacing:.06em;flex:1;text-align:center}
+.aw-header button{border:1px solid var(--line);background:var(--elev);color:var(--text);border-radius:50%;width:38px;height:38px;display:grid;place-items:center;font-size:16px}
+.aw-header-actions{display:flex;gap:6px}
+.aw-header #aw-fail{width:auto;border-radius:999px;padding:0 10px;font-size:10px;color:var(--muted)}
+.aw-view{height:calc(100% - 73px);overflow:auto;scrollbar-width:none;position:relative}.aw-view::-webkit-scrollbar{display:none}
+.aw-page{padding:22px 20px 48px;min-height:100%;color:var(--text)}
+.aw-page h1{font-family:"Songti SC","STSong","Noto Serif CJK SC",serif;font-size:29px;line-height:1.2;margin:0;color:var(--text)}
+.aw-page p{color:var(--muted);line-height:1.55;font-size:12px}
+.aw-kicker{font-size:11px;font-weight:800;letter-spacing:.15em;color:var(--accent);margin-bottom:8px}
+.aw-button{border:0;border-radius:14px;min-height:44px;padding:10px 17px;background:var(--accent);color:var(--on-accent);font-size:13px;font-weight:800;box-shadow:0 6px 18px color-mix(in srgb,var(--accent) 20%,transparent)}
+.aw-button.secondary{background:var(--elev);border:1px solid var(--line);color:var(--text);box-shadow:none}
+.aw-button.ghost{background:transparent;color:var(--accent);box-shadow:none}
+.aw-button:disabled{opacity:.45;cursor:not-allowed}.aw-button.full{width:100%}
+.aw-button-row{display:flex;gap:9px;flex-wrap:wrap}.aw-button-row>*{flex:1;min-width:110px}
+.aw-card{background:var(--elev);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);backdrop-filter:blur(12px)}
+.aw-status{margin:48px 18px;padding:26px 18px;border:1px solid var(--line);background:var(--elev);border-radius:18px;display:flex;flex-direction:column;align-items:center;gap:13px;text-align:center;min-height:175px;justify-content:center}
+.aw-status-icon{width:33px;height:33px;border-radius:50%;display:grid;place-items:center;background:var(--soft);color:var(--accent);font-size:19px}.aw-status b{font-size:13px}
+.aw-toast{position:absolute;z-index:100;bottom:20px;left:50%;transform:translate(-50%,12px);opacity:0;pointer-events:none;background:rgba(34,30,40,.9);color:white;padding:9px 15px;border-radius:999px;font-size:12px;white-space:nowrap;transition:opacity .2s,transform .2s}.aw-toast.show{opacity:1;transform:translate(-50%,0)}
+.aw-menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:28px}.aw-menu-card{min-height:93px;padding:15px;text-align:left;color:var(--text);font-weight:800;background:var(--elev);border:1px solid var(--line);border-radius:19px;box-shadow:var(--shadow);display:flex;justify-content:space-between;align-items:end}.aw-menu-card span{color:var(--accent);font-size:24px;font-weight:400}
+@media(max-width:460px){html,body{background:var(--bg)}.aw-shell{height:100dvh;min-height:0;width:100vw;box-shadow:none}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}

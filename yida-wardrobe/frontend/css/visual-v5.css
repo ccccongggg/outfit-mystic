@@ -1,0 +1,30 @@
+/* Reference pass: larger center card, crisp catalog pieces, quieter surfaces. */
+.daily-advice{overflow:hidden;backdrop-filter:blur(7px)}
+.daily-cloth{background:linear-gradient(145deg,rgba(255,255,255,.91),rgba(244,241,245,.84));box-shadow:0 1px 1px rgba(255,255,255,.75) inset,0 3px 9px rgba(62,47,83,.09)}
+.daily-cloth img{object-fit:contain;padding:3px 3px 0;box-sizing:border-box;filter:drop-shadow(0 3px 2px rgba(45,30,47,.13))}
+:root[data-theme="space"] .play-face{background:linear-gradient(145deg,#2b2928,#17191d);border-color:#97734c;box-shadow:0 0 0 2px rgba(216,174,107,.22) inset,0 12px 17px rgba(0,0,0,.41)}
+:root[data-theme="space"] .play-face:before{border-color:rgba(226,185,114,.58)}
+:root[data-theme="space"] .play-face:after{color:#bb935b}
+:root[data-theme="space"] [data-home-game="energy"] .play-face{background:linear-gradient(145deg,#30302a,#191b1a)}
+:root[data-theme="space"] [data-home-game="identity"] .play-face{background:linear-gradient(145deg,#352e36,#1c1b22)}
+:root[data-theme="space"] [data-home-game="tarot"] .play-face{background:linear-gradient(145deg,#41342b,#1a1919)}
+:root[data-theme="space"] [data-home-game="input"] .play-face{background:linear-gradient(145deg,#392e33,#1d1b21)}
+:root[data-theme="space"] .plus-card .play-face{background:linear-gradient(145deg,#30303a,#1b1d22)}
+:root[data-theme="space"] .playcard.sel .play-face{border-color:#ffda9b;box-shadow:0 0 0 3px rgba(237,187,104,.19),0 0 17px rgba(255,194,104,.8),0 0 33px rgba(247,174,80,.52),0 17px 23px rgba(0,0,0,.55)}
+:root[data-theme="space"] .daily-cloth{background:linear-gradient(145deg,rgba(45,45,49,.94),rgba(26,28,32,.92));border-color:rgba(206,164,107,.31);box-shadow:0 1px 0 rgba(255,255,255,.04) inset,0 4px 10px rgba(0,0,0,.27)}
+/* 单品平铺图质感：更大留白 + 柔和径向底光 + 投影分层，避免生硬裁切 */
+.outfit-main img,.outfit-small img,.wardimg img,.ai-full img,.yue-slot img,.daily-cloth img{object-fit:contain;padding:9px;box-sizing:border-box;filter:drop-shadow(0 7px 11px rgba(52,38,72,.16)) drop-shadow(0 1px 2px rgba(52,38,72,.1))}
+.outfit-main,.outfit-small,.wardimg,.ai-full{background:radial-gradient(125% 92% at 50% 6%,#ffffff 0%,#fdfbf9 44%,#f2ece5 100%);box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 0 0 1px rgba(116,96,150,.07) inset,0 9px 20px rgba(60,45,85,.10)}
+:root[data-theme="space"] .outfit-main img,:root[data-theme="space"] .outfit-small img,:root[data-theme="space"] .wardimg img,:root[data-theme="space"] .ai-full img,:root[data-theme="space"] .yue-slot img,:root[data-theme="space"] .daily-cloth img{filter:drop-shadow(0 8px 14px rgba(0,0,0,.5)) drop-shadow(0 1px 2px rgba(0,0,0,.42))}
+:root[data-theme="space"] .outfit-main,:root[data-theme="space"] .outfit-small,:root[data-theme="space"] .wardimg,:root[data-theme="space"] .ai-full{background:radial-gradient(125% 92% at 50% 6%,#3a3b41 0%,#2c2d33 46%,#212228 100%);box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 0 0 1px rgba(255,255,255,.06) inset,0 10px 24px rgba(0,0,0,.42)}
+.yue-screen{position:relative;isolation:isolate}
+.yue-screen:before{content:'';position:absolute;inset:-30px -20px 0;z-index:-1;pointer-events:none;background:radial-gradient(circle at 12% 12%,rgba(203,179,244,.3),transparent 28%),radial-gradient(circle at 83% 61%,rgba(231,211,247,.25),transparent 37%)}
+:root[data-theme="space"] .yue-screen:before{background:radial-gradient(circle at 12% 12%,rgba(177,129,74,.17),transparent 28%),radial-gradient(circle at 83% 61%,rgba(158,118,72,.1),transparent 37%)}
+.yue-title{font-size:29px;letter-spacing:.025em}
+.yue-result{background:color-mix(in srgb,var(--elev) 65%,transparent);border:1px solid var(--line);border-radius:20px;padding:12px 10px 14px;box-shadow:var(--shadow)}
+.yue-slot{height:122px;border-radius:12px}
+.yue-slot img{padding:3px;box-sizing:border-box;filter:drop-shadow(0 2px 3px rgba(34,25,34,.14))}
+.yue-bead{box-shadow:0 2px 5px rgba(45,33,51,.12),inset 0 1px 0 rgba(255,255,255,.83)}
+.yue-bead img{width:88%;height:88%}
+.yue-ghost img{width:92%;height:92%}
+.yue-finish .outfit-frame{background:color-mix(in srgb,var(--elev) 80%,transparent)}

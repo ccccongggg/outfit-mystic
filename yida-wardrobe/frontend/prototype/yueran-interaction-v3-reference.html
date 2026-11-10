@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>电子衣柜 · 跃然式搭配原型 v3</title>
+<style>
+:root{
+  --bg:#FAF9F7;
+  --ink:#1B1A18;
+  --ink2:#5A5750;
+  --ink3:#9C9891;
+  --line:rgba(27,26,24,.10);
+  --line2:rgba(27,26,24,.16);
+  --card:#FFFFFF;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);overflow-x:hidden}
+body{
+  color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased;
+  padding:22px 24px 0;
+}
+.wrap{max-width:880px;margin:0 auto}
+
+/* ---------- 顶栏 ---------- */
+.nav{
+  display:flex;align-items:center;justify-content:space-between;
+  padding-bottom:18px;border-bottom:1px solid var(--line);
+}
+.logo{display:flex;align-items:baseline;gap:9px}
+.logo b{font-size:15px;font-weight:700;letter-spacing:.3px}
+.logo span{font-size:11.5px;color:var(--ink3);letter-spacing:.4px}
+.nav .cnt{font-size:11.5px;color:var(--ink3);letter-spacing:.4px}
+
+/* ---------- 提问区 ---------- */
+.ask{padding:44px 0 0;text-align:center}
+.ask h2{font-size:25px;font-weight:600;letter-spacing:.5px}
+.field{
+  display:flex;align-items:center;gap:8px;
+  max-width:560px;margin:20px auto 0;
+  background:var(--card);border:1px solid var(--line2);border-radius:14px;
+  padding:7px 7px 7px 16px;
+  transition:border-color .25s,box-shadow .25s;
+}
+.field:focus-within{border-color:var(--ink);box-shadow:0 0 0 4px rgba(27,26,24,.06)}
+.field .mag{flex:0 0 auto;color:var(--ink3);display:flex}
+.field input{
+  flex:1;min-width:0;border:0;outline:0;background:transparent;
+  font-size:14.5px;color:var(--ink);font-family:inherit;padding:11px 0;
+}
+.field input::placeholder{color:var(--ink3)}
+.field .clr{
+  flex:0 0 auto;border:0;background:transparent;cursor:pointer;color:var(--ink3);
+  font-size:16px;line-height:1;padding:6px 8px;border-radius:8px;display:none;
+}
+.field .clr:hover{background:rgba(27,26,24,.06);color:var(--ink)}
+.field.has .clr{display:block}
+.field .go{
+  flex:0 0 auto;border:0;cursor:pointer;font-family:inherit;
+  background:var(--ink);color:#fff;font-size:13.5px;font-weight:500;
+  padding:11px 20px;border-radius:10px;transition:opacity .2s,transform .15s;
+}
+.field .go:hover{opacity:.86}
+.field .go:active{transform:scale(.97)}
+.field .go:disabled{opacity:.35;cursor:default}
+
+.exs{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin-top:13px}
+.ex{
+  border:1px solid var(--line);background:transparent;color:var(--ink2);
+  font-size:12.5px;font-family:inherit;cursor:pointer;
+  padding:7px 14px;border-radius:999px;transition:.2s;
+}
+.ex:hover{background:#fff;border-color:var(--line2);color:var(--ink)}
+
+.readout{
+  max-width:600px;margin:15px auto 0;
+  display:flex;flex-wrap:wrap;gap:7px;justify-content:center;
+}
+.rd{
+  font-size:11.5px;color:var(--ink2);
+  background:#fff;border:1px solid var(--line);
+  padding:5px 11px;border-radius:999px;animation:pop .35s ease both;
+}
+.rd i{font-style:normal;color:var(--ink3);margin-right:5px}
+@keyframes pop{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* ---------- 结果 ---------- */
+.result{margin-top:28px;display:none}
+.slots{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.slot{
+  position:relative;aspect-ratio:3/4;border-radius:16px;
+  background:var(--card);border:1px solid var(--line);
+  opacity:0;transform:scale(.94);
+  transition:opacity .34s,transform .38s cubic-bezier(.34,1.3,.64,1),
+             border-color .25s,box-shadow .25s;
+  display:flex;align-items:center;justify-content:center;overflow:hidden;
+}
+.slot.on{opacity:1;transform:none}
+.slot:hover{border-color:var(--line2);box-shadow:0 10px 26px rgba(27,26,24,.07)}
+.slot .pic{width:74%;height:74%;display:flex;align-items:center;justify-content:center}
+.slot .pic svg{width:100%;height:100%;display:block}
+.slot .meta{
+  position:absolute;left:0;right:0;bottom:0;padding:11px 12px 12px;
+  background:linear-gradient(to top,rgba(255,255,255,.96) 58%,rgba(255,255,255,0));
+  display:flex;align-items:baseline;justify-content:space-between;gap:6px;
+}
+.slot .meta b{font-size:13px;font-weight:600;letter-spacing:.2px}
+.slot .meta em{font-style:normal;font-size:11px;color:var(--ink3);flex:0 0 auto}
+.slot .swp{
+  position:absolute;top:10px;right:10px;z-index:2;
+  padding:4px 9px;border-radius:999px;font-size:11px;font-family:inherit;
+  background:#fff;border:1px solid var(--line);color:var(--ink2);cursor:pointer;
+  opacity:0;transition:opacity .2s;
+}
+.slot:hover .swp{opacity:1}
+.slot .swp:hover{border-color:var(--ink3);color:var(--ink)}
+
+.ghost{
+  position:fixed;z-index:999;pointer-events:none;
+  display:flex;align-items:center;justify-content:center;
+  background:#fff;border:1px solid var(--line2);
+  will-change:transform,border-radius,box-shadow;
+}
+.ghost svg{width:100%;height:100%;display:block}
+.ghost.out{opacity:0 !important;transition:opacity .26s linear}
+
+.loading{
+  grid-column:1/-1;height:160px;display:none;
+  align-items:center;justify-content:center;gap:9px;
+  font-size:13.5px;color:var(--ink3);
+}
+.loading.on{display:flex}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--ink3);animation:bl 1.1s infinite}
+.dot:nth-child(2){animation-delay:.16s}
+.dot:nth-child(3){animation-delay:.32s}
+@keyframes bl{0%,80%,100%{opacity:.25;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
+
+/* 共用说明行 */
+/* 整套理由：只讲一套，不逐件解释。
+   用户质疑的是「为什么是这四件」，不是「为什么是这件」——
+   逐件列理由会把一次判断拆成四条自辩，反而削弱整体逻辑。 */
+.reason{
+  display:none;margin-top:18px;
+  background:var(--card);border:1px solid var(--line);border-radius:14px;
+  padding:16px 20px 15px;
+  opacity:0;transform:translateY(6px);
+  transition:opacity .45s,transform .45s;
+}
+.reason.on{display:block}
+.reason.show{opacity:1;transform:none}
+.rtop{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.rtop .rt{font-size:13px;font-weight:600;color:var(--ink);letter-spacing:.2px}
+.rtop .rk{
+  font-size:11px;color:var(--ink2);background:#F4F2EF;border-radius:6px;padding:2px 7px;
+}
+.reason p{font-size:12.8px;color:var(--ink2);line-height:1.9;margin:0}
+.reason p + p{margin-top:4px}
+.reason p b{color:var(--ink);font-weight:600}
+
+.acts{display:none;align-items:center;gap:10px;margin-top:14px}
+.btn{
+  font-family:inherit;font-size:13.5px;cursor:pointer;border-radius:10px;
+  padding:11px 20px;transition:.2s;
+}
+.btn.pri{background:var(--ink);color:#fff;border:0}
+.btn.pri:hover{opacity:.86}
+.btn.pri:active{transform:scale(.97)}
+.btn.sec{background:#fff;color:var(--ink);border:1px solid var(--line2)}
+.btn.sec:hover{border-color:var(--ink3)}
+
+/* ---------- 衣柜带 ---------- */
+.bandwrap{margin-top:44px;position:relative}
+/* 注意：radial-gradient 的 ellipse 尺寸写的是**半径**，不是直径。
+   半径必须和盒子半宽/半高同量级，边缘才会真的衰减；
+   写成 86% 会让半径远超半宽，椭圆横向铺不满，边缘几乎不淡。 */
+.band{
+  position:relative;left:50%;transform:translateX(-50%);
+  width:100vw;overflow:hidden;
+  -webkit-mask-image:radial-gradient(ellipse 60% 48% at 50% 50%,#000 38%,rgba(0,0,0,.62) 66%,transparent 100%);
+          mask-image:radial-gradient(ellipse 60% 48% at 50% 50%,#000 38%,rgba(0,0,0,.62) 66%,transparent 100%);
+  -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;
+}
+/* ⚠️ 这里绝对不能用百分比 padding 做内缩：绝对定位元素的百分比 padding
+   是相对「包含块宽度」解析的，不是相对自身宽度，会把盒子撑爆、把 svg 挤成 0 尺寸。
+   内缩一律交给子元素的百分比宽高。 */
+/* 圆形要"有质感"才好看：径向渐变做出球面高光（左上亮、右下收），
+   再加 1px 落影 + 内阴影把边缘压住，110 颗才像一排扣子而不是一圈线。 */
+.bead{
+  position:absolute;border-radius:50%;
+  background:radial-gradient(circle at 33% 27%,#FFFFFF 0%,#FDFCFA 58%,#F3F1ED 100%);
+  border:1px solid rgba(27,26,24,.09);
+  /* 白圆放在米白底上，光靠边框是"看不见的圆"。
+     落影要压得住背景，圆才浮得起来——这层阴影是圆形感的来源，不是装饰。 */
+  box-shadow:0 2px 5px rgba(27,26,24,.075), inset 0 -1px 2px rgba(27,26,24,.04);
+  display:flex;align-items:center;justify-content:center;
+  transition:opacity .45s,transform .45s,box-shadow .3s;
+}
+.bead svg{width:72%;height:72%;display:block}
+.bead.taken{opacity:.10;transform:scale(.72);box-shadow:none}
+.bead.hit{box-shadow:0 6px 16px rgba(27,26,24,.18);z-index:6}
+/* 起跳 = 蓄力 → 弹起 → 过冲回落 → 抽走。
+   关键是第 18% 那一下"先压"：没有蓄力，后面弹起来就不像弹的，像直接放大。 */
+.bead.lift{animation:beadLift .74s cubic-bezier(.3,.85,.4,1) both}
+@keyframes beadLift{
+  0%  {transform:translateY(0)      scale(1);   opacity:1}
+  18% {transform:translateY(3px)    scale(.90); opacity:1}
+  42% {transform:translateY(-12px)  scale(1.30);opacity:1}
+  62% {transform:translateY(-5px)   scale(1.07);opacity:1}
+  100%{transform:translateY(-20px)  scale(.62); opacity:.10}
+}
+/* 涟漪：抽走一件时，从它的位置扩散一圈波，让"波动"这件事被看见，
+   而不只是靠邻居位移去猜。 */
+.ring{
+  position:absolute;border-radius:50%;pointer-events:none;z-index:3;
+  border:1.4px solid rgba(27,26,24,.5);opacity:0;
+  transform:translate(-50%,-50%);
+}
+
+.bandtag{
+  position:absolute;left:50%;bottom:14px;transform:translateX(-50%);
+  z-index:20;display:flex;align-items:center;gap:12px;
+  background:rgba(255,255,255,.92);backdrop-filter:blur(10px);
+  border:1px solid var(--line);border-radius:999px;
+  padding:7px 9px 7px 18px;box-shadow:0 6px 20px rgba(27,26,24,.09);
+}
+.bandtag .lb{font-size:12.5px;color:var(--ink2);white-space:nowrap}
+.bandtag .lb b{color:var(--ink);font-weight:600}
+.bandtag button{
+  border:0;font-family:inherit;font-size:12.5px;font-weight:500;cursor:pointer;
+  background:var(--ink);color:#fff;border-radius:999px;padding:8px 16px;
+  transition:opacity .2s,transform .15s;white-space:nowrap;
+}
+.bandtag button:hover{opacity:.86}
+.bandtag button:active{transform:scale(.97)}
+
+/* ---------- 衣柜抽屉 ---------- */
+.mask{
+  position:fixed;inset:0;background:rgba(27,26,24,.28);z-index:800;
+  opacity:0;pointer-events:none;transition:opacity .3s;
+}
+.mask.on{opacity:1;pointer-events:auto}
+.drawer{
+  position:fixed;left:50%;top:50%;z-index:801;
+  width:min(760px,92vw);max-height:80vh;overflow:auto;
+  transform:translate(-50%,-46%) scale(.98);opacity:0;pointer-events:none;
+  background:#fff;border-radius:20px;box-shadow:0 30px 90px rgba(27,26,24,.24);
+  transition:.32s cubic-bezier(.22,1,.36,1);
+  padding:26px 28px 30px;
+}
+.drawer.on{opacity:1;transform:translate(-50%,-50%) scale(1);pointer-events:auto}
+.drawer h3{font-size:17px;font-weight:600;margin-bottom:5px}
+.drawer .sub{font-size:12.5px;color:var(--ink3);margin-bottom:20px}
+.dgroup{margin-bottom:20px}
+.dgroup .gt{font-size:12px;color:var(--ink3);letter-spacing:.5px;margin-bottom:10px}
+.dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(58px,1fr));gap:9px}
+.dcell{text-align:center}
+.dcell .c{
+  width:100%;aspect-ratio:1;border-radius:50%;background:#FAF9F7;
+  border:1px solid var(--line);display:flex;align-items:center;justify-content:center;
+  margin-bottom:5px;
+}
+.dcell .c svg{width:72%;height:72%;display:block}
+.dcell .n{font-size:10px;color:var(--ink3);line-height:1.3;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dclose{
+  position:absolute;top:18px;right:20px;border:0;background:transparent;
+  font-size:20px;line-height:1;color:var(--ink3);cursor:pointer;padding:6px 10px;border-radius:8px;
+}
+.dclose:hover{background:rgba(27,26,24,.05);color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="nav">
+    <div class="logo"><b>电子衣柜</b><span>一句话，从衣柜里跳出一套</span></div>
+    <div class="cnt" id="poolCnt">110 件单品</div>
+  </div>
+
+  <div class="ask">
+    <h2>今天，想穿什么？</h2>
+    <div class="field" id="field">
+      <span class="mag"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></span>
+      <input id="q" placeholder="说说今天的场合、天气，或者想要的感觉…" autocomplete="off">
+      <button class="clr" id="clr">&#215;</button>
+      <button class="go" id="go">搭配</button>
+    </div>
+    <div class="exs" id="exs"></div>
+    <div class="readout" id="readout"></div>
+  </div>
+
+  <div class="result" id="result">
+    <div class="slots" id="slots">
+      <div class="loading" id="loading"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span style="margin-left:4px">正在从衣柜里翻…</span></div>
+    </div>
+    <div class="reason" id="reason">
+      <div class="rtop"><span class="rt">为什么是这一套</span><span id="rkeys"></span></div>
+      <div id="rtext"></div>
+    </div>
+  </div>
+
+  <div class="acts" id="acts">
+    <button class="btn pri" id="again">换一套</button>
+    <button class="btn sec" id="reset">重新说</button>
+  </div>
+
+  <div class="bandwrap">
+    <div class="band" id="band"></div>
+    <div class="bandtag">
+      <span class="lb">电子衣柜 · <b id="bandCnt">110</b> 件单品</span>
+      <button id="enter">进入衣柜 &#8594;</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="mask" id="mask"></div>
+<div class="drawer" id="drawer">
+  <button class="dclose" id="dclose">&#215;</button>
+  <h3>我的电子衣柜</h3>
+  <div class="sub">全部单品都在这里。增删、拍照入库、清洗状态，都是下一步的事。</div>
+  <div id="dbody"></div>
+</div>
+
+<script>
+/* ================= 单品库（110 件）================= */
+/* name, type, color, season(all|cold|hot), formality(1-5), styles, colorName */
+const RAW = [
+ // ---- 上装 28 ----
+ ['白衬衫','shirt','#F3F1EC','all',4,'通勤 简约','白'],
+ ['浅蓝府绸衬衫','shirt','#B9CBDA','all',4,'通勤 学院','蓝'],
+ ['真丝白衬衫','shirt','#F8F6F2','all',5,'正式 职场','白'],
+ ['条纹衬衫','shirt','#E8E4DA','all',3,'日系 通勤','白'],
+ ['黑衬衫','shirt','#232120','all',4,'通勤 帅气','黑'],
+ ['牛仔衬衫','shirt','#6E7F96','all',2,'休闲 复古','蓝'],
+ ['亚麻衬衫','shirt','#DED6C4','hot',3,'文艺 休闲','米'],
+ ['格纹衬衫','shirt','#8A6A55','all',2,'复古 学院','棕'],
+ ['白T恤','tee','#FBF9F5','hot',1,'休闲 基础','白'],
+ ['黑T恤','tee','#1E1C1A','all',1,'休闲 基础','黑'],
+ ['灰T恤','tee','#A9A7A3','all',1,'休闲 基础','灰'],
+ ['条纹T恤','tee','#2E3A4E','all',2,'休闲 日系','蓝'],
+ ['白长袖T','tee','#F7F5F1','all',2,'基础 简约','白'],
+ ['焦糖卫衣','hoodie','#B0713F','cold',1,'休闲 街头','棕'],
+ ['灰卫衣','hoodie','#8C8A86','cold',1,'休闲 运动','灰'],
+ ['黑卫衣','hoodie','#26241F','cold',1,'休闲 街头','黑'],
+ ['黑高领打底','turtleneck','#26241F','cold',3,'通勤 极简','黑'],
+ ['白高领打底','turtleneck','#F1EFEA','cold',3,'简约 温柔','白'],
+ ['灰羊绒衫','sweater','#A8A6A1','cold',3,'简约 高级','灰'],
+ ['驼色羊绒衫','sweater','#BFA684','cold',3,'温柔 高级','驼'],
+ ['黑针织衫','sweater','#23211E','cold',3,'通勤 极简','黑'],
+ ['菱格毛衣','sweater','#7E6A52','cold',2,'复古 学院','棕'],
+ ['米色开衫','cardigan','#D9CDB8','cold',3,'温柔 日系','米'],
+ ['灰开衫','cardigan','#B0AEA9','cold',3,'简约 通勤','灰'],
+ ['黑色马甲','vest','#23211E','all',4,'通勤 复古','黑'],
+ ['米色针织背心','vest','#DACFB8','all',3,'学院 温柔','米'],
+ ['真丝吊带','camisole','#F0EAE0','hot',2,'约会 温柔','白'],
+ ['黑吊带','camisole','#1D1B19','hot',2,'约会 帅气','黑'],
+ // ---- 外套 16 ----
+ ['驼色大衣','coat','#C2A483','cold',4,'通勤 高级','驼'],
+ ['深灰大衣','coat','#55534E','cold',4,'正式 简约','灰'],
+ ['燕麦色大衣','coat','#CFC2AA','cold',4,'温柔 高级','米'],
+ ['黑长款大衣','coat','#232120','cold',5,'正式 职场','黑'],
+ ['米色牛角扣大衣','coat','#C7B79B','cold',3,'学院 复古','米'],
+ ['米白风衣','trench','#E4DECF','all',4,'通勤 简约','米'],
+ ['卡其风衣','trench','#C0AC8B','all',4,'通勤 复古','卡其'],
+ ['黑西装外套','blazer','#1F1D1B','all',5,'正式 职场','黑'],
+ ['灰西装外套','blazer','#6A6864','all',4,'通勤 职场','灰'],
+ ['米色西装外套','blazer','#D6C9B0','all',4,'通勤 简约','米'],
+ ['格纹西装外套','blazer','#8B7355','all',3,'复古 学院','棕'],
+ ['卡其工装夹克','jacket','#A89070','all',2,'休闲 户外','卡其'],
+ ['牛仔外套','jacket','#5D7089','all',2,'休闲 复古','蓝'],
+ ['黑色皮衣','leather','#1A1917','cold',3,'帅气 街头','黑'],
+ ['棕色皮衣','leather','#6B4630','cold',3,'复古 帅气','棕'],
+ ['黑短羽绒服','down','#2A2B2E','cold',2,'户外 休闲','黑'],
+ // ---- 下装 20 ----
+ ['深蓝直筒牛仔裤','jeans','#37455C','all',2,'休闲 基础','蓝'],
+ ['浅蓝阔腿牛仔裤','jeans','#8FA3BC','all',2,'休闲 复古','蓝'],
+ ['黑牛仔裤','jeans','#2A2C31','all',2,'休闲 帅气','黑'],
+ ['黑西裤','trousers','#24221F','all',5,'正式 职场','黑'],
+ ['灰西裤','trousers','#5E5C58','all',4,'通勤 职场','灰'],
+ ['米色阔腿裤','trousers','#D5C7AC','all',3,'通勤 简约','米'],
+ ['白直筒裤','trousers','#EFEBE2','hot',3,'温柔 简约','白'],
+ ['白阔腿裤','trousers','#F0ECE3','all',3,'简约 高级','白'],
+ ['棕阔腿裤','trousers','#7A5F45','cold',3,'复古 文艺','棕'],
+ ['卡其休闲裤','chino','#B9A585','all',2,'休闲','卡其'],
+ ['军绿工装裤','cargo','#5C6350','all',2,'户外 街头','绿'],
+ ['藏蓝束脚裤','jogger','#2C3546','hot',1,'运动 休闲','蓝'],
+ ['黑运动裤','jogger','#232120','hot',1,'运动 休闲','黑'],
+ ['灰百褶裙','skirt','#9C9A95','all',3,'学院 温柔','灰'],
+ ['黑A字裙','skirt','#211F1C','all',3,'复古 帅气','黑'],
+ ['米色针织长裙','skirt','#D3C7B0','cold',3,'温柔 日系','米'],
+ ['棕格纹半裙','skirt','#7A5C43','cold',3,'复古 学院','棕'],
+ ['黑皮裙','skirt','#1C1A18','all',3,'帅气 街头','黑'],
+ ['牛仔半裙','skirt','#6C7E96','all',2,'休闲 复古','蓝'],
+ ['黑直筒裙','skirt','#23211E','all',4,'通勤 极简','黑'],
+ // ---- 连衣裙 10 ----
+ ['黑针织连衣裙','dress','#26241F','cold',4,'通勤 简约','黑'],
+ ['藏青衬衫裙','dress','#2B3A50','all',3,'通勤 简约','蓝'],
+ ['碎花长裙','dress','#C9B6A6','hot',3,'温柔 约会','米'],
+ ['酒红丝缎裙','dress','#6B2B34','all',5,'正式 约会','酒红'],
+ ['黑小礼服裙','dress','#1B1A18','all',5,'正式 约会','黑'],
+ ['米色棉麻长裙','dress','#DED2BE','hot',3,'文艺 温柔','米'],
+ ['绿吊带裙','dress','#5E7A5E','hot',2,'约会 复古','绿'],
+ ['灰针织长裙','dress','#8E8B86','cold',3,'简约 温柔','灰'],
+ ['白衬衫裙','dress','#F2EFE9','hot',3,'简约 通勤','白'],
+ ['焦糖针织裙','dress','#A9723F','cold',3,'复古 温柔','棕'],
+ // ---- 鞋 16 ----
+ ['小白鞋','sneaker','#F2F0EB','all',2,'休闲 基础','白'],
+ ['黑帆布鞋','sneaker','#26262A','all',1,'休闲 街头','黑'],
+ ['米色芭蕾鞋','flat','#E0D5C3','all',3,'温柔 约会','米'],
+ ['黑乐福鞋','loafer','#1E1C1A','all',4,'通勤 职场','黑'],
+ ['棕乐福鞋','loafer','#6B4A33','all',3,'复古 通勤','棕'],
+ ['棕短靴','boot','#6B4A33','cold',3,'复古 帅气','棕'],
+ ['黑马丁靴','boot','#211F1D','cold',3,'街头 帅气','黑'],
+ ['驼色雪地靴','boot','#B79A73','cold',2,'休闲 户外','驼'],
+ ['黑切尔西靴','boot','#1F1D1B','cold',4,'通勤 帅气','黑'],
+ ['灰跑鞋','running','#8E8E8C','hot',1,'运动','灰'],
+ ['白跑鞋','running','#EDEDEA','hot',1,'运动','白'],
+ ['黑高跟鞋','heel','#1B1A18','all',5,'正式 约会','黑'],
+ ['裸色高跟鞋','heel','#D8BFA9','all',5,'正式 约会','米'],
+ ['黑玛丽珍','mary','#1D1B19','all',3,'复古 学院','黑'],
+ ['白玛丽珍','mary','#F0EDE6','all',3,'温柔 学院','白'],
+ ['棕牛津鞋','oxford','#5E4128','all',4,'复古 正式','棕'],
+ // ---- 包 8 ----
+ ['黑托特包','tote','#232120','all',4,'通勤','黑'],
+ ['棕色腋下包','bag','#8A5E3B','all',3,'复古 约会','棕'],
+ ['米色帆布包','canvas','#D8CDB6','all',1,'休闲 文艺','米'],
+ ['黑链条包','bag','#1C1B19','all',5,'正式 约会','黑'],
+ ['驼色水桶包','bag','#BFA07A','all',3,'温柔 通勤','驼'],
+ ['白腋下包','bag','#EFEBE3','all',3,'简约 约会','白'],
+ ['绿帆布包','canvas','#5F7359','all',1,'休闲 文艺','绿'],
+ ['黑双肩包','backpack','#232120','all',1,'户外 运动','黑'],
+ // ---- 配饰 12 ----
+ ['驼色围巾','scarf','#C0A47F','cold',3,'温柔','驼'],
+ ['格纹丝巾','scarf','#8F5F55','all',4,'复古 正式','酒红'],
+ ['黑贝雷帽','beret','#1E1C1A','cold',3,'复古','黑'],
+ ['米棒球帽','cap','#DFD3BB','hot',1,'休闲','米'],
+ ['黑棒球帽','cap','#232120','hot',1,'休闲 街头','黑'],
+ ['棕皮带','belt','#6B4A33','all',3,'通勤','棕'],
+ ['黑皮带','belt','#211F1C','all',4,'正式','黑'],
+ ['金细项链','necklace','#D6B36A','all',4,'约会 正式','金'],
+ ['珍珠耳钉','earring','#EFE7DA','all',4,'正式 温柔','白'],
+ ['黑太阳镜','sunglasses','#1B1A18','hot',2,'街头 休闲','黑'],
+ ['米色渔夫帽','bucket','#CFC0A4','hot',1,'休闲 文艺','米'],
+ ['灰针织帽','beanie','#8A8782','cold',2,'休闲 运动','灰'],
+];
+const ITEMS = RAW.map((r,i)=>({
+  id:i, name:r[0], type:r[1], color:r[2], season:r[3], f:r[4],
+  st:r[5].split(' '), cn:r[6]
+}));
+
+const TOP   = ['shirt','tee','turtleneck','sweater','cardigan','hoodie','vest','camisole'];
+const OUTER = ['coat','trench','blazer','jacket','leather','down'];
+const BOT   = ['jeans','trousers','chino','jogger','skirt','cargo'];
+const DRESS = ['dress'];
+const SHOE  = ['sneaker','flat','loafer','boot','running','heel','mary','oxford'];
+const BAG   = ['tote','bag','canvas','backpack'];
+const ACC   = ['scarf','beret','cap','belt','necklace','earring','sunglasses','bucket','beanie'];
+const cat = t => TOP.includes(t)?'top' : OUTER.includes(t)?'outer' : BOT.includes(t)?'bottom'
+              : DRESS.includes(t)?'dress' : SHOE.includes(t)?'shoe' : BAG.includes(t)?'bag' : 'acc';
+const CATL = {top:'上装',outer:'外套',bottom:'下装',dress:'连衣裙',shoe:'鞋',bag:'包',acc:'配饰'};
+
+/* ================= 单品图形 ================= */
+const P = {
+  shirt:'M36 16 L14 24 L7 58 L20 62 L27 46 V84 H73 V46 L80 62 L93 58 L86 24 L64 16 L50 30 Z',
+  tee:'M35 18 L16 26 L10 44 L22 49 L28 42 V82 H72 V42 L78 49 L90 44 L84 26 L65 18 Q50 28 35 18 Z',
+  turtleneck:'M35 20 L15 27 L9 46 L21 51 L27 44 V84 H73 V44 L79 51 L91 46 L85 27 L65 20 Q50 30 35 20 Z M38 17 H62 V25 Q50 31 38 25 Z',
+  sweater:'M34 19 L13 27 L8 50 L21 54 L27 46 V84 H73 V46 L79 54 L92 50 L87 27 L66 19 Q50 29 34 19 Z',
+  cardigan:'M35 18 L14 26 L9 58 L21 62 L27 46 V84 H73 V46 L79 62 L91 58 L86 26 L65 18 L50 38 Z',
+  hoodie:'M33 22 L14 29 L9 50 L22 55 L27 47 V84 H73 V47 L78 55 L91 50 L86 29 L67 22 Q50 12 33 22 Z M38 22 Q50 34 62 22',
+  vest:'M32 16 H68 V84 H32 Z',
+  camisole:'M33 26 L40 21 L50 37 L60 21 L67 26 V82 H33 Z',
+  coat:'M37 14 L15 22 L10 60 L22 63 L26 46 V90 H74 V46 L78 63 L90 60 L85 22 L63 14 L50 36 Z',
+  trench:'M37 15 L15 23 L10 62 L22 65 L26 48 V90 H74 V48 L78 65 L90 62 L85 23 L63 15 L50 37 Z',
+  blazer:'M36 16 L14 24 L10 60 L22 62 L28 46 V84 H72 V46 L78 62 L90 60 L86 24 L64 16 L50 34 Z',
+  jacket:'M35 17 L15 25 L11 58 L23 61 L28 46 V82 H72 V46 L77 61 L89 58 L85 25 L65 17 L50 33 Z',
+  leather:'M35 16 L15 24 L11 58 L23 61 L28 46 V82 H72 V46 L77 61 L89 58 L85 24 L65 16 L50 32 Z',
+  down:'M35 16 L14 25 L10 62 Q10 70 19 70 L27 64 V84 H73 V64 L81 70 Q90 70 90 62 L86 25 L65 16 L50 30 Z',
+  jeans:'M31 16 H69 L70 52 L66 86 H54 L52 54 H48 L46 86 H34 L30 52 Z',
+  trousers:'M31 16 H69 L70 52 L66 86 H54 L52 54 H48 L46 86 H34 L30 52 Z',
+  chino:'M30 16 H70 L71 52 L67 86 H55 L52 54 H48 L45 86 H33 L29 52 Z',
+  cargo:'M30 16 H70 L71 52 L67 86 H55 L52 54 H48 L45 86 H33 L29 52 Z M27 44 H34 V58 H27 Z M66 44 H73 V58 H66 Z',
+  jogger:'M31 16 H69 L68 50 L63 84 H53 L52 52 H48 L47 84 H37 L32 50 Z',
+  skirt:'M33 22 L67 22 L82 80 C70 85 30 85 18 80 Z',
+  dress:'M37 13 L63 13 L68 27 L58 32 L56 44 C64 62 70 74 70 86 Q50 92 30 86 C30 74 36 62 44 44 L42 32 L32 27 Z',
+  sneaker:'M12 63 C12 57 20 55 26 52 L36 43 C42 39 48 41 52 45 L60 53 C68 59 80 61 86 65 V74 H12 Z',
+  flat:'M14 64 C14 58 24 56 32 53 L46 46 C56 43 66 48 72 55 C78 61 86 62 88 66 V74 H14 Z',
+  loafer:'M13 63 C13 57 22 55 30 52 L44 45 C54 42 64 47 70 54 C76 60 85 61 87 65 V74 H13 Z',
+  boot:'M32 14 H60 V52 C60 58 66 62 74 64 L86 68 V78 H30 C30 58 30 36 32 14 Z',
+  running:'M11 63 C11 56 20 54 27 51 L38 42 C44 38 50 40 54 44 L62 52 C70 58 81 60 87 64 V74 H11 Z',
+  heel:'M38 20 C38 44 42 60 50 72 L58 80 H80 L84 88 H20 L30 80 L40 64 C36 46 32 30 38 20 Z',
+  mary:'M14 64 C14 58 24 56 32 53 L46 46 C56 43 66 48 72 55 C78 61 86 62 88 66 V74 H14 Z M38 40 L60 40 V46 L38 46 Z',
+  oxford:'M13 63 C13 57 22 55 30 52 L44 45 C54 42 64 47 70 54 C76 60 85 61 87 65 V74 H13 Z M42 46 L58 46 V52 L42 52 Z',
+  tote:'M28 36 V28 C28 19 72 19 72 28 V36 H88 V86 H12 V36 Z',
+  bag:'M22 42 V34 C22 22 78 22 78 34 V42 H88 V66 L92 86 H8 L12 66 V42 Z',
+  canvas:'M26 38 V30 C26 21 74 21 74 30 V38 H90 V86 H10 V38 Z',
+  backpack:'M32 36 C20 36 15 45 15 56 V86 H85 V56 C85 45 80 36 68 36 Z M38 40 C38 28 62 28 62 40',
+  scarf:'M30 16 C40 8 60 8 70 16 L66 36 L60 36 L62 86 L46 88 L44 36 L36 36 Z',
+  beret:'M16 62 C16 35 84 35 84 62 C84 70 16 70 16 62 Z',
+  cap:'M14 58 C14 33 86 33 86 58 H14 Z M86 58 H97 V65 H84 Z',
+  bucket:'M28 42 H72 L84 70 H16 Z M8 70 H92 V79 H8 Z',
+  beanie:'M22 62 C22 34 78 34 78 62 H22 Z M20 58 H80 V70 H20 Z',
+  belt:'M10 42 H64 V58 H10 Z M64 37 H86 V63 H64 Z',
+  necklace:'M24 28 C24 56 76 56 76 28 M44 66 L50 56 L56 66 Z',
+  earring:'M41 40 A9 9 0 1 0 59 40 A9 9 0 1 0 41 40 Z M43 54 C43 64 50 72 50 80 C50 72 57 64 57 54 Z',
+  sunglasses:'M18 42 H44 V58 Q31 64 18 58 Z M56 42 H82 V58 Q69 64 56 58 Z M44 44 H56 V48 H44 Z',
+};
+function svgOf(it){
+  const p = P[it.type] || P.tee;
+  const dark = /^#(1|2|3|5|6|7|8)/i.test(it.color);
+  const stroke = dark ? 'rgba(255,255,255,.20)' : 'rgba(0,0,0,.13)';
+  const uid = 'g'+it.id+Math.random().toString(36).slice(2,6);
+  return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <defs><linearGradient id="${uid}" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0" stop-color="${it.color}" stop-opacity=".96"/>
+      <stop offset="1" stop-color="${it.color}" stop-opacity=".76"/>
+    </linearGradient></defs>
+    <path d="${p}" fill="url(#${uid})" stroke="${stroke}" stroke-width="1.6"
+      stroke-linejoin="round" fill-rule="evenodd"/>
+  </svg>`;
+}
+
+/* ================= 语义解析 ================= */
+const OCC = [
+ [/客户|面试|汇报|正式|会议|开会|婚礼|宴会|酒会|签约|答辩|谈判/,5,'正式'],
+ [/通勤|上班|加班|职场|工作|提案/,4,'通勤'],
+ [/约会|见人|拍照|下午茶|朋友|生日|聚会|看展|逛展/,3,'半正式'],
+ [/逛街|咖啡|书店|散步|旅行|出游|周末/,2,'休闲'],
+ [/运动|健身|跑步|骑车|爬山|徒步|打球|接送/,1,'运动'],
+];
+const SEA = [
+ [/冷|凉|降温|风大|深秋|入冬|下雪|雪|寒|冻/,'cold','偏凉'],
+ [/热|晒|闷|高温|出汗|炎夏|暖|初夏/,'hot','偏热'],
+];
+const STY = ['通勤','简约','正式','职场','温柔','日系','复古','帅气','街头','休闲','运动','学院','高级','文艺','约会','极简','户外','基础'];
+const COL = ['黑','白','灰','米','驼','卡其','蓝','藏青','棕','酒红','红','绿','粉','金','咖'];
+
+function parse(text){
+  let f=null, fLabel='', fWord='', lowHit=false, lowWord='';
+  OCC.forEach(([re,v,lb])=>{
+    const m = text.match(re);
+    if(m){
+      if(f===null){f=v;fLabel=lb;fWord=m[0];} else if(v>f){f=v;fLabel=lb;fWord=m[0];}
+      /* 「陪客户吃饭，但下午要骑车」里骑车是第二个约束，不能只记主场合词，
+         否则理由只回应一半，用户会觉得没听全。 */
+      if(v<=2){ lowHit=true; if(!lowWord) lowWord=m[0]; }
+    }
+  });
+  if(f!==null && lowHit && f>=4){ f=f-1; fLabel='偏正式但要好动'; }
+  let season=null, seasonLabel='', seaWord='';
+  SEA.forEach(([re,v,lb])=>{ const m=text.match(re); if(m&&!season){season=v;seasonLabel=lb;seaWord=m[0];} });
+  const styles = STY.filter(s=>text.includes(s));
+  const colors = COL.filter(c=>text.includes(c));
+  return {f,fLabel,fWord,lowWord,season,seasonLabel,seaWord,styles,colors,text};
+}
+
+/* ================= 选品 ================= */
+function score(it,q){
+  let s = 0;
+  if(q.season) s += it.season===q.season ? 3 : (it.season==='all' ? 1.4 : -2.4);
+  if(q.f!=null) s += 3.2 - Math.abs(it.f-q.f)*1.35;
+  q.styles.forEach(st=>{ if(it.st.includes(st)) s += 2.6; });
+  q.colors.forEach(c=>{ if(it.cn===c || it.name.includes(c)) s += 3.0; });
+  return s + Math.random()*0.85;
+}
+const inCat = (c,q)=> ITEMS.filter(it=>cat(it.type)===c)
+  .filter(it=>!q.season || it.season===q.season || it.season==='all');
+/* 亮度：用来做整套的色彩平衡，避免四件全黑 */
+function lum(hex){
+  const c = hex.replace('#','');
+  const r = parseInt(c.slice(0,2),16)/255, g = parseInt(c.slice(2,4),16)/255, b = parseInt(c.slice(4,6),16)/255;
+  return 0.2126*r + 0.7152*g + 0.0722*b;
+}
+const isDark = it => lum(it.color) < 0.34;
+
+function pick(arr,q,exclude,darkCount){
+  const pool = arr.filter(it=>!exclude.includes(it.id))
+    .map(it=>{
+      let s = score(it,q);
+      /* 已经有 ≥2 件深色了：亮色加权、深色扣分。
+         只加权不扣分挡不住——3 深 1 浅照样会出，整套照样发闷。 */
+      if(darkCount>=2) s += lum(it.color)>=0.55 ? 4.2 : -1.8;
+      return {it,s};
+    })
+    .sort((a,b)=>b.s-a.s).slice(0,3);
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+function buildOutfit(q,exclude){
+  const ex = exclude||[], out=[];
+  const useDress = q.f!=null && q.f>=3 && Math.random()<0.4;
+  let plan;
+  if(useDress) plan=['dress','shoe','bag','acc'];
+  else if(q.season==='cold') plan=['top','outer','bottom','shoe'];
+  else plan=['top','bottom','shoe', (q.f!=null&&q.f>=3)?'bag':'outer'];
+  plan.forEach(c=>{
+    const r = pick(inCat(c,q), q, ex.concat(out.map(o=>o.id)), out.filter(isDark).length);
+    if(r) out.push(r.it);
+  });
+  while(out.length<4){
+    const c = ['shoe','bag','acc','top'][out.length%4];
+    const r = pick(inCat(c,q), q, ex.concat(out.map(o=>o.id)), out.filter(isDark).length);
+    if(!r) break;
+    out.push(r.it);
+  }
+  return out;
+}
+/* 整套理由：只讲一套逻辑，不逐件开脱。
+   用户心里的疑问是「为什么是这四件」，不是「为什么是这件」——
+   把一次判断拆成四条单件自辩，反而会把整体逻辑说散。
+   三段固定结构：这套在解决什么 → 四件怎么分工 → 凭什么说它成立。 */
+const ORDER = ['top','outer','dress','bottom','shoe','bag','acc'];
+/* 角色词必须跟着颜色走，不能按品类写死：
+   黑包说"把亮度提上来"是睁眼说瞎话，深色配饰的作用恰恰是压住。 */
+function roleOf(it){
+  const c = cat(it.type), bright = !isDark(it);
+  if(c==='top')    return bright ? '定个干净的调子' : '把调子压住';
+  if(c==='outer')  return '罩在外面压住整体';
+  if(c==='dress')  return '一件定全套';
+  if(c==='bottom') return bright ? '把下身提亮' : '收住下身';
+  if(c==='shoe')   return '兜住要走的那段路';
+  if(c==='bag')    return bright ? '把亮度提上来一档' : '收住不让它飘';
+  if(c==='acc')    return bright ? '补一点亮' : '压个边';
+  return '补位';
+}
+
+function renderReason(p,outfit){
+  /* 触发词全部来自用户原话——让用户一眼看到 AI 听的是哪几句 */
+  const keys=[];
+  if(p.fWord) keys.push(p.fWord);
+  if(p.seaWord) keys.push(p.seaWord);
+  if(p.lowWord && p.lowWord!==p.fWord) keys.push(p.lowWord);
+  p.styles.forEach(s=>keys.push(s));
+  p.colors.forEach(c=>keys.push(c));
+  rkeys.innerHTML = keys.length
+    ? keys.slice(0,4).map(k=>`<span class="rk">${k}</span>`).join('')
+    : '<span class="rk">日常</span>';
+
+  const fs = outfit.map(it=>it.f);
+  const avg = (fs.reduce((a,b)=>a+b,0)/fs.length).toFixed(1);
+  const hi = outfit[fs.indexOf(Math.max(...fs))], lo = outfit[fs.indexOf(Math.min(...fs))];
+  const span = Math.max(...fs) - Math.min(...fs);
+  const darkN = outfit.filter(isDark).length, liteN = outfit.length - darkN;
+
+  /* ① 这套在解决什么 */
+  const needF = p.f>=4 ? '体面' : (p.f===3 ? '拿得出手' : '松快');
+  const needS = p.season==='cold' ? '保暖' : (p.season==='hot' ? '透气' : '好动');
+  const other  = p.seaWord || (p.lowWord!==p.fWord ? p.lowWord : '');
+  const needO  = p.seaWord ? needS : '好动';
+  let s1;
+  if(p.fWord && other)
+    s1 = `你这句里的「${p.fWord}」和「${other}」其实是两件事——一个要${needF}，一个要${needO}。所以这套没往任何一头走极端，正式度压在 <b>${avg}</b> 这一档。`;
+  else if(p.fWord)
+    s1 = `你要的是「${p.fWord}」，整套的正式度就压在 <b>${avg}</b> 这一档——${p.f>=4?'站得住，但不至于端着':'不用力，但见人也不虚'}。`;
+  else if(p.seaWord)
+    s1 = `你提到「${p.seaWord}」，所以整套先照顾${needS}，别的往后排。`;
+  else
+    s1 = `没读到硬约束，这套按日常的稳妥来：正式度 <b>${avg}</b>，不出错优先。`;
+
+  /* ② 四件怎么分工——一次讲完，不逐条罗列 */
+  const chain = ORDER.map(c=>outfit.find(it=>cat(it.type)===c)).filter(Boolean)
+    .map(it=>`<b>${it.name}</b>${roleOf(it)}`);
+  const s2 = chain.length
+    ? `${chain.join('，')}。这几件是一条线，谁都不是单独最好看的那件，凑一起才是这套。`
+    : '';
+
+  /* ③ 凭什么说它成立——给两个能自己核的数字。
+     深浅这块不能只报数字：3 深 1 浅本身偏闷，文案得跟着配比变，
+     否则理由会替结果打圆场，一眼就被看穿。 */
+  const bal = darkN===0 ? '四件全浅，整套是清透的'
+            : liteN===0 ? '四件全深，靠版型和材质分层次'
+            : darkN>liteN ? `深浅 ${liteN} : ${darkN}，深多浅少，亮的那几件是特意留的`
+            : `深浅 ${liteN} : ${darkN}，远看有层次、不糊成一团`;
+  const s3 = span>0
+    ? `${bal}；最正式的${hi.name}和最松的${lo.name}差 <b>${span}</b> 档，中间这几件就是用来把这个差拉平的。`
+    : `${bal}；这几件正式度齐平在 ${hi.f}，整套不抢戏。`;
+
+  rtext.innerHTML = [s1,s2,s3].filter(Boolean).map(t=>`<p>${t}</p>`).join('');
+  reasonBox.classList.add('on');
+  /* ⚠️ 淡入不能用 rAF 驱动：后台标签页、虚拟时钟下 rAF 可能一次都不触发，
+     卡片就会永远停在 opacity:0。可见性这类状态一律交给定时器。 */
+  clearTimeout(reasonBox._t);
+  reasonBox._t = setTimeout(()=>reasonBox.classList.add('show'), 30);
+}
+function hideReason(){
+  reasonBox.classList.remove('show','on'); rtext.innerHTML=''; rkeys.innerHTML='';
+}
+
+/* ================= 衣柜带：平铺圆形、不叠压 ================= */
+const band = document.getElementById('band');
+const N = ITEMS.length;
+const jit = ITEMS.map(()=>({e:(Math.random()-.5), b:(Math.random()-.5)}));
+const beadEls = ITEMS.map((it)=>{
+  const d = document.createElement('div');
+  d.className='bead';
+  d.innerHTML = svgOf(it);
+  d.title = it.name;
+  band.appendChild(d);
+  return d;
+});
+/* 交错平铺：奇数行右移半格，模拟参考图那种"密但有呼吸"的排布 */
+function layoutBand(){
+  const W = band.clientWidth;
+  const target = 48;                      // 目标格子边长（含间隙）
+  let cols = Math.max(10, Math.round(W / target));
+  const cell = W / cols;
+  const rows = Math.ceil(N / cols);
+  band.style.height = (rows*cell + cell*0.6) + 'px';
+  const gap = Math.max(3, cell*0.085);
+  const D = cell - gap;
+  ITEMS.forEach((it,i)=>{
+    const r = Math.floor(i/cols), c = i%cols;
+    const offX = (r%2) ? cell*0.5 : 0;
+    /* 微微的位置与大小抖动：规整网格看着像"陈列"，抖一点才像"一堆衣服"。
+       幅度必须小于 gap 的一半，否则会叠压——前面定的规矩是不能盖住。 */
+    const jx = jit[i].e * Math.min(3.2, gap*0.34);
+    const jy = jit[i].b * Math.min(3.2, gap*0.34);
+    const dd = D * (1 + jit[i].b * 0.05);
+    const x = c*cell + offX + gap/2 + jx;
+    const y = r*cell + cell*0.3 + gap/2 + jy;
+    const el = beadEls[i];
+    el.style.left = x + 'px';
+    el.style.top  = y + 'px';
+    el.style.width = dd + 'px';
+    el.style.height = dd + 'px';
+    el.style.zIndex = 1;
+    /* 记下圆心与直径：涟漪要靠真实距离算延迟和衰减，不能靠数组下标差
+       （下标相邻的两颗，在换行处实际离得很远）。 */
+    el._cx = x + dd/2; el._cy = y + dd/2; el._d = dd;
+  });
+}
+layoutBand();
+let brt; addEventListener('resize',()=>{clearTimeout(brt);brt=setTimeout(layoutBand,180)});
+
+/* ================= 主流程 ================= */
+const field=document.getElementById('field'), q=document.getElementById('q');
+const go=document.getElementById('go'), clr=document.getElementById('clr');
+const slots=document.getElementById('slots'), loading=document.getElementById('loading');
+const result=document.getElementById('result');
+const reasonBox=document.getElementById('reason'),
+      rkeys=document.getElementById('rkeys'), rtext=document.getElementById('rtext');
+const readout=document.getElementById('readout'), acts=document.getElementById('acts');
+let current=[], curQ=null;
+
+function showEl(el,dsp){ el.style.display=dsp; void el.offsetWidth; requestAnimationFrame(()=>el.classList.add('on')); }
+function hideEl(el){ el.classList.remove('on'); el.style.display=''; }
+
+q.addEventListener('input',()=>field.classList.toggle('has', q.value.trim().length>0));
+q.addEventListener('keydown',e=>{ if(e.key==='Enter') run(); });
+go.onclick = run;
+clr.onclick = ()=>{ q.value=''; field.classList.remove('has'); q.focus(); };
+
+const EXS = [
+ '陪客户吃饭，但下午要骑车过去',
+ '降温了，想穿得暖但不臃肿',
+ '周末逛展，想安静一点',
+ '第一次约会，别太用力',
+];
+const exsBox = document.getElementById('exs');
+EXS.forEach(t=>{
+  const b=document.createElement('button');
+  b.className='ex'; b.textContent=t;
+  b.onclick=()=>{ q.value=t; field.classList.add('has'); run(); };
+  exsBox.appendChild(b);
+});
+
+function renderReadout(p){
+  readout.innerHTML='';
+  const add=(k,v)=>{ const d=document.createElement('div'); d.className='rd'; d.innerHTML=`<i>${k}</i>${v}`; readout.appendChild(d); };
+  if(p.fLabel) add('场合', p.fLabel);
+  if(p.seasonLabel) add('体感', p.seasonLabel);
+  if(p.styles.length) add('风格', p.styles.join(' / '));
+  if(p.colors.length) add('色彩', p.colors.join(' / '));
+  if(!p.fLabel && !p.seasonLabel && !p.styles.length && !p.colors.length) add('提示','没读到硬约束，按日常通勤处理');
+}
+
+function makeSlot(it){
+  const d=document.createElement('div');
+  d.className='slot';
+  d.innerHTML=`
+    <button class="swp">换</button>
+    <div class="pic">${svgOf(it)}</div>
+    <div class="meta"><b>${it.name}</b><em>${CATL[cat(it.type)]}</em></div>`;
+  d.querySelector('.swp').onclick=(e)=>{ e.stopPropagation(); swapOne(it,d); };
+  return d;
+}
+
+/* 飞跃：幽灵层固定贴在起点，全程只用 transform 补间，避免逐帧改 left/top 造成卡顿。
+   轨迹是「先翘起 → 走弧线 → 略微过冲 → 落定」四段，配纸片投影由小变大再收，
+   再加 border-radius 从圆形渐变到卡片圆角，做出「从衣柜里被抽出来的一张纸」。 */
+const FLY = 1020;                       // 单程时长
+const GAP = 300;                        // 每件错开
+const LIFT = 290;                       // 起跳到真正离手之间的蓄力时间（对齐弹到最高点的时刻）
+const WAVE_R = 330;                     // 涟漪影响半径（px）
+
+/* 涟漪：一件被抽走，周边按「真实距离」依次被推开再弹回。
+   三件事决定它像不像波：延迟随距离线性增加（波前在传播）、
+   幅度随距离二次衰减（近的晃得狠）、弹回时反向过冲一点（惯性）。 */
+function ripple(srcIdx, power){
+  const s = beadEls[srcIdx];
+  if(!s || s._cx==null) return;
+  const pw = power==null ? 1 : power;
+  beadEls.forEach((el,j)=>{
+    if(j===srcIdx || el._cx==null) return;
+    const dx = el._cx - s._cx, dy = el._cy - s._cy;
+    const d  = Math.hypot(dx,dy);
+    if(d > WAVE_R || d < 0.001) return;
+    const t  = d / WAVE_R;                       // 0 近 → 1 远
+    const delay = t * 260;
+    /* ⚠️ 幅度不能按"物理上够不够"来定，要按"人眼能不能读出来"来定。
+       密排的同款白圆里，16px 的位移看起来还是"整齐的排布"——因为缺参照物。
+       必须挪到一眼能看出"这里被拨开了一个口子"的量级（约半个珠径）。 */
+    const amp = (1-t)*(1-t) * 30 * pw;           // 二次衰减
+    const ux = dx/d, uy = dy/d;
+    /* ⚠️ 缓动必须挂在**每个关键帧区间**上，不能整体写一个 ease-out：
+       整体缓动会把时间轴压扁，让远近所有珠子几乎同时到达峰值，
+       延迟就白设了，看起来是"齐刷刷弹一下"而不是"一圈波推出去"。
+       分段写，delay 的分层才留得住——波前才会真的在传播。 */
+    el.animate([
+      { transform:'translate(0,0) scale(1)', offset:0,
+        easing:'cubic-bezier(.16,1,.3,1)' },
+      { transform:`translate(${(ux*amp).toFixed(2)}px,${(uy*amp).toFixed(2)}px) scale(${(1+(1-t)*.11).toFixed(3)})`, offset:.30,
+        easing:'cubic-bezier(.45,0,.55,1)' },
+      { transform:`translate(${(-ux*amp*.34).toFixed(2)}px,${(-uy*amp*.34).toFixed(2)}px) scale(.994)`, offset:.64,
+        easing:'cubic-bezier(.2,.85,.35,1)' },
+      { transform:'translate(0,0) scale(1)', offset:1 }
+    ], { duration:700, delay, easing:'linear', fill:'none' });
+  });
+  rippleRing(s);
+}
+/* 视觉波纹：光靠邻居位移，在小圆上不容易读出来，补一圈扩散的淡环。
+   回收用定时器，不用 onfinish——动画事件可能不来。 */
+/* 双环错开 130ms：单环看起来像"一个消失的圈"，两道才有"波在扩散"的意思。
+   环用定时器回收，不用 onfinish。 */
+/* ⚠️ 环不能用 transform:scale 放大：scale 会连边框一起放大，
+   扩到 7 倍时边框变成 10px 粗的黑圈。而要反向补偿 borderWidth，
+   实测 Chrome 在暂停/补间时读到的始终是 CSS 原值，压不住。
+   所以改成补间 width/height、边框写死——环到哪儿都是 1.4px 细线。
+   代价是每帧 layout，但同时在跑的环最多 8 个，扛得住。 */
+function rippleRing(srcEl){
+  const D = srcEl._d || 40;
+  const make = (delay, dur, a0)=>{
+    const r = document.createElement('div');
+    r.className = 'ring';
+    r.style.left = srcEl._cx + 'px';
+    r.style.top  = srcEl._cy + 'px';
+    band.appendChild(r);
+    const size = (k)=> (D*k).toFixed(1)+'px';
+    /* 亮度要"保持到后段再收"：一开始就线性衰减的话，
+       环走完大半程时已经淡得看不见了，等于白画。 */
+    r.animate([
+      { width:size(1.0), height:size(1.0), opacity:0,       offset:0 },
+      { width:size(1.6), height:size(1.6), opacity:a0,      offset:.12 },
+      { width:size(4.2), height:size(4.2), opacity:a0*.88,  offset:.55 },
+      { width:size(6.6), height:size(6.6), opacity:a0*.34,  offset:.84 },
+      { width:size(WAVE_R*2/D), height:size(WAVE_R*2/D), opacity:0, offset:1 }
+    ], { duration:dur, delay, easing:'cubic-bezier(.22,.62,.4,1)', fill:'both' });
+    setTimeout(()=>r.remove(), delay+dur+60);
+  };
+  make(0,   860, .62);
+  make(140, 780, .34);
+}
+
+function fly(fromEl,toRect,it,cb){
+  const a = fromEl.getBoundingClientRect();
+  const g = document.createElement('div');
+  g.className = 'ghost';
+  g.innerHTML = svgOf(it);
+  g.style.left = a.left+'px';  g.style.top = a.top+'px';
+  g.style.width = a.width+'px'; g.style.height = a.height+'px';
+  document.body.appendChild(g);
+
+  const dx = (toRect.left+toRect.width/2) - (a.left+a.width/2);
+  const dy = (toRect.top+toRect.height/2)  - (a.top+a.height/2);
+  const s  = toRect.width / Math.max(1,a.width);
+  const lift = -(Math.min(160, Math.abs(dy)*0.30 + 56));
+
+  /* ⚠️ 缩放的每一帧都必须写成 s 的倍数（或与 s 之间的插值），
+     不能混用「1+s*k」和「s*k」：卡片是珠子的 4~5 倍，
+     写 1+s*0.20 会算出 1.9，而下一帧是 s*1.03=4.8，
+     中途忽然暴涨 2.5 倍，看着就是"弹一下才到位"，不是被抽出来。 */
+  const anim = g.animate([
+    { transform:'translate(0,0) scale(1) rotate(0deg)',
+      borderRadius:'50%', boxShadow:'0 2px 6px rgba(27,26,24,.10)', offset:0 },
+    { transform:`translate(${(dx*0.10).toFixed(1)}px, ${lift.toFixed(1)}px) scale(${(1+(s-1)*0.40).toFixed(3)}) rotate(-5deg)`,
+      borderRadius:'44%', boxShadow:'0 18px 34px rgba(27,26,24,.20)', offset:0.26 },
+    { transform:`translate(${(dx*0.55).toFixed(1)}px, ${(dy*0.30+lift*0.35).toFixed(1)}px) scale(${(s*0.80).toFixed(3)}) rotate(-2deg)`,
+      borderRadius:'28%', boxShadow:'0 34px 62px rgba(27,26,24,.22)', offset:0.56 },
+    /* 落定的"弹跳"：先冲过目标位（1.07 倍），再被拉回来（0.97），最后归正。
+       少这一段就是"停住"，有这一段才是"落下去了"。 */
+    { transform:`translate(${(dx*1.07).toFixed(1)}px, ${(dy*1.09).toFixed(1)}px) scale(${(s*1.06).toFixed(3)}) rotate(2deg)`,
+      borderRadius:'15px', boxShadow:'0 22px 42px rgba(27,26,24,.15)', offset:0.84 },
+    { transform:`translate(${(dx*0.975).toFixed(1)}px, ${(dy*0.965).toFixed(1)}px) scale(${(s*0.985).toFixed(3)}) rotate(-.8deg)`,
+      borderRadius:'16px', boxShadow:'0 12px 26px rgba(27,26,24,.11)', offset:0.93 },
+    { transform:`translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) scale(${s.toFixed(3)}) rotate(0deg)`,
+      borderRadius:'16px', boxShadow:'0 6px 18px rgba(27,26,24,.09)', offset:1 },
+  ], { duration: FLY, fill:'both',
+       easing:'cubic-bezier(.38,0,.52,1)' });
+
+  /* ⚠️ 收尾一律用定时器，不用 anim.onfinish。
+     动画结束事件会漏（后台标签页、虚拟时间、被打断都会），
+     而状态切换（卡片现身）绝不能依赖一个可能不来的事件。
+     动画只负责好看，谁先谁后由 timer 说了算。 */
+  setTimeout(()=>g.classList.add('out'), FLY-150);
+  setTimeout(()=>{ g.remove(); if(cb) cb(); }, FLY+90);
+  return anim;
+}
+/* 卡片落定的回弹：飞行末段已经过冲过一次，这里再补一次非常轻的
+   "压一下再起来"，卡片才算真正落到位。 */
+function settle(el){
+  el.animate([
+    { transform:'scale(1.035) translateY(-3px)' },
+    { transform:'scale(.992)  translateY(1px)', offset:.55 },
+    { transform:'scale(1)     translateY(0)' }
+  ], { duration:460, easing:'cubic-bezier(.34,1.4,.64,1)', fill:'none' });
+}
+function cancelWaves(el){
+  if(el.getAnimations) el.getAnimations().forEach(a=>{ try{ a.cancel(); }catch(e){} });
+}
+function resetBeads(){
+  beadEls.forEach(el=>{
+    clearTimeout(el._liftT);
+    cancelWaves(el);
+    el.classList.remove('taken','hit','lift'); el.style.zIndex=1;
+  });
+  band.querySelectorAll('.ring').forEach(r=>r.remove());
+}
+/* 起飞：先在堆里蓄力弹一下（.lift），定时器到点再落到暗掉的状态 */
+function takeBead(i){
+  const el = beadEls[i];
+  el.classList.add('hit'); el.style.zIndex = 6;
+  el.classList.remove('lift'); void el.offsetWidth;
+  el.classList.add('lift');
+  clearTimeout(el._liftT);
+  el._liftT = setTimeout(()=>{
+    el.classList.remove('lift'); el.classList.add('taken');
+  }, 740);
+}
+/* 目标框要取「布局盒子」，不能直接读 getBoundingClientRect：
+   卡片初始带 scale(.94)，读出来会小 6%，飞过去会缩一下才弹回原尺寸。 */
+function layoutBox(el){
+  const r = el.getBoundingClientRect();
+  const w = el.offsetWidth, h = el.offsetHeight;
+  return { left: r.left + r.width/2 - w/2, top: r.top + r.height/2 - h/2, width: w, height: h };
+}
+function releaseBead(i){
+  const el = beadEls[i];
+  el.classList.remove('taken','hit','lift'); el.style.zIndex = 1;
+}
+
+function run(){
+  const text=q.value.trim();
+  if(!text){ q.focus(); return; }
+  const p=parse(text); curQ=p;
+  renderReadout(p);
+  go.disabled=true;
+  showEl(result,'block'); hideEl(acts);
+  [...slots.querySelectorAll('.slot')].forEach(s=>s.remove());
+  loading.classList.add('on');
+  resetBeads();
+  hideReason();
+
+  setTimeout(()=>{
+    current=buildOutfit(p,[]);
+    loading.classList.remove('on');
+    current.forEach((it,k)=>{
+      const el=makeSlot(it); slots.appendChild(el);
+      const from=beadEls[it.id], toRect=layoutBox(el);
+      const t0 = k*GAP;
+      /* 先起跳 + 激起涟漪，等弹到最高点再真正飞走 */
+      setTimeout(()=>{ takeBead(it.id); ripple(it.id, 1); }, t0);
+      setTimeout(()=>fly(from,toRect,it,()=>{ el.classList.add('on'); settle(el); }), t0+LIFT);
+    });
+    /* 理由等最后一件快落定再出——和按钮一起，避免抢飞行的戏 */
+    setTimeout(()=>{
+      renderReason(p,current);
+      showEl(acts,'flex'); go.disabled=false;
+    }, (current.length-1)*GAP + LIFT + FLY*0.62);
+  },520);
+}
+
+function swapOne(it,slotEl){
+  if(!curQ) return;
+  const c=cat(it.type);
+  const others=current.filter(x=>x.id!==it.id).map(x=>x.id);
+  const cand=pick(inCat(c,curQ),curQ,others);
+  if(!cand || cand.it.id===it.id) return;
+  const nw=cand.it;
+  const idx=current.findIndex(x=>x.id===it.id);
+  const toRect=layoutBox(slotEl);
+  /* 旧的那件跳回堆里，同样激起一圈波——它落回原位这个动作本身也该有反馈 */
+  releaseBead(it.id); setTimeout(()=>ripple(it.id,.55), 90);
+  takeBead(nw.id); ripple(nw.id, 1);
+  slotEl.classList.remove('on');
+  setTimeout(()=>{
+    const n=makeSlot(nw); slotEl.replaceWith(n);
+    fly(beadEls[nw.id],toRect,nw,()=>{ n.classList.add('on'); settle(n); });
+    current[idx]=nw;
+    /* 换了一件，整套逻辑也变了——理由必须跟着重算，不能停在上一版 */
+    renderReason(curQ,current.slice());
+  },240);
+}
+
+document.getElementById('again').onclick=()=>{
+  if(!curQ) return;
+  const nxt=buildOutfit(curQ,current.map(i=>i.id));
+  current=nxt;
+  [...slots.querySelectorAll('.slot')].forEach(s=>s.classList.remove('on'));
+  resetBeads();
+  reasonBox.classList.remove('show'); rtext.innerHTML='';
+  setTimeout(()=>{
+    [...slots.querySelectorAll('.slot')].forEach(s=>s.remove());
+    nxt.forEach((it,k)=>{
+      const el=makeSlot(it); slots.appendChild(el);
+      const from=beadEls[it.id], toRect=layoutBox(el);
+      const t0 = k*GAP;
+      setTimeout(()=>{ takeBead(it.id); ripple(it.id, 1); }, t0);
+      setTimeout(()=>fly(from,toRect,it,()=>{ el.classList.add('on'); settle(el); }), t0+LIFT);
+    });
+    setTimeout(()=>renderReason(curQ,current.slice()), (nxt.length-1)*GAP + LIFT + FLY*0.62);
+  },300);
+};
+
+document.getElementById('reset').onclick=()=>{
+  q.value=''; field.classList.remove('has'); readout.innerHTML='';
+  [...slots.querySelectorAll('.slot')].forEach(s=>s.remove());
+  hideEl(result); hideEl(acts); resetBeads();
+  hideReason();
+  current=[]; curQ=null; q.focus();
+};
+
+/* ================= 衣柜抽屉 ================= */
+const mask=document.getElementById('mask'), drawer=document.getElementById('drawer');
+const dbody=document.getElementById('dbody');
+(function buildDrawer(){
+  ['top','outer','bottom','dress','shoe','bag','acc'].forEach(c=>{
+    const list=ITEMS.filter(it=>cat(it.type)===c);
+    if(!list.length) return;
+    const g=document.createElement('div'); g.className='dgroup';
+    g.innerHTML=`<div class="gt">${CATL[c]} · ${list.length} 件</div>`;
+    const grid=document.createElement('div'); grid.className='dgrid';
+    list.forEach(it=>{
+      const cell=document.createElement('div'); cell.className='dcell';
+      cell.innerHTML=`<div class="c">${svgOf(it)}</div><div class="n">${it.name}</div>`;
+      cell.title=it.name;
+      grid.appendChild(cell);
+    });
+    g.appendChild(grid); dbody.appendChild(g);
+  });
+})();
+function openDrawer(){ mask.classList.add('on'); drawer.classList.add('on'); }
+function closeDrawer(){ mask.classList.remove('on'); drawer.classList.remove('on'); }
+document.getElementById('enter').onclick=openDrawer;
+document.getElementById('dclose').onclick=closeDrawer;
+mask.onclick=closeDrawer;
+addEventListener('keydown',e=>{ if(e.key==='Escape') closeDrawer(); });
+
+document.getElementById('poolCnt').textContent = N + ' 件单品';
+document.getElementById('bandCnt').textContent = N;
+</script>
+</body>
+</html>

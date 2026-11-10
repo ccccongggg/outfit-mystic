@@ -1,0 +1,57 @@
+/* ============================================================
+   mobile-perf.css —— 真机流畅度优化
+   只在真机生效：≤460px 竖屏 与 手机横屏(≤520px)。
+   桌面「手机样机」观感完全不受影响。
+
+   针对四个真实掉帧源：
+     1) 惯性滚动缺失 —— iOS 需要 -webkit-overflow-scrolling:touch 才有 momentum，
+        否则手指离开屏幕滚动立刻停，手感是「黏」的。
+     2) 常驻动画装饰层 —— 星空/尘埃/流星/光晕无限动画 + blur(20px)，
+        真机 GPU 每一帧都在重绘，滚动时直接掉帧。改为静态(保留观感，停掉动画)。
+     3) backdrop-filter 毛玻璃 —— 移动端滚动时逐帧重算背景，很贵；降级为实色底。
+     4) 85 件衣橱一次性渲染 —— 视口外卡片跳过布局与绘制(content-visibility)。
+   ============================================================ */
+
+@media (max-width:460px), (max-height:520px) and (orientation:landscape){
+
+  /* ---------- 1. 滚动手感 ---------- */
+  /* 主滚动容器：.stage(原生页) 与 .aw-view(V10 玩法模块) */
+  .stage,.screen,.aw-view{
+    -webkit-overflow-scrolling:touch;   /* iOS 惯性滚动(momentum) */
+    overscroll-behavior-y:contain;      /* 滚到边界不再带动整页/浏览器，避免「拉扯感」 */
+    scroll-behavior:smooth;
+  }
+  /* 禁掉 iOS 橡皮筋回弹：回弹期间的连续重绘是卡顿感的主要来源之一 */
+  html,body{overscroll-behavior:none}
+
+  /* ---------- 2. 修正 .stage 高度（重要） ---------- */
+  /* 原值是 calc(100% - 34px - 52px - 66px)，其中 34px 是假状态栏。
+     真机隐藏假状态栏后这 34px 必须一起减掉，否则底部会空出一截、
+     内容被无谓裁短。现改为 导航栏52 + 底tabbar66。 */
+  .stage{height:calc(100% - 52px - 66px)}
+
+  /* ---------- 3. 停止常驻动画（保留静态观感） ---------- */
+  .amb .glow,.amb .glow2{animation:none!important;filter:blur(12px)}
+  .amb .stars{animation:none!important}
+  .light-starfield,.light-starfield:after,.light-dust,.light-fourstar,
+  .dark-starfield-far,.dark-starfield-near,.dark-glow,.dark-meteor{animation:none!important}
+  .atmosphere-haze{animation:none!important}
+  .home-decor .home-stars,.home-spark{animation:none!important}
+
+  /* ---------- 4. 毛玻璃降级 ---------- */
+  /* backdrop-filter 在移动端滚动时逐帧重算，代价高；换成近实色底，观感几乎一致 */
+  .navbar{backdrop-filter:none;background:color-mix(in srgb,var(--bg) 94%,transparent)}
+
+  /* ---------- 5. 长列表：视口外卡片跳过渲染 ---------- */
+  /* 衣橱 85 件是滚动最卡的场景。contain-intrinsic-size 给一个接近真实高度的
+     占位值，避免 content-visibility 导致的滚动条跳动。 */
+  /* 实测单卡高度 205px（390px 视口下），用真实值避免滚动条跳动 */
+  .warditem{content-visibility:auto;contain-intrinsic-size:auto 205px}
+
+  /* ---------- 6. 点击去 300ms 延迟 ---------- */
+  button,.iconbtn,.backbtn,.tabbar button{touch-action:manipulation}
+
+  /* ---------- 7. 无谓的重绘开销 ---------- */
+  /* 真机铺满后 .phone 的大阴影落在视口外，纯属浪费 */
+  .phone{box-shadow:none}
+}

@@ -1,0 +1,15 @@
+{
+  "items": [
+    {
+      "trend_id": "trend_001",
+      "title": "当季新品穿搭",
+      "subtitle": "长风衣 × 奶油白 × 黑色长靴",
+      "image": "assets/demo-clothes/ai_outfit_model.png",
+      "basis": [
+        "seasonal_trend",
+        "market_new_arrivals"
+      ],
+      "uses_user_history": false
+    }
+  ]
+}

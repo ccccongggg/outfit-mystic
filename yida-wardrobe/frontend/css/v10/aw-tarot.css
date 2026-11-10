@@ -1,0 +1,56 @@
+.aw-tarot-page{position:relative;min-height:100%;height:100%;overflow:hidden;color:#f7f2e9;background:radial-gradient(circle at 72% 12%,rgba(189,139,74,.13),transparent 27%),linear-gradient(180deg,#17191e,#0b0d11 70%,#121419)}
+.aw-shell:has(.aw-tarot-page) .aw-header{background:#17191e;color:#f6eee3;border-bottom:1px solid rgba(216,171,105,.08)}.aw-shell:has(.aw-tarot-page) .aw-header button{color:#f6eee3;background:rgba(255,255,255,.045);border-color:rgba(218,178,112,.2)}
+:root[data-theme="flow"] .aw-tarot-page{color:#2d2544;background:radial-gradient(circle at 72% 12%,rgba(214,197,252,.42),transparent 27%),linear-gradient(180deg,#f8f4ff,#ece5f8 70%,#f4eefb)}
+:root[data-theme="flow"] .aw-shell:has(.aw-tarot-page) .aw-header{background:#f8f4ff;color:#2d2544;border-color:rgba(118,96,173,.12)}
+:root[data-theme="flow"] .aw-shell:has(.aw-tarot-page) .aw-header button{background:rgba(255,255,255,.75);color:#2d2544;border-color:rgba(118,96,173,.2)}
+:root[data-theme="flow"] .aw-tarot-heading h1{color:#2d2544}:root[data-theme="flow"] .aw-tarot-heading p{color:#716884}:root[data-theme="flow"] .aw-tarot-progress{color:#8a6bbd}:root[data-theme="flow"] .aw-tarot-progress i{background:rgba(138,107,189,.35)}
+.aw-tarot-stars{position:absolute;inset:0;pointer-events:none;opacity:.56;background-image:radial-gradient(circle at 11% 16%,#cba369 0 1px,transparent 2px),radial-gradient(circle at 74% 23%,#d5ac6e 0 .8px,transparent 2px),radial-gradient(circle at 29% 66%,#bd9255 0 .8px,transparent 2px),radial-gradient(circle at 88% 78%,#c19660 0 1px,transparent 2px);background-size:143px 173px,187px 223px,129px 189px,225px 187px;animation:aw-tarot-breathe 7s ease-in-out infinite alternate}
+@keyframes aw-tarot-breathe{to{opacity:.3}}
+.aw-tarot-heading{position:absolute;top:27px;left:16px;right:16px;text-align:center;z-index:5;pointer-events:none}.aw-tarot-heading .aw-kicker{color:#d8b17a}.aw-tarot-heading h1{font:700 29px/1.25 "Songti SC","STSong",serif;margin:4px 0;color:#fff}.aw-tarot-heading p{font-size:12px;color:#ddd1be;margin:16px 0 0}
+.aw-tarot-progress{display:flex;align-items:center;justify-content:center;gap:13px;color:#e2bf87;font:600 15px/1 "Songti SC","STSong",serif;margin-top:10px}.aw-tarot-progress i{display:block;width:35px;height:1px;background:rgba(214,170,103,.55)}
+.aw-tarot-slots{position:absolute;left:0;right:0;top:158px;z-index:8;display:flex;justify-content:center;gap:8px;pointer-events:none;min-height:49px}.aw-tarot-slot{width:35px;height:49px;border:1px dashed rgba(198,155,98,.65);border-radius:5px;background:rgba(255,249,236,.07);overflow:hidden}.aw-tarot-slot.filled{border:1px solid #c69b62;background:#fff9ec;box-shadow:0 2px 9px rgba(0,0,0,.34)}.aw-tarot-slot img{display:block;width:100%;height:100%;object-fit:cover}
+.aw-tarot-wheel{position:absolute;left:0;right:0;top:170px;bottom:-45px;overflow:hidden;touch-action:none;cursor:grab}.aw-tarot-wheel:active{cursor:grabbing}
+.aw-tarot-card{position:absolute;left:0;top:0;width:143px;height:216px;padding:0;border:0;border-radius:9px;background:#fffaf0;box-shadow:0 5px 13px rgba(0,0,0,.32);overflow:hidden;will-change:transform;transition:box-shadow .18s,filter .18s,opacity .18s}.aw-tarot-card img{width:100%;height:100%;display:block;object-fit:fill}.aw-tarot-card.active{box-shadow:0 0 0 2px #fbd49a,0 0 19px rgba(255,214,150,.86),0 0 38px rgba(239,174,81,.53),0 9px 22px rgba(0,0,0,.48);filter:brightness(1.08)}.aw-tarot-card.taken{opacity:0;pointer-events:none}.aw-draw-ghost{position:fixed;pointer-events:none;box-shadow:0 0 18px rgba(255,209,139,.7)}
+.aw-tarot-reveal{position:absolute;z-index:15;inset:195px 12px 0;overflow:auto;padding-bottom:30px;scrollbar-width:none}.aw-tarot-reveal-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;perspective:1100px}.aw-flipcard{height:188px;position:relative}.aw-flip-inner{width:100%;height:100%;position:relative;transform-style:preserve-3d;animation:aw-flip .9s cubic-bezier(.2,.6,.25,1) .32s both}@keyframes aw-flip{from{transform:rotateY(0deg) scale(.8)}to{transform:rotateY(180deg) scale(1)}}
+.aw-flip-face{position:absolute;inset:0;backface-visibility:hidden;border-radius:8px;overflow:hidden;border:1px solid #d3ab74;box-shadow:0 5px 13px rgba(0,0,0,.3)}.aw-flip-back{background:#fff7e9}.aw-flip-back img{width:100%;height:100%;object-fit:fill}.aw-flip-front{transform:rotateY(180deg);background:#fffaf1;color:#342c30;padding:6px;display:flex;flex-direction:column;text-align:center;align-items:center}.aw-tarot-front{display:flex;flex-direction:column;align-items:center;flex:1;min-height:0;width:100%}.aw-tarot-front-art{width:100%;height:105px;border:1px solid rgba(202,160,95,.48);border-radius:5px;display:grid;place-items:center;overflow:hidden;background:radial-gradient(circle,#fffefa,#efe4d3)}.aw-tarot-front-art img{width:100%;height:100%;object-fit:contain}.aw-tarot-front-fallback{font-size:43px;color:#c99e61}.aw-tarot-front-name{font:700 12px/1.1 "Songti SC","STSong",serif;margin-top:6px;white-space:nowrap}.aw-tarot-front small{font-size:8px;line-height:1.2;color:#766a63;margin-top:2px}.aw-flip-position{font-size:8px;color:#92724c}.aw-flip-orientation{font-size:8px;color:#a56f45}
+.aw-tarot-reading{padding:13px 14px;margin:15px 0;background:rgba(30,29,31,.82);border-color:rgba(219,178,112,.3);color:#f6eee4}.aw-tarot-reading b{font-size:12px;color:#f0ce96}.aw-tarot-reading p{color:#e6dcd0;margin:6px 0 0;font-size:11px;line-height:1.65}.aw-tarot-reveal .aw-button-row{margin-top:14px}.aw-tarot-reveal .aw-button.secondary{background:rgba(255,255,255,.09);color:#f7eee2;border-color:rgba(230,188,124,.3)}
+@media(max-height:730px){.aw-tarot-heading{top:12px}.aw-tarot-slots{top:143px}.aw-tarot-wheel{top:150px}.aw-tarot-reveal{top:177px}.aw-flipcard{height:167px}}
+@media(max-width:360px){.aw-tarot-card{width:123px;height:186px}.aw-flipcard{height:172px}.aw-tarot-front-art{height:94px}}
+@media(prefers-reduced-motion:reduce){.aw-tarot-stars{animation:none}.aw-flip-inner,.aw-flipcard:nth-child(2) .aw-flip-inner,.aw-flipcard:nth-child(3) .aw-flip-inner{animation:none;transform:rotateY(180deg)}}
+
+/* Keep the complete card visible at the left edge on both the phone and the wide preview. */
+.aw-tarot-wheel{top:220px;bottom:-30px;overflow:visible;z-index:2;user-select:none;-webkit-user-select:none}
+.aw-tarot-card{width:110px;height:166px;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-user-drag:none}
+.aw-tarot-card img{pointer-events:none;-webkit-user-drag:none;user-select:none}
+.aw-tarot-slot:not(.filled){border-color:transparent;background:transparent}
+.aw-flipcard{height:234px}.aw-flip-inner{height:185px}
+.aw-flip-front{padding:0}.aw-tarot-front.supplied{position:relative;width:100%;height:100%;display:block;overflow:hidden}
+.aw-tarot-front.supplied img{position:absolute;left:-22.5%;top:-5%;width:145%;height:110%;object-fit:fill;display:block}
+.aw-flip-caption{display:flex;flex-direction:column;align-items:center;gap:4px;margin-top:7px;color:#e9d4ac;text-align:center;animation:aw-flip-caption-in .35s ease 1.05s both}
+.aw-flip-caption b{font-size:10px}.aw-flip-caption span{font-size:9px;color:#c8b18e}
+@keyframes aw-flip-caption-in{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+:root[data-theme="flow"] .aw-flip-caption{color:#5d4b79}:root[data-theme="flow"] .aw-flip-caption span{color:#78698f}
+@media(max-height:730px){.aw-tarot-wheel{top:190px}}
+@media(max-width:360px){.aw-tarot-card{width:98px;height:148px}.aw-flipcard{height:210px}.aw-flip-inner{height:165px}}
+
+/* Every selected card turns face up before it lands in its own small slot. */
+.aw-tarot-slot{width:43px;height:64px;border-radius:6px;display:grid;place-items:center}
+.aw-tarot-slot.filled{background:#fffaf1;border-color:#d0a45c;box-shadow:0 2px 12px rgba(231,179,91,.35)}
+.aw-tarot-slot img{width:100%;height:100%;object-fit:contain}
+.aw-draw-ghost{position:fixed;z-index:1000;pointer-events:none;transform-origin:center center;perspective:800px;will-change:transform;box-shadow:none}
+.aw-draw-ghost-inner{position:absolute;inset:0;transform-style:preserve-3d;will-change:transform}
+.aw-draw-ghost-face{position:absolute;inset:0;overflow:hidden;border-radius:9px;background:#fffaf1;backface-visibility:hidden;box-shadow:0 0 20px rgba(244,194,104,.68),0 7px 22px rgba(0,0,0,.36)}
+.aw-draw-ghost-face img{display:block;width:100%;height:100%;object-fit:fill}
+.aw-draw-ghost-front{transform:rotateY(180deg)}
+.aw-draw-ghost-front img{object-fit:contain}
+.aw-tarot-reveal .aw-flip-inner{animation:none;transform:rotateY(180deg)}
+.aw-tarot-reveal .aw-flip-caption{animation:aw-flip-caption-in .25s ease both}
+.aw-tarot-front.supplied img{left:0;top:0;width:100%;height:100%;object-fit:contain}
+
+/* Drawn positions retain a card back so the endless wheel never has holes. */
+.aw-tarot-card.taken{opacity:1;pointer-events:none;filter:brightness(.88)}
+
+/* The three face-up miniatures become the reading cards, then leave the DOM. */
+.aw-tarot-slots.is-promoting{z-index:40;overflow:visible}
+.aw-tarot-slots.is-promoting .aw-tarot-slot{transform-origin:center;will-change:transform}
+.aw-tarot-reveal.is-opening .aw-flip-inner,.aw-tarot-reveal.is-opening .aw-flip-caption{visibility:hidden}

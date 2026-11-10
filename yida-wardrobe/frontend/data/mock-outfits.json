@@ -1,0 +1,48 @@
+{
+  "wardrobe": [
+    {
+      "outfit_id": "outfit_own_001",
+      "name": "雾紫轻盈通勤",
+      "source": "wardrobe",
+      "item_ids": [
+        "item_001",
+        "item_005",
+        "item_006",
+        "item_004"
+      ],
+      "images": [
+        "purple_blouse.png",
+        "blue_jeans.png",
+        "white_shoes.png",
+        "beige_bag.png"
+      ]
+    },
+    {
+      "outfit_id": "outfit_own_002",
+      "name": "奶油柔和层次",
+      "source": "wardrobe",
+      "item_ids": [
+        "item_002",
+        "item_003",
+        "item_006",
+        "item_004"
+      ],
+      "images": [
+        "cream_blouse.png",
+        "blue_dress.png",
+        "white_shoes.png",
+        "beige_bag.png"
+      ]
+    }
+  ],
+  "ai_reference": [
+    {
+      "outfit_id": "outfit_ai_001",
+      "name": "AI 参考｜当季完整穿搭",
+      "source": "ai_reference",
+      "is_reference": true,
+      "full_image": "ai_outfit_model.png",
+      "full_image_space": "ai_outfit_dark.png"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "schema_version": 2,
+  "note": "内置示例衣物图：无素材时可直接入柜跑通主链路。tags 为预设标签（断网/未配 VLM_API_KEY 时本地复用，配置密钥后由真实 VLM 覆盖）。file 路径相对 frontend/。",
+  "samples": [
+    {
+      "id": "s1", "title": "示例·白衬衫", "desc": "白底商品图，走真实抠底 + VLM 打标（需配置 VLM_API_KEY）",
+      "file": "assets/items/w0001.jpg",
+      "tags": {"category":"top","type":"衬衫","color_name":"白","color_hex":"#F2F0EB","palette":["#F2F0EB","#E4E0D6"],"fit":"合身","pattern":"纯色","material":"棉","season":["春","夏"],"style_tags":["简约","温柔"],"occasions":["通勤","休闲"],"formality":2}
+    },
+    {
+      "id": "s2", "title": "示例·连衣裙", "desc": "走真实抠底 + VLM 打标",
+      "file": "assets/items/w5500.jpg",
+      "tags": {"category":"dress","type":"连衣裙","color_name":"白","color_hex":"#D8D8D8","palette":["#D8D8D8"],"fit":"合身","pattern":"纯色","material":"其他","season":["春","夏"],"style_tags":["温柔"],"occasions":["约会","通勤"],"formality":2}
+    },
+    {
+      "id": "s3", "title": "示例·外套", "desc": "走真实抠底 + VLM 打标",
+      "file": "assets/items/aw01.png",
+      "tags": {"category":"outer","type":"西装外套","color_name":"米白","color_hex":"#D8C0C0","palette":["#D8C0C0"],"fit":"宽松","pattern":"纯色","material":"其他","season":["秋","冬"],"style_tags":["通勤"],"occasions":["通勤"],"formality":3}
+    },
+    {
+      "id": "s4", "title": "示例·针织", "desc": "走真实抠底 + VLM 打标",
+      "file": "assets/items/w0008.jpg",
+      "tags": {"category":"top","type":"针织毛衣","color_name":"米","color_hex":"#D8D8D8","palette":["#D8D8D8"],"fit":"合身","pattern":"纯色","material":"棉","season":["春","秋"],"style_tags":["简约"],"occasions":["通勤","休闲"],"formality":2}
+    }
+  ]
+}

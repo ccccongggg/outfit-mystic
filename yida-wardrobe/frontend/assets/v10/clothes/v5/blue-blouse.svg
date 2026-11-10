@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 180" role="img" aria-hidden="true"><defs>
+<filter id="s" x="-30%" y="-30%" width="160%" height="180%"><feGaussianBlur stdDeviation="3"/></filter>
+<linearGradient id="lilac" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#e5d6fb"/><stop offset=".45" stop-color="#b99fdc"/><stop offset="1" stop-color="#8e75bc"/></linearGradient>
+<linearGradient id="cream" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fffefa"/><stop offset=".52" stop-color="#f5eee1"/><stop offset="1" stop-color="#d8c9ad"/></linearGradient>
+<linearGradient id="blue" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d4e6fb"/><stop offset=".52" stop-color="#91b7df"/><stop offset="1" stop-color="#5c83b3"/></linearGradient>
+<linearGradient id="denim" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#94b2d7"/><stop offset=".5" stop-color="#698bb7"/><stop offset="1" stop-color="#4d6993"/></linearGradient>
+<linearGradient id="navy" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#293b5f"/><stop offset=".5" stop-color="#151f38"/><stop offset="1" stop-color="#0b1020"/></linearGradient>
+<linearGradient id="bag" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f7ebdc"/><stop offset=".5" stop-color="#e8d3ba"/><stop offset="1" stop-color="#c7aa88"/></linearGradient>
+<linearGradient id="blackbag" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#4a4851"/><stop offset=".5" stop-color="#27272e"/><stop offset="1" stop-color="#13151b"/></linearGradient>
+<linearGradient id="gold" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#a97439"/><stop offset=".5" stop-color="#f1cf91"/><stop offset="1" stop-color="#aa763d"/></linearGradient>
+</defs><ellipse cx="80" cy="166" rx="49" ry="5" fill="#6f5c69" opacity=".13" filter="url(#s)"/><path d="M56 24 44 30 30 46 16 109 41 115 52 70 54 144 106 144 108 70 119 115 144 109 130 46 116 30 103 24Z" fill="url(#blue)" stroke="#6f94c0" stroke-width="1.5"/><path d="M56 24 80 43 103 24 94 61 80 50 66 61Z" fill="#e4effb" stroke="#759ac4"/><path d="M80 50v94M45 30l9 114m62-114-10 114M37 106l17 6m69-6-17 6" stroke="#658bb8" opacity=".7"/><path d="M45 105l-3 16 20 2-3-15m42 0-3 15 20-2-3-16" fill="#b1cde9" stroke="#7596bc"/><g fill="#f2f6fa"><circle cx="81" cy="65" r="1.6"/><circle cx="81" cy="83" r="1.6"/><circle cx="81" cy="101" r="1.6"/><circle cx="81" cy="119" r="1.6"/></g></svg>

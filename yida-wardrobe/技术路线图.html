@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>技术路线图 · 易搭整合版1.0（电子衣柜 × AI 玄学穿搭）</title>
+<style>
+  :root{--bg:#0f1115;--panel:#171a21;--panel2:#1e222b;--ink:#e8ecf2;--ink2:#9aa4b2;--line:#2a2f3a;--accent:#7c5cff;--accent2:#39d0a3;--warn:#f0a93b;--bad:#e5604d}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;line-height:1.65}
+  .wrap{max-width:920px;margin:0 auto;padding:28px 22px 56px}
+  h1{font-size:24px;margin:0 0 4px}
+  .sub{color:var(--ink2);margin:0 0 22px;font-size:14px}
+  h2{font-size:18px;margin:30px 0 12px;padding-left:11px;border-left:4px solid var(--accent)}
+  h3{font-size:15px;margin:16px 0 8px;color:var(--accent2)}
+  table{width:100%;border-collapse:collapse;background:var(--panel);border-radius:12px;overflow:hidden;font-size:13.5px}
+  th,td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+  th{background:var(--panel2);font-weight:600}
+  td code{background:var(--panel2);padding:1px 6px;border-radius:5px;font-size:12.5px;color:var(--accent2)}
+  .link{color:var(--accent);text-decoration:none;font-weight:600}
+  .row{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;flex:1;min-width:130px}
+  .kpi b{font-size:20px;color:var(--accent2);display:block}.kpi span{font-size:12px;color:var(--ink2)}
+  .box{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:13.5px;margin:8px 0}
+  .timeline{position:relative;margin:10px 0 0;padding-left:22px}
+  .timeline::before{content:"";position:absolute;left:7px;top:4px;bottom:4px;width:2px;background:var(--line)}
+  .tl-item{position:relative;margin:0 0 16px}
+  .tl-item::before{content:"";position:absolute;left:-19px;top:5px;width:11px;height:11px;border-radius:50%;background:var(--accent);border:2px solid var(--bg)}
+  .tl-item .when{font-size:12.5px;color:var(--ink2)}.tl-item .what{font-size:14px;margin-top:2px}
+  .pill{font-size:12px;padding:2px 8px;border-radius:999px}
+  .p-easy{background:rgba(57,208,163,.16);color:var(--accent2)}
+  .p-mid{background:rgba(240,169,59,.16);color:var(--warn)}
+  .p-hard{background:rgba(229,96,77,.16);color:var(--bad)}
+  .diagram{margin:14px 0;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+  .diagram svg{width:100%;height:auto;display:block}
+  ul{margin:6px 0 6px 18px;padding:0}li{margin:3px 0}
+  .foot{color:var(--ink2);font-size:12.5px;margin-top:28px;border-top:1px solid var(--line);padding-top:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>技术路线图 · 易搭整合版1.0</h1>
+  <p class="sub">电子衣柜 × AI 玄学穿搭 · 当前主方向最终综合包　|　生成 2026-10-07（图+文融合版）</p>
+
+  <div class="row">
+    <div class="kpi"><b>8790</b><span>后端+前端同端口</span></div>
+    <div class="kpi"><b>22 / 32</b><span>塔罗张数 / 衣橱件数</span></div>
+    <div class="kpi"><b>3 层</b><span>断网兜底</span></div>
+    <div class="kpi"><b>0 依赖</b><span>前端无框架/打包</span></div>
+  </div>
+
+  <h2>一、技术架构图</h2>
+  <div class="diagram">
+  <svg viewBox="0 0 680 620" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="易搭整合版架构图">
+    <defs>
+      <marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M2 1L8 5L2 9" fill="none" stroke="#5a6473" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </marker>
+    </defs>
+    <style>
+      .box{fill:#1b1f27;stroke-width:1.4}
+      .t{font:500 14px system-ui,sans-serif;fill:#e8ecf2}
+      .ts{font:400 12px system-ui,sans-serif;fill:#9aa4b2}
+      .lbl{font:400 12px system-ui,sans-serif;fill:#9aa4b2}
+      .arr{stroke:#5a6473;stroke-width:1.4;fill:none}
+    </style>
+    <rect class="box" x="250" y="24" width="180" height="44" rx="10" stroke="#7F77DD"/>
+    <text class="t" x="340" y="46" text-anchor="middle" dominant-baseline="central">浏览器 · wardrobe-app</text>
+    <text class="ts" x="340" y="62" text-anchor="middle" dominant-baseline="central">原生 JS · 禁用 ESM · file:// 可跑</text>
+    <line class="arr" x1="340" y1="68" x2="340" y2="100" marker-end="url(#ar)"/>
+    <rect class="box" x="200" y="100" width="280" height="54" rx="10" stroke="#1D9E75"/>
+    <text class="t" x="340" y="120" text-anchor="middle" dominant-baseline="central">app.py :8790</text>
+    <text class="ts" x="340" y="138" text-anchor="middle" dominant-baseline="central">静态托管 frontend/ + /api/v1 适配桥</text>
+    <line class="arr" x1="340" y1="154" x2="340" y2="178" marker-end="url(#ar)"/>
+    <line class="arr" x1="112" y1="178" x2="576" y2="178" stroke-dasharray="2 3"/>
+    <line class="arr" x1="112" y1="178" x2="112" y2="200" marker-end="url(#ar)"/>
+    <line class="arr" x1="270" y1="178" x2="270" y2="200" marker-end="url(#ar)"/>
+    <line class="arr" x1="428" y1="178" x2="428" y2="200" marker-end="url(#ar)"/>
+    <line class="arr" x1="576" y1="178" x2="576" y2="200" marker-end="url(#ar)"/>
+    <rect class="box" x="40" y="200" width="144" height="50" rx="10" stroke="#378ADD"/>
+    <text class="ts" x="112" y="216" text-anchor="middle" dominant-baseline="central">/api/items</text>
+    <text class="ts" x="112" y="234" text-anchor="middle" dominant-baseline="central">衣橱数据</text>
+    <rect class="box" x="198" y="200" width="144" height="50" rx="10" stroke="#378ADD"/>
+    <text class="ts" x="270" y="216" text-anchor="middle" dominant-baseline="central">/ingest</text>
+    <text class="ts" x="270" y="234" text-anchor="middle" dominant-baseline="central">抠底 + VLM 打标</text>
+    <rect class="box" x="356" y="200" width="144" height="50" rx="10" stroke="#378ADD"/>
+    <text class="ts" x="428" y="216" text-anchor="middle" dominant-baseline="central">/api/reason</text>
+    <text class="ts" x="428" y="234" text-anchor="middle" dominant-baseline="central">玄学文案</text>
+    <rect class="box" x="512" y="200" width="128" height="50" rx="10" stroke="#378ADD"/>
+    <text class="ts" x="576" y="216" text-anchor="middle" dominant-baseline="central">塔罗 22 张</text>
+    <text class="ts" x="576" y="234" text-anchor="middle" dominant-baseline="central">牌面 + 解读</text>
+    <line class="arr" x1="112" y1="250" x2="112" y2="288" marker-end="url(#ar)"/>
+    <line class="arr" x1="270" y1="250" x2="270" y2="288" marker-end="url(#ar)"/>
+    <line class="arr" x1="428" y1="250" x2="428" y2="288" marker-end="url(#ar)"/>
+    <line class="arr" x1="576" y1="250" x2="576" y2="288" marker-end="url(#ar)"/>
+    <line class="arr" x1="112" y1="288" x2="576" y2="288" stroke-dasharray="2 3"/>
+    <line class="arr" x1="340" y1="288" x2="340" y2="310" marker-end="url(#ar)"/>
+    <rect class="box" x="160" y="310" width="360" height="66" rx="10" stroke="#BA7517"/>
+    <text class="t" x="340" y="328" text-anchor="middle" dominant-baseline="central">engine.js 加权引擎</text>
+    <text class="ts" x="340" y="346" text-anchor="middle" dominant-baseline="central">WEIGHTS · Top3 · 温度/下雨降权 · 风格冲突扣分</text>
+    <text class="ts" x="340" y="364" text-anchor="middle" dominant-baseline="central">四槽状态协议 on / skip / off / empty</text>
+    <line class="arr" x1="340" y1="376" x2="340" y2="430" marker-end="url(#ar)"/>
+    <rect class="box" x="210" y="430" width="260" height="52" rx="10" stroke="#5F5E5A"/>
+    <text class="t" x="340" y="450" text-anchor="middle" dominant-baseline="central">数据层</text>
+    <text class="ts" x="340" y="468" text-anchor="middle" dominant-baseline="central">JSON 存储 · web/data/offline.js(生成物)</text>
+    <rect class="box" x="520" y="300" width="130" height="150" rx="10" stroke="#D85A30"/>
+    <text class="t" x="585" y="322" text-anchor="middle" dominant-baseline="central">AI 能力层</text>
+    <text class="ts" x="585" y="346" text-anchor="middle" dominant-baseline="central">• rembg 抠底</text>
+    <text class="ts" x="585" y="370" text-anchor="middle" dominant-baseline="central">• DashScope VLM</text>
+    <text class="ts" x="585" y="394" text-anchor="middle" dominant-baseline="central">• 三层断网兜底</text>
+    <text class="ts" x="585" y="418" text-anchor="middle" dominant-baseline="central">qwen-vl-max</text>
+    <polyline class="arr" points="343,225 490,225 490,375 520,375" marker-end="url(#ar)"/>
+    <g transform="translate(40,548)">
+      <rect x="0" y="0" width="14" height="14" rx="3" fill="none" stroke="#7F77DD"/>
+      <text class="lbl" x="20" y="11" dominant-baseline="central">前端</text>
+      <rect x="90" y="0" width="14" height="14" rx="3" fill="none" stroke="#1D9E75"/>
+      <text class="lbl" x="110" y="11" dominant-baseline="central">后端/接入</text>
+      <rect x="220" y="0" width="14" height="14" rx="3" fill="none" stroke="#378ADD"/>
+      <text class="lbl" x="240" y="11" dominant-baseline="central">业务路由</text>
+      <rect x="350" y="0" width="14" height="14" rx="3" fill="none" stroke="#BA7517"/>
+      <text class="lbl" x="370" y="11" dominant-baseline="central">引擎</text>
+      <rect x="450" y="0" width="14" height="14" rx="3" fill="none" stroke="#5F5E5A"/>
+      <text class="lbl" x="470" y="11" dominant-baseline="central">数据</text>
+      <rect x="560" y="0" width="14" height="14" rx="3" fill="none" stroke="#D85A30"/>
+      <text class="lbl" x="580" y="11" dominant-baseline="central">AI</text>
+    </g>
+  </svg>
+  </div>
+
+  <h2>二、项目定位与现状</h2>
+  <div class="box">
+    当前电子衣柜主方向的可运行最终综合包，可整体发给朋友演示。前端采用 <b>wardrobe-app</b>（原生 JS，无框架/打包/CDN，<b>禁用 ES module</b>，file:// 双击可跑），后端复用 <b>outfit-mystic/server</b>（Python 标准库 http.server，无 Web 框架）。
+    运行状态：<a class="link" href="http://127.0.0.1:8790/">http://127.0.0.1:8790/</a>（探活 root=200，/api/v1/bootstrap 正常）。
+  </div>
+
+  <h2>三、技术栈</h2>
+  <ul>
+    <li><b>前端</b>：原生 JavaScript（Vanilla，禁用 ESM），CSS 自写，无构建器、无 CDN。</li>
+    <li><b>后端</b>：Python 标准库 <code>http.server.ThreadingHTTPServer</code>，无 Web 框架，端口 8790（原 8787）。</li>
+    <li><b>AI 流水线</b>：rembg 抠底 → DashScope <code>qwen-vl-max</code> VLM 打标 → 受控词表（8 风格/24 色/7 品类）。</li>
+    <li><b>引擎</b>：<code>engine.js</code> 加权（WEIGHTS）+ Top3 + 温度/下雨降权 + 风格冲突扣分；四槽状态协议 <code>on/skip/off/empty</code>。</li>
+    <li><b>数据</b>：JSON 文件存储；<code>web/data/offline.js</code> 为生成物（源 <code>data/*.json</code> → <code>build_offline_data.py</code>）。</li>
+  </ul>
+
+  <h2>四、架构（请求流）</h2>
+  <div class="box">
+    <code>浏览器(wardrobe-app)</code> → <code>HTTP</code> → <code>app.py(8790)</code>
+    &nbsp;├─ 静态托管 <code>/ → frontend/</code>
+    &nbsp;├─ 适配桥 <code>/api/v1/bootstrap</code>、<code>/api/v1/wardrobes/current/items</code>（直读 frontend/data）
+    &nbsp;└─ 业务路由 <code>/api/items</code>、<code>/ingest</code>(抠底+VLM)、<code>/api/reason</code>(玄学文案)
+    <br>（详见上方架构图）
+  </div>
+
+  <h2>五、演进路线图（按优先级）</h2>
+  <div class="timeline">
+    <div class="tl-item"><div class="when">P0 · 可立即做（AI 直接改）</div><div class="what">① 视觉换皮「雾紫神谕」令牌（禁 Inter/Roboto、禁紫蓝渐变）；② 补全 /api/v1 全量桥接，消除 wardrobe-app 与后端接口不兼容；③ 女装化词表与前端展示对齐。</div></div>
+    <div class="tl-item"><div class="when">P1 · 需少量决策</div><div class="what">④ 移动端/竖屏自适应；⑤ VLM 启用文档与 .env 注入 SOP（密钥绝不入库）；⑥ 塔罗 22 张文案与配图补全。</div></div>
+    <div class="tl-item"><div class="when">P2 · 需补知识</div><div class="what">⑦ 真人上身图合成/抠图质量提升（需图像生成/精细化 matting 知识）；⑧ 推荐/穿搭解释的可解释性增强（需 LLM prompt 工程沉淀）。</div></div>
+  </div>
+
+  <h2>六、改进清单（按"AI 能否直接改"分类）</h2>
+  <table>
+    <tr><th style="width:34%">改进项</th><th style="width:12%">难度</th><th>AI 直接改？</th></tr>
+    <tr><td>视觉换皮「雾紫神谕」令牌</td><td><span class="pill p-easy">易</span></td><td>✅ 可直接改（CSS 令牌 + DESIGN.md 约束）</td></tr>
+    <tr><td>/api/v1 全量桥接（消除接口不兼容）</td><td><span class="pill p-easy">易</span></td><td>✅ 可直接改（app.py 路由 + 前端 config）</td></tr>
+    <tr><td>女装化词表与前端展示对齐</td><td><span class="pill p-easy">易</span></td><td>✅ 可直接改（data json + 展示组件）</td></tr>
+    <tr><td>移动端/竖屏自适应</td><td><span class="pill p-mid">中</span></td><td>⚠️ 需确认断点/交互再改</td></tr>
+    <tr><td>VLM 启用文档与 .env SOP</td><td><span class="pill p-mid">中</span></td><td>⚠️ 需补密钥安全约定（绝不入库）</td></tr>
+    <tr><td>塔罗 22 张配图补全</td><td><span class="pill p-mid">中</span></td><td>⚠️ 需确认配图来源（生成/素材）</td></tr>
+    <tr><td>精细化 matting / 真人上身合成</td><td><span class="pill p-hard">难</span></td><td>❌ 需补图像生成/matting 知识</td></tr>
+    <tr><td>LLM 可解释穿搭推荐</td><td><span class="pill p-hard">难</span></td><td>❌ 需补 prompt 工程沉淀</td></tr>
+  </table>
+
+  <div class="foot">
+    运行模式：默认 <code>apiMode:"mock"</code>（无后端也能演示）；真实后端需 <code>.env</code> 的 <code>VLM_API_KEY</code>（绝不入库）。
+    服务由后台任务 qIplWC 常驻（8790）。整合版与 wardrobe-app 的 /api/v1 仍仅桥接衣橱数据（最小稳定单元，非全量集成）。
+  </div>
+</div>
+</body>
+</html>

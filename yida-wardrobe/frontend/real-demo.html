@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>易搭整合版 · 真实功能体验台</title>
+<style>
+  :root{
+    --bg:#FAF8F5; --card:#E9E1F7; --border:#CDBBEE; --primary:#5B40CB;
+    --gold:#C9A86A; --ink:#2A2440; --muted:#7A7390; --ok:#2E9E6B; --warn:#C8702A; --err:#C0392B;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"HarmonyOS Sans","MiSans",-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.6;padding:28px 18px 80px}
+  .wrap{max-width:920px;margin:0 auto}
+  h1{font-family:"Noto Serif SC","Source Han Serif SC","Songti SC",serif;font-size:30px;margin:0 0 4px;letter-spacing:.5px}
+  h2{font-family:"Noto Serif SC","Source Han Serif SC",serif;font-size:20px;margin:0 0 12px;color:var(--primary)}
+  .sub{color:var(--muted);font-size:14px;margin-bottom:18px}
+  .banner{background:linear-gradient(0deg,var(--card),#F1ECFB);border:1px solid var(--border);
+    border-radius:18px;padding:14px 18px;font-size:14px;margin-bottom:22px}
+  .banner b{color:var(--primary)}
+  section{background:#fff;border:1px solid var(--border);border-radius:22px;padding:22px;margin-bottom:20px;
+    box-shadow:0 8px 30px rgba(91,64,203,.06)}
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border:none;border-radius:14px;
+    padding:11px 18px;background:var(--primary);color:#fff;transition:.15s;box-shadow:0 4px 14px rgba(91,64,203,.25)}
+  button:hover{filter:brightness(1.06)}
+  button.ghost{background:#fff;color:var(--primary);border:1.5px solid var(--border)}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  textarea,input[type=text]{width:100%;font-family:inherit;font-size:14px;border:1.5px solid var(--border);
+    border-radius:14px;padding:11px 14px;background:#FBFAFE;color:var(--ink);resize:vertical}
+  textarea{min-height:74px}
+  .drop{border:2px dashed var(--border);border-radius:18px;padding:26px;text-align:center;color:var(--muted);
+    cursor:pointer;transition:.15s;background:#FBFAFE;margin-bottom:14px}
+  .drop:hover,.drop.over{background:var(--card);color:var(--primary);border-color:var(--primary)}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:4px 11px;border-radius:999px}
+  .pill.ok{background:rgba(46,158,107,.14);color:var(--ok)}
+  .pill.warn{background:rgba(200,112,42,.14);color:var(--warn)}
+  .pill.err{background:rgba(192,57,43,.14);color:var(--err)}
+  .pill.idle{background:#eee;color:var(--muted)}
+  .imgs{display:flex;gap:16px;flex-wrap:wrap;margin:14px 0}
+  .imgs figure{margin:0;flex:1;min-width:150px}
+  .imgs img{width:100%;border-radius:14px;border:1px solid var(--border);background:#fff;object-fit:contain;max-height:260px}
+  .imgs figcaption{font-size:12px;color:var(--muted);text-align:center;margin-top:6px}
+  .tags{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin-top:8px}
+  .tag{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:9px 12px;font-size:13px}
+  .tag .k{color:var(--muted);font-size:11px;display:block;margin-bottom:2px}
+  .tag .v{font-weight:700;color:var(--ink);word-break:break-word}
+  .swatch{display:inline-block;width:14px;height:14px;border-radius:4px;border:1px solid #0002;vertical-align:-2px;margin-right:6px}
+  .mystic{background:linear-gradient(135deg,#211A38,#3A2E63);color:#F3EEFF;border-radius:18px;padding:18px 20px;
+    font-family:"Noto Serif SC","Songti SC",serif;font-size:16px;line-height:1.8;white-space:pre-wrap;
+    border:1px solid var(--gold);box-shadow:inset 0 0 30px rgba(201,168,106,.12)}
+  pre{background:#211A38;color:#E9E1F7;border-radius:12px;padding:12px 14px;font-size:12px;overflow:auto;max-height:260px}
+  .status{position:fixed;top:calc(14px + env(safe-area-inset-top,0px));right:16px;z-index:9}
+  .hint{font-size:12px;color:var(--muted);margin-top:8px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:640px){.grid2{grid-template-columns:1fr}}
+  .thumb{width:64px;height:64px;object-fit:cover;border-radius:10px;border:1px solid var(--border);background:#fff}
+  .itemrow{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #eee;font-size:13px}
+</style>
+</head>
+<body>
+<div class="status"><span id="statusPill" class="pill idle">后端状态检测中…</span></div>
+<div class="wrap">
+  <h1>易搭整合版 · 真实功能体验台</h1>
+  <div class="sub">这里调用的是<b>真实后端 AI 能力</b>（rembg 抠底 + qwen-vl-max 打标 + 玄学文案），不是 mock 演示。</div>
+
+  <div class="banner">
+    <b>怎么跑起来：</b> ① 双击 <code>start.bat</code>（Win）/ <code>start.sh</code>（Mac·Linux）启动后端（端口 8790）；<br>
+    ② 浏览器打开 <b>http://127.0.0.1:8790/real-demo.html</b>（本页）。<br>
+    <b>关于真实 AI：</b> 抠底始终真实可用；<b>VLM 打标 / 玄学文案要真实，需要你在 <code>backend/.env</code> 里填入 <code>VLM_API_KEY</code></b>（参考同目录 <code>.env.example</code>）。未配置时接口仍跑通，但打标/文案是兜底结果——这页会如实标红提醒。
+  </div>
+
+  <!-- 1 上传抠底+打标 -->
+  <section>
+    <h2>① 真实抠底 + VLM 打标（上传你的衣服图）</h2>
+    <div class="drop" id="drop">把衣服图片拖到这里，或点击选择（支持 jpg/png，建议白底/纯色底商品图，短边 ≥ 480px）</div>
+    <input type="file" id="file" accept="image/*" hidden />
+    <div class="row">
+      <button id="btnIngest">真实上传 · 抠底 · 打标</button>
+      <button class="ghost" id="btnSelfcheck">运行真实链路自检</button>
+      <span id="ingestState" class="pill idle">待操作</span>
+    </div>
+    <div class="hint">自检会拿一张内置示例图跑一遍「抠底+打标」，告诉你当前 VLM 是否已配好（cut_ok / tag_ok）。</div>
+    <div id="ingestResult"></div>
+  </section>
+
+  <!-- 2 示例 -->
+  <section>
+    <h2>② 免上传示例体验（内置衣物图跑完整真实流水线）</h2>
+    <div class="row">
+      <button id="btnSample">用内置示例衣物跑真实流水线</button>
+      <span id="sampleState" class="pill idle">待操作</span>
+    </div>
+    <div class="hint">后端从 <code>backend/data/samples.json</code> 取内置图，等价于一次真实上传：抠底 → 场景探测 → 入柜。无素材也能演示。</div>
+    <div id="sampleResult"></div>
+  </section>
+
+  <!-- 3 玄学文案 -->
+  <section>
+    <h2>③ 玄学文案生成（真实 /api/reason）</h2>
+    <div class="grid2">
+      <div>
+        <label class="hint">今日氛围 / 故事</label>
+        <textarea id="story">今天水星顺行，想穿得轻盈又有底气</textarea>
+      </div>
+      <div>
+        <label class="hint">氛围词（可选，如：温柔 / 利落 / 松弛）</label>
+        <input type="text" id="vibe" placeholder="例如：温柔" />
+        <div class="hint" style="margin-top:10px">将用「①/② 最近一次入柜的单品」作为素材。也可手填下方 JSON。</div>
+        <textarea id="itemsOverride" placeholder='可选：自定义 items JSON，例如 [{"type":"衬衫","color_name":"白","style_tags":["简约"]}]'></textarea>
+      </div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button id="btnReason">生成玄学推荐理由</button>
+      <span id="reasonState" class="pill idle">待操作</span>
+    </div>
+    <div id="reasonResult" style="margin-top:14px"></div>
+  </section>
+
+  <!-- 4 衣橱 -->
+  <section>
+    <h2>④ 当前衣橱 / 待确认区（实时）</h2>
+    <div class="row">
+      <button class="ghost" id="btnRefresh">刷新衣橱</button>
+      <span id="wardrobeState" class="pill idle"></span>
+    </div>
+    <div id="wardrobeResult" style="margin-top:12px"></div>
+  </section>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var API = (location.protocol.indexOf("http") === 0) ? "" : "http://127.0.0.1:8790";
+  var lastItem = null;
+
+  function $(id){ return document.getElementById(id); }
+  function setPill(el, cls, txt){ el.className = "pill " + cls; el.textContent = txt; }
+
+  // 把后端返回的文件系统路径转成可访问 URL
+  function toUrl(p){
+    if(!p) return null;
+    var s = String(p).replace(/\\/g,"/");
+    var m;
+    if((m = s.match(/backend\/cache\/cuts\/(.+)$/))) return "/cache/cuts/"+m[1];
+    if((m = s.match(/backend\/uploads\/(.+)$/)))     return "/uploads/"+m[1];
+    if((m = s.match(/assets\/items\/(.+)$/)))        return "/assets/items/"+m[1];
+    if((m = s.match(/backend\/(.+)$/)))              return "/"+m[1];
+    return s;
+  }
+
+  // 标签中文名映射
+  var TAGLABELS = {
+    category:"品类大类", type:"单品类型", color_name:"颜色", color_hex:"主色值",
+    palette:"配色板", fit:"版型", pattern:"图案", material:"材质",
+    season:"季节", style_tags:"风格标签", occasions:"场合", formality:"正式度(1-5)"
+  };
+  function renderTags(tags){
+    if(!tags) return "<div class='hint'>（无标签，VLM 未配置时为兜底空结果）</div>";
+    var html = "<div class='tags'>";
+    for(var k in TAGLABELS){
+      if(!TAGLABELS.hasOwnProperty(k)) continue;
+      var v = tags[k];
+      if(v===null||v===undefined||(Array.isArray(v)&&v.length===0)||v==="") continue;
+      var vs = Array.isArray(v) ? v.join("、") : String(v);
+      var sw = (k==="color_hex") ? "<span class='swatch' style='background:"+vs+"'></span>" : "";
+      html += "<div class='tag'><span class='k'>"+TAGLABELS[k]+"</span><span class='v'>"+sw+esc(vs)+"</span></div>";
+    }
+    html += "</div>";
+    return html;
+  }
+  function esc(s){ return String(s).replace(/[&<>]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
+
+  function renderIngest(r){
+    var html = "";
+    // 状态
+    if(r.state === "pending_review"){
+      html += "<div style='margin:12px 0'><span class='pill warn'>试穿照/模特上身照 · 已转入待确认区</span></div>";
+    } else if(r.state === "committed"){
+      html += "<div style='margin:12px 0'><span class='pill ok'>已真实入柜</span></div>";
+    }
+    // 图片对比
+    var raw = toUrl(r.raw_image), white = toUrl(r.white_image);
+    html += "<div class='imgs'>";
+    if(raw) html += "<figure><img src='"+API+raw+"'/><figcaption>原图</figcaption></figure>";
+    if(white) html += "<figure><img src='"+API+white+"'/><figcaption>抠底白底结果</figcaption></figure>";
+    html += "</div>";
+    // 打标状态（精确区分：真实 VLM / 示例预设兜底 / 未配空结果）
+    var src = r.item ? r.item.source : null;
+    if(r.tag_ok === false){
+      html += "<div style='margin:8px 0'><span class='pill warn'>tag_ok=false · VLM 未配置/不可用，标签为兜底空结果</span></div>";
+    } else if(src === "sample-preset"){
+      html += "<div style='margin:8px 0'><span class='pill ok'>已入柜 · 示例预设标签（VLM 未配置时走离线兜底；配置密钥后即为真实打标）</span></div>";
+    } else if(r.tag_ok === true){
+      html += "<div style='margin:8px 0'><span class='pill ok'>tag_ok=true · VLM 真实打标成功</span></div>";
+    }
+    html += renderTags(r.tags);
+    if(r.item){
+      lastItem = r.item;
+      html += "<div class='hint'>已把该单品记为「最近入柜单品」，可用于 ③ 玄学文案。</div>";
+    }
+    if(r.scene) html += "<div class='hint'>场景探测："+esc(JSON.stringify(r.scene))+"</div>";
+    return html;
+  }
+
+  // 后端状态检测
+  fetch(API + "/api/v1/bootstrap").then(function(r){return r.json();}).then(function(d){
+    setPill($("statusPill"), "ok", "后端已连接 · " + (d.version||""));
+  }).catch(function(){
+    setPill($("statusPill"), "err", "后端未连接 · 请先运行 start.bat");
+  });
+
+  // 文件选择
+  var drop = $("drop"), fileInput = $("file");
+  drop.addEventListener("click", function(){ fileInput.click(); });
+  fileInput.addEventListener("change", function(){ if(fileInput.files[0]) drop.textContent = "已选择：" + fileInput.files[0].name; });
+  ["dragover","dragenter"].forEach(function(ev){ drop.addEventListener(ev, function(e){e.preventDefault();drop.classList.add("over");}); });
+  ["dragleave","drop"].forEach(function(ev){ drop.addEventListener(ev, function(e){e.preventDefault();drop.classList.remove("over");}); });
+  drop.addEventListener("drop", function(e){
+    var f = e.dataTransfer.files[0]; if(f){ fileInput.files = e.dataTransfer.files; drop.textContent = "已选择：" + f.name; }
+  });
+
+  function postMultipart(url, blob, name){
+    var fd = new FormData(); fd.append("file", blob, name);
+    return fetch(API + url, {method:"POST", body:fd});
+  }
+
+  // ① 上传抠底
+  $("btnIngest").addEventListener("click", function(){
+    var f = fileInput.files[0];
+    if(!f){ alert("请先选择一张衣服图片"); return; }
+    setPill($("ingestState"), "idle", "处理中…");
+    $("ingestResult").innerHTML = "<div class='hint'>正在真实抠底 + VLM 打标，请稍候（首次可能十几秒）…</div>";
+    postMultipart("/ingest", f, f.name).then(function(r){return r.json().then(function(j){return {ok:r.ok,j:j};});}).then(function(o){
+      if(!o.ok){ setPill($("ingestState"),"err","失败"); $("ingestResult").innerHTML = "<pre>"+esc(JSON.stringify(o.j,null,2))+"</pre>"; return; }
+      setPill($("ingestState"), "ok", o.j.state==="committed"?"已入柜":"待确认");
+      $("ingestResult").innerHTML = renderIngest(o.j);
+      loadWardrobe();
+    }).catch(function(e){ setPill($("ingestState"),"err","网络错误"); $("ingestResult").innerHTML = "<div class='hint'>"+esc(e)+"</div>"; });
+  });
+
+  // 自检：拿内置示例图跑 prepare
+  $("btnSelfcheck").addEventListener("click", function(){
+    setPill($("ingestState"), "idle", "自检中…");
+    fetch(API + "/assets/items/w0001.jpg").then(function(r){return r.blob();}).then(function(blob){
+      return postMultipart("/api/prepare", blob, "w0001.jpg").then(function(r){return r.json();});
+    }).then(function(j){
+      var cut = j.cut_ok ? "✓抠底可用" : "✗抠底失败";
+      var tag = j.tag_ok ? "✓VLM打标已配好" : "✗VLM未配(兜底)";
+      var cls = j.tag_ok ? "ok" : "warn";
+      setPill($("ingestState"), cls, cut+" / "+tag);
+      $("ingestResult").innerHTML = "<div class='imgs'><figure><img src='"+API+toUrl(j.white_image)+"'/><figcaption>自检·抠底白底</figcaption></figure></div>" + renderTags(j.tags)
+        + "<div class='hint'>若 VLM 未配，请把 API Key 写入 <code>backend/.env</code> 后重启后端再点此自检。</div>";
+    }).catch(function(e){ setPill($("ingestState"),"err","自检失败"); $("ingestResult").innerHTML = "<div class='hint'>"+esc(e)+"</div>"; });
+  });
+
+  // ② 示例
+  $("btnSample").addEventListener("click", function(){
+    setPill($("sampleState"), "idle", "处理中…");
+    $("sampleResult").innerHTML = "<div class='hint'>正在用内置示例衣物跑真实流水线…</div>";
+    fetch(API + "/api/samples").then(function(r){return r.json();}).then(function(d){
+      var list = (d.samples||[]);
+      if(!list.length){ setPill($("sampleState"),"err","无示例"); $("sampleResult").innerHTML="<div class='hint'>samples.json 为空，无法免上传演示。</div>"; return; }
+      var s = list[0];
+      return fetch(API + "/api/ingest_sample", {method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({id:s.id})}).then(function(r){return r.json().then(function(j){return {ok:r.ok,j:j};});}).then(function(o){
+        if(!o.ok){ setPill($("sampleState"),"err","失败"); $("sampleResult").innerHTML="<pre>"+esc(JSON.stringify(o.j,null,2))+"</pre>"; return; }
+        var ssrc = o.j.item ? o.j.item.source : "";
+        if(ssrc === "sample-preset") setPill($("sampleState"), "ok", (s.title||"示例")+" · 预设标签(离线兜底)");
+        else setPill($("sampleState"), o.j.state==="committed"?"ok":"warn", (s.title||"示例")+" · "+o.j.state);
+        $("sampleResult").innerHTML = renderIngest(o.j);
+        loadWardrobe();
+      });
+    }).catch(function(e){ setPill($("sampleState"),"err","网络错误"); $("sampleResult").innerHTML="<div class='hint'>"+esc(e)+"</div>"; });
+  });
+
+  // ③ 文案
+  $("btnReason").addEventListener("click", function(){
+    setPill($("reasonState"), "idle", "生成中…");
+    var story = $("story").value || "";
+    var vibe = $("vibe").value || "";
+    var items = null;
+    var override = $("itemsOverride").value.trim();
+    if(override){ try{ items = JSON.parse(override); }catch(e){ alert("items JSON 格式错误"); return; } }
+    if(!items){
+      if(lastItem){ items = [lastItem]; }
+      else {
+        // 取衣橱第一个
+        items = window.__firstWardrobe ? [window.__firstWardrobe] : [];
+      }
+    }
+    $("reasonResult").innerHTML = "<div class='hint'>真实调用 /api/reason 中…</div>";
+    fetch(API + "/api/reason", {method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({story:story, items:items, vibe:vibe})}).then(function(r){return r.json();})    .then(function(j){
+      if(j.reason){
+        setPill($("reasonState"), "ok", "已生成");
+        var isTpl = /为你选了/.test(j.reason);
+        var tplNote = isTpl
+          ? "<div class='hint' style='color:var(--warn)'>⚠️ 该文案为<b>兜底模板</b>（VLM 未配置/不可用时触发）。配置 <code>backend/.env</code> 的 VLM_API_KEY 后即为 AI 真实生成。</div>"
+          : "<div class='hint'>✓ 该文案由 VLM 真实生成。</div>";
+        $("reasonResult").innerHTML = "<div class='mystic'>「"+esc(j.reason)+"」</div>" + tplNote
+          + (items.length? "<div class='hint'>素材单品："+esc(items.map(function(i){return (i.color_name||"")+(i.type||"");}).join("、")||"（无标签）")+"</div>" : "<div class='hint'>（未提供单品素材，使用兜底模板）</div>");
+      } else {
+        setPill($("reasonState"), "err", "空结果");
+        $("reasonResult").innerHTML = "<pre>"+esc(JSON.stringify(j,null,2))+"</pre>";
+      }
+    }).catch(function(e){ setPill($("reasonState"),"err","网络错误"); $("reasonResult").innerHTML="<div class='hint'>"+esc(e)+"</div>"; });
+  });
+
+  // ④ 衣橱
+  function loadWardrobe(){
+    setPill($("wardrobeState"), "idle", "加载中…");
+    Promise.all([
+      fetch(API + "/api/items").then(function(r){return r.json();}),
+      fetch(API + "/api/pending").then(function(r){return r.json();})
+    ]).then(function(arr){
+      var items = (arr[0].items||[]); var pend = (arr[1].pending||[]);
+      window.__firstWardrobe = items[0] || null;
+      var html = "<div class='hint'>衣橱单品数：<b>"+items.length+"</b> ｜ 待确认区：<b>"+pend.length+"</b></div>";
+      if(items.length){
+        html += "<div style='margin-top:10px'>";
+        items.slice(-12).reverse().forEach(function(it){
+          var img = toUrl(it.image);
+          html += "<div class='itemrow'><img class='thumb' src='"+(img?API+img:"")+"'/>"
+            + "<div>"+esc((it.color_name||"")+(it.type||"·")||"未命名")
+            + " <span class='pill idle' style='font-size:10px'>"+(it.source||"")+(it.tag_ok?" ·已打标":"")+"</span>"
+            + "<div class='hint'>"+esc((it.style_tags||[]).join("、"))+"</div></div></div>";
+        });
+        html += "</div>";
+      }
+      if(pend.length){
+        html += "<div style='margin-top:14px'><b>待确认区（试穿照/模特照，需人工放行）：</b></div>";
+        pend.forEach(function(p){
+          html += "<div class='itemrow'><img class='thumb' src='"+(p.cut_image?API+toUrl(p.cut_image):"")+"'/>"
+            + "<div>"+esc(p.filename||p.id)+" <span class='pill warn' style='font-size:10px'>待确认</span>"
+            + "<div class='hint'>"+esc(p.reason||"")+"</div></div>"
+            + "<button class='ghost' data-pid='"+esc(p.id)+"'>放行入柜</button></div>";
+        });
+      }
+      $("wardrobeResult").innerHTML = html;
+      setPill($("wardrobeState"), "ok", "已加载");
+      Array.prototype.forEach.call(document.querySelectorAll("[data-pid]"), function(b){
+        b.addEventListener("click", function(){
+          fetch(API + "/api/pending/"+b.getAttribute("data-pid")+"/commit", {method:"POST", headers:{"Content-Type":"application/json"}, body:"{}"})
+            .then(function(){ loadWardrobe(); });
+        });
+      });
+    }).catch(function(e){ setPill($("wardrobeState"),"err","加载失败"); $("wardrobeResult").innerHTML="<div class='hint'>"+esc(e)+"</div>"; });
+  }
+  $("btnRefresh").addEventListener("click", loadWardrobe);
+  loadWardrobe();
+})();
+</script>
+</body>
+</html>
